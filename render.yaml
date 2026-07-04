@@ -1,0 +1,42 @@
+# Render blueprint for the NexusSoft backend (Express + MongoDB).
+# The frontend deploys separately on Vercel (Root Directory = frontend).
+#
+# In Render: New + -> Blueprint -> pick this repo. Then set the secret env
+# vars marked `sync: false` (MONGODB_URI, JWT_SECRET, CRON_SECRET, CORS_ORIGINS)
+# in the dashboard. JWT_SECRET MUST match the value you set on Vercel.
+services:
+  - type: web
+    name: sass-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render injects PORT automatically; the app reads process.env.PORT.
+      - key: MONGODB_URI
+        sync: false # e.g. mongodb+srv://user:pass@cluster.mongodb.net/nexus_saas
+      - key: JWT_SECRET
+        sync: false # MUST equal the Vercel JWT_SECRET
+      - key: JWT_ISSUER
+        value: nexussoft
+      - key: JWT_ACCESS_AUDIENCE
+        value: nexussoft-api
+      - key: JWT_REFRESH_AUDIENCE
+        value: nexussoft-refresh
+      - key: ACCESS_TOKEN_TTL
+        value: 15m
+      - key: REFRESH_TOKEN_TTL
+        value: 7d
+      - key: ENABLE_CRON
+        value: "true"
+      - key: CRON_TZ
+        value: Asia/Karachi
+      - key: CRON_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false # your Vercel URL, e.g. https://sass-software.vercel.app

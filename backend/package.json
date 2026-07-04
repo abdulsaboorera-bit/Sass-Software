@@ -4,6 +4,9 @@
   "description": "NexusSoft multi-tenant SaaS backend — Express + Mongoose + MongoDB. Replaces the previous Next.js/Prisma/PostgreSQL data layer.",
   "main": "src/index.js",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",

@@ -31,13 +31,18 @@ export async function middleware(request: NextRequest) {
   // Check if the path is a solution sub-page (public)
   const isSolutionPage = pathname.startsWith("/solutions/");
 
+  // The member self-service portal uses its own client-side JWT (Bearer token in
+  // localStorage), not the staff access_token cookie — so it is public to this
+  // staff middleware and guards itself.
+  const isMemberPortal = pathname === "/portal" || pathname.startsWith("/portal/");
+
   // Check if the path is a static file or Next.js internal
   const isStaticFile =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/api/") === false && pathname.includes(".");
 
-  if (publicPaths.includes(pathname) || isSolutionPage || isStaticFile) {
+  if (publicPaths.includes(pathname) || isSolutionPage || isMemberPortal || isStaticFile) {
     return NextResponse.next();
   }
 

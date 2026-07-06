@@ -54,9 +54,36 @@ function verifyRefreshToken(token) {
   }
 }
 
+// ── Member self-service portal tokens (separate audience) ──
+const MEMBER_AUDIENCE = "nexussoft-member";
+
+function signMemberToken({ memberId, tenantId }) {
+  return jwt.sign({ memberId: String(memberId), tenantId: String(tenantId), scope: "member" }, env.jwt.secret, {
+    algorithm: "HS256",
+    expiresIn: "7d",
+    issuer: env.jwt.issuer,
+    audience: MEMBER_AUDIENCE,
+  });
+}
+
+function verifyMemberToken(token) {
+  try {
+    const p = jwt.verify(token, env.jwt.secret, {
+      algorithms: ["HS256"],
+      issuer: env.jwt.issuer,
+      audience: MEMBER_AUDIENCE,
+    });
+    return p.scope === "member" ? p : null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   signAccessToken,
   signRefreshToken,
   verifyAccessToken,
   verifyRefreshToken,
+  signMemberToken,
+  verifyMemberToken,
 };

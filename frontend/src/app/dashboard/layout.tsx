@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, BookOpen, Calendar, DollarSign,
   Settings, ChevronLeft, ChevronRight, Zap, Bell, LogOut,
-  GraduationCap, Menu, X, Dumbbell, BarChart3, Package, ClipboardList, CreditCard
+  GraduationCap, Menu, X, Dumbbell, BarChart3, Package, ClipboardList, CreditCard, Trophy
 } from "lucide-react";
 
 interface UserData {
@@ -54,6 +54,7 @@ const industryNav: Record<string, { label: string; href: string; icon: typeof La
   GYM: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Members", href: "/dashboard/members", icon: Users },
+    { label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy },
     { label: "Trainers", href: "/dashboard/trainers", icon: Dumbbell },
     { label: "Sessions", href: "/dashboard/sessions", icon: Calendar },
     { label: "Billing", href: "/dashboard/billing", icon: CreditCard },

@@ -17,14 +17,17 @@ const expenseRoutes = require("./expense.routes");
 const reportsRoutes = require("./reports.routes");
 const settingsRoutes = require("./settings.routes");
 const bookingsRoutes = require("./bookings.routes");
+const insightsRoutes = require("./insights.routes");
+const portalRoutes = require("./portal.routes");
 const checkinsCtrl = require("../../controllers/gym/checkins.controller");
 const { requirePermission, requireAnyPermission } = require("../../middleware/rbac");
 
 const router = express.Router();
 
-// Cron trigger is mounted first, WITHOUT the tenant guard, so external
-// schedulers can call it with just the x-cron-secret header.
+// Cron trigger + member portal are mounted first, WITHOUT the staff tenant
+// guard. Cron uses the x-cron-secret header; the portal uses its own member JWT.
 router.use("/cron", cronRoutes);
+router.use("/portal", portalRoutes);
 
 // Everything below requires an authenticated user operating within a tenant.
 router.use(requireAuth, requireTenant);
@@ -40,6 +43,7 @@ router.use("/expenses", expenseRoutes);
 router.use("/reports", reportsRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/bookings", bookingsRoutes);
+router.use("/insights", insightsRoutes);
 
 // Check-in kiosk endpoint (toggle by memberNo).
 router.get("/checkins", requirePermission("attendance.view"), checkinsCtrl.list);

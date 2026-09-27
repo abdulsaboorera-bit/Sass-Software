@@ -12,7 +12,7 @@ const leaderboard = asyncHandler(async (req, res) => {
 });
 
 const badges = asyncHandler(async (req, res) => {
-  return apiSuccess(res, await gamification.memberBadges({ tenantId: req.tenantId, memberId: req.params.id }));
+  return apiSuccess(res, await gamification.memberBadges({ tenantId: req.tenantId, memberId: req.params.id, trainerScope: req.memberScope }));
 });
 
 const peakHours = asyncHandler(async (req, res) => {

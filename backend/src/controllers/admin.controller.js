@@ -86,36 +86,98 @@ const listUsers = asyncHandler(async (req, res) => {
   return apiSuccess(res, { users: shaped, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 });
 
+/**
+ * A user belongs to at most one tenant. Reconcile their TenantUser
+ * membership to match `tenantId`: clear any existing membership, and if a
+ * tenant is given, attach them to its `owner` role. This is what makes
+ * "add/move a user to a tenant" actually functional — every permission
+ * check goes through TenantUser + TenantRole, not User.tenantId.
+ */
+async function syncTenantMembership(userId, tenantId) {
+  await TenantUser.deleteMany({ userId });
+  if (!tenantId) return;
+
+  const ownerRole = await TenantRole.findOne({ tenantId, slug: "owner" });
+  if (!ownerRole) throw ApiError.badRequest("Invalid tenant");
+  await TenantUser.create({ tenantId, userId, roleId: ownerRole._id });
+}
+
 const createUserSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().min(2).optional(),
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(["SUPER_ADMIN", "SUPPORT_AGENT"]).optional(),
+  role: z.enum(["SUPER_ADMIN"]).optional(),
   tenantId: z.string().optional(),
 });
 
+/** "gym2@demo.com" -> "Gym2" — used when no display name is given at creation. */
+function nameFromEmail(email) {
+  const local = email.split("@")[0];
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
 const createUser = asyncHandler(async (req, res) => {
   const data = createUserSchema.parse(req.body);
+
+  if (data.tenantId) {
+    const tenant = await Tenant.findById(data.tenantId);
+    if (!tenant) throw ApiError.badRequest("Invalid tenant");
+  }
+
   const passwordHash = await hashPassword(data.password);
   const user = await User.create({
-    name: data.name,
+    name: data.name || nameFromEmail(data.email),
     email: data.email.toLowerCase(),
     passwordHash,
-    role: data.role || "SUPPORT_AGENT",
+    role: "SUPER_ADMIN", // tenant ownership vs. platform admin is distinguished by tenantId, not role
     status: "ACTIVE",
     tenantId: data.tenantId || null,
   });
+
+  if (data.tenantId) await syncTenantMembership(user._id, data.tenantId);
+
   return apiSuccess(res, { user }, 201);
 });
 
+const updateUserSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(2).optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(8).optional(),
+  tenantId: z.string().nullable().optional(),
+  status: z.enum(["ACTIVE", "INVITED", "SUSPENDED"]).optional(),
+});
+
 const updateUser = asyncHandler(async (req, res) => {
-  const id = req.body.id || req.params.id;
-  if (!id) throw ApiError.badRequest("id is required");
-  const { id: _omit, password, ...updates } = req.body;
+  const data = updateUserSchema.parse({ ...req.body, id: req.body.id || req.params.id });
+  const { id, password, tenantId, ...updates } = data;
+  if (updates.email) updates.email = updates.email.toLowerCase();
   if (password) updates.passwordHash = await hashPassword(password);
+
+  const tenantChanging = tenantId !== undefined;
+  if (tenantChanging) {
+    if (tenantId) {
+      const tenant = await Tenant.findById(tenantId);
+      if (!tenant) throw ApiError.badRequest("Invalid tenant");
+    }
+    updates.tenantId = tenantId || null;
+  }
+
   const user = await User.findByIdAndUpdate(id, updates, { new: true });
   if (!user) throw ApiError.notFound("User not found");
+
+  if (tenantChanging) await syncTenantMembership(user._id, tenantId || null);
+
   return apiSuccess(res, { user });
 });
 
-module.exports = { listTenants, createTenant, updateTenant, listUsers, createUser, updateUser };
+const deleteUser = asyncHandler(async (req, res) => {
+  const id = req.body.id || req.params.id || req.query.id;
+  if (!id) throw ApiError.badRequest("id is required");
+  const user = await User.findByIdAndDelete(id);
+  if (!user) throw ApiError.notFound("User not found");
+  await TenantUser.deleteMany({ userId: id });
+  return apiSuccess(res, { success: true });
+});
+
+module.exports = { listTenants, createTenant, updateTenant, listUsers, createUser, updateUser, deleteUser };

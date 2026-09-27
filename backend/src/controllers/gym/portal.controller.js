@@ -13,6 +13,7 @@ const bookingService = require("../../services/gym/booking.service");
 const loginSchema = z.object({
   memberNo: z.string().min(1),
   phone: z.string().min(4),
+  tenantSlug: z.string().min(1).optional(),
 });
 
 /**
@@ -20,9 +21,12 @@ const loginSchema = z.object({
  * Lightweight member auth: matches memberNo + phone. Returns a member-scoped JWT.
  */
 const login = asyncHandler(async (req, res) => {
-  const { memberNo, phone } = loginSchema.parse(req.body);
-  const member = await Member.findOne({ memberNo, phone });
-  if (!member) throw ApiError.unauthorized("Invalid member number or phone");
+  const { memberNo, phone, tenantSlug } = loginSchema.parse(req.body);
+  const tenant = tenantSlug ? await Tenant.findOne({ slug: tenantSlug, industry: "GYM", status: { $in: ["ACTIVE", "TRIAL"] } }).select("_id").lean() : null;
+  if (tenantSlug && !tenant) throw ApiError.unauthorized("Invalid gym");
+  const matches = await Member.find({ memberNo, phone, ...(tenant ? { tenantId: tenant._id } : {}) }).limit(2);
+  if (matches.length !== 1) throw ApiError.unauthorized("Invalid member number or phone");
+  const member = matches[0];
 
   const token = signMemberToken({ memberId: member._id, tenantId: member.tenantId });
   return apiSuccess(res, {
@@ -102,8 +106,8 @@ const myBookings = asyncHandler(async (req, res) => {
 });
 
 const cancelBooking = asyncHandler(async (req, res) => {
-  const { tenantId } = req.portalMember;
-  const booking = await bookingService.cancel({ tenantId, id: req.params.id, cancelReason: "Cancelled by member" });
+  const { memberId, tenantId } = req.portalMember;
+  const booking = await bookingService.cancel({ tenantId, memberId, id: req.params.id, cancelReason: "Cancelled by member" });
   return apiSuccess(res, { booking });
 });
 

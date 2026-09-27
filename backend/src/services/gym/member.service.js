@@ -5,6 +5,7 @@ const { ApiError } = require("../../utils/apiResponse");
 const { nextMemberNo } = require("../../utils/ids");
 const { addDays, computeMembershipStatus } = require("../../utils/dates");
 const notifications = require("../notification.service");
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Attach derived fields (effectiveStatus, daysUntilExpiry) to a lean member. */
 function decorate(m) {
@@ -26,12 +27,17 @@ async function list({ tenantId, page = 1, limit = 20, search, status, planId, tr
   const filter = { tenantId };
   if (search) {
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { memberNo: { $regex: search, $options: "i" } },
-      { phone: { $regex: search, $options: "i" } },
+       { name: { $regex: escapeRegex(search), $options: "i" } },
+       { memberNo: { $regex: escapeRegex(search), $options: "i" } },
+       { phone: { $regex: escapeRegex(search), $options: "i" } },
     ];
   }
-  if (status) filter.status = status;
+  if (status === "FROZEN" || status === "CANCELLED") filter.status = status;
+  if (status === "ACTIVE" || status === "EXPIRED") {
+    filter.$and = [{ status: { $nin: ["FROZEN", "CANCELLED"] } }, {
+      endDate: status === "ACTIVE" ? { $gte: new Date() } : { $lt: new Date() },
+    }];
+  }
   if (planId) filter.planId = planId;
   if (trainerId) filter.trainerId = trainerId;
   if (trainerScope) filter.trainerId = trainerScope; // hard override for scoped trainers
@@ -48,8 +54,12 @@ async function list({ tenantId, page = 1, limit = 20, search, status, planId, tr
     Member.countDocuments(filter),
   ]);
 
+  const billing = require("./billing.service"); // lazy require avoids a cycle
+  const latestInvoices = await billing.latestInvoicesByMember({ tenantId, memberIds: rows.map((r) => r._id) });
+  const decorated = rows.map((r) => ({ ...decorate(r), feeStatus: latestInvoices.get(String(r._id))?.status || null }));
+
   return {
-    members: rows.map(decorate),
+    members: decorated,
     pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   };
 }
@@ -62,7 +72,11 @@ async function getById({ tenantId, id, trainerScope }) {
     .populate("trainer", "name phone")
     .lean({ virtuals: true });
   if (!member) throw ApiError.notFound("Member not found");
-  return decorate(member);
+
+  const billing = require("./billing.service"); // lazy require avoids a cycle
+  const latestInvoices = await billing.latestInvoicesByMember({ tenantId, memberIds: [member._id] });
+
+  return { ...decorate(member), feeStatus: latestInvoices.get(String(member._id))?.status || null };
 }
 
 async function create({ tenantId, data, actor }) {
@@ -255,8 +269,8 @@ async function remove({ tenantId, id }) {
 }
 
 /** Full payment history for a member (billing "payment history per member"). */
-async function paymentHistory({ tenantId, id }) {
-  const member = await Member.findOne({ _id: id, tenantId }).select("_id").lean();
+async function paymentHistory({ tenantId, id, trainerScope }) {
+  const member = await Member.findOne({ _id: id, tenantId, ...(trainerScope ? { trainerId: trainerScope } : {}) }).select("_id").lean();
   if (!member) throw ApiError.notFound("Member not found");
   const payments = await GymPayment.find({ tenantId, memberId: id }).sort({ paidAt: -1 }).lean();
   return payments;

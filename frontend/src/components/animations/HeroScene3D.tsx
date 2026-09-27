@@ -1,16 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import * as THREE from "three";
 
 export default function HeroScene3D() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (!mounted || !containerRef.current) return;
+    if (!containerRef.current) return;
     const container = containerRef.current;
     const W = container.clientWidth;
     const H = container.clientHeight;
@@ -147,7 +144,7 @@ export default function HeroScene3D() {
       renderer.dispose();
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
-  }, [mounted]);
+  }, []);
 
   return (
     <div

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, AlertCircle, Plus, X, Pencil, Trash2 } from "lucide-react";
 
 interface User {
   id: string;
@@ -14,6 +14,13 @@ interface User {
   tenant: { id: string; name: string; slug: string } | null;
 }
 
+interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  industry: string;
+}
+
 interface Pagination {
   page: number;
   limit: number;
@@ -21,26 +28,39 @@ interface Pagination {
   pages: number;
 }
 
+const emptyForm = { name: "", email: "", password: "", assignment: "platform" as "platform" | "tenant", tenantId: "" };
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [roleFilter, setRoleFilter] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<User | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchUsers();
-  }, [page, roleFilter]);
+  }, [page]);
+
+  useEffect(() => {
+    fetch("/api/admin/tenants?limit=200", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => { if (data.tenants) setTenants(data.tenants); });
+  }, []);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({ page: String(page), limit: "20" });
       if (search) params.set("search", search);
-      if (roleFilter) params.set("role", roleFilter);
 
       const res = await fetch(`/api/admin/users?${params}`, { credentials: "include" });
       const data = await res.json();
@@ -80,6 +100,86 @@ export default function UsersPage() {
     }
   };
 
+  const handleDelete = async (user: User) => {
+    if (!confirm(`Delete user "${user.name}" (${user.email})? This cannot be undone.`)) return;
+    try {
+      setActionLoading(user.id);
+      const res = await fetch(`/api/admin/users?id=${user.id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error();
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+    } catch {
+      alert("Failed to delete user");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setFormError("");
+    setModalOpen(true);
+  };
+
+  const openEdit = (u: User) => {
+    setEditing(u);
+    setForm({
+      name: u.name,
+      email: u.email,
+      password: "",
+      assignment: u.tenant ? "tenant" : "platform",
+      tenantId: u.tenant?.id || "",
+    });
+    setFormError("");
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditing(null);
+    setForm(emptyForm);
+    setFormError("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setFormError("");
+    try {
+      const tenantId = form.assignment === "tenant" ? form.tenantId : null;
+      if (form.assignment === "tenant" && !tenantId) throw new Error("Select a tenant");
+
+      if (editing) {
+        const payload: Record<string, unknown> = { id: editing.id, name: form.name, email: form.email, tenantId };
+        if (form.password) payload.password = form.password;
+        const res = await fetch("/api/admin/users", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update user");
+      } else {
+        if (!form.password) throw new Error("Password is required");
+        const res = await fetch("/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email: form.email, password: form.password, tenantId: tenantId || undefined }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to create user");
+      }
+      closeModal();
+      fetchUsers();
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const statusColor = (s: string) => {
     if (s === "ACTIVE") return "bg-emerald-100 text-emerald-700";
     if (s === "INVITED") return "bg-blue-100 text-blue-700";
@@ -87,16 +187,20 @@ export default function UsersPage() {
     return "bg-slate-100 text-slate-600";
   };
 
-  const roleColor = (r: string) => {
-    if (r === "SUPER_ADMIN") return "bg-purple-100 text-purple-700";
-    return "bg-slate-100 text-slate-600";
-  };
-
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Users</h2>
-        <p className="text-slate-500 text-sm">Manage all platform users.</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Users</h2>
+          <p className="text-slate-500 text-sm">Manage platform admins and tenant owner logins.</p>
+        </div>
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer border-none"
+        >
+          <Plus size={16} />
+          Add User
+        </button>
       </div>
 
       {/* Filters */}
@@ -119,15 +223,6 @@ export default function UsersPage() {
             Search
           </button>
         </form>
-        <select
-          value={roleFilter}
-          onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm cursor-pointer"
-        >
-          <option value="">All Roles</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
-          <option value="SUPPORT_AGENT">Support Agent</option>
-        </select>
       </div>
 
       {/* Error */}
@@ -146,7 +241,6 @@ export default function UsersPage() {
               <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Name</th>
               <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Email</th>
               <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Tenant</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Role</th>
               <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
               <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Last Login</th>
               <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Actions</th>
@@ -155,22 +249,19 @@ export default function UsersPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">Loading...</td>
+                <td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">Loading...</td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">No users found.</td>
+                <td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">No users found.</td>
               </tr>
             ) : (
               users.map((u) => (
                 <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className="px-5 py-3.5 text-sm font-semibold text-slate-900">{u.name}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-600">{u.email}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-600">{u.tenant?.name || "—"}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleColor(u.role)}`}>
-                      {u.role.replace("_", " ")}
-                    </span>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">
+                    {u.tenant ? u.tenant.name : <span className="text-purple-600 font-medium">Platform Admin</span>}
                   </td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColor(u.status)}`}>
@@ -180,18 +271,33 @@ export default function UsersPage() {
                   <td className="px-5 py-3.5 text-sm text-slate-500">
                     {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : "Never"}
                   </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <button
-                      onClick={() => toggleStatus(u)}
-                      disabled={actionLoading === u.id}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none transition-colors ${
-                        u.status === "ACTIVE"
-                          ? "bg-red-50 text-red-600 hover:bg-red-100"
-                          : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                      }`}
-                    >
-                      {actionLoading === u.id ? "..." : u.status === "ACTIVE" ? "Suspend" : "Activate"}
-                    </button>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => openEdit(u)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors border-none bg-transparent cursor-pointer"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => toggleStatus(u)}
+                        disabled={actionLoading === u.id}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none transition-colors ${
+                          u.status === "ACTIVE"
+                            ? "bg-red-50 text-red-600 hover:bg-red-100"
+                            : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                        }`}
+                      >
+                        {actionLoading === u.id ? "..." : u.status === "ACTIVE" ? "Suspend" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u)}
+                        disabled={actionLoading === u.id}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors border-none bg-transparent cursor-pointer"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -222,6 +328,76 @@ export default function UsersPage() {
             >
               <ChevronRight size={16} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Create / Edit Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={closeModal}>
+          <div className="bg-white rounded-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-slate-900">{editing ? "Edit User" : "Add User"}</h3>
+              <button onClick={closeModal} className="p-1 rounded-lg hover:bg-slate-100 cursor-pointer border-none bg-transparent">
+                <X size={18} className="text-slate-400" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {formError && <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{formError}</div>}
+              {editing && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Name</label>
+                  <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+                {!editing && <p className="text-[11px] text-slate-400 mb-1">This email + password becomes their login directly.</p>}
+                <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  {editing ? "New Password (leave blank to keep current)" : "Password"}
+                </label>
+                <input type="password" required={!editing} minLength={8} value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Access</label>
+                <div className="flex gap-4 mb-2">
+                  <label className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
+                    <input type="radio" checked={form.assignment === "platform"}
+                      onChange={() => setForm({ ...form, assignment: "platform" })} />
+                    Platform Super Admin
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
+                    <input type="radio" checked={form.assignment === "tenant"}
+                      onChange={() => setForm({ ...form, assignment: "tenant" })} />
+                    Owner of a tenant
+                  </label>
+                </div>
+                {form.assignment === "tenant" && (
+                  <select required value={form.tenantId} onChange={(e) => setForm({ ...form, tenantId: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                    <option value="">Select a tenant</option>
+                    {tenants.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.industry})</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={closeModal} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer border-none bg-transparent">
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 cursor-pointer border-none disabled:opacity-50">
+                  {saving ? "Saving..." : editing ? "Save Changes" : "Create User"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

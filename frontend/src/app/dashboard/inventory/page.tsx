@@ -13,30 +13,45 @@ interface InventoryItem {
   costPrice: number;
   sellPrice?: number;
   minStock: number;
-  supplier?: string;
+  supplierName?: string;
   isActive: boolean;
 }
 
-const CATEGORIES = ["Supplements", "Equipment", "Accessories", "Apparel", "Cleaning", "Other"];
+const CATEGORIES = [
+  { value: "SUPPLEMENT", label: "Supplements" },
+  { value: "DRINK", label: "Drinks" },
+  { value: "MERCHANDISE", label: "Merchandise" },
+  { value: "EQUIPMENT", label: "Equipment" },
+  { value: "OTHER", label: "Other" },
+];
+
+interface InventorySummary {
+  totalItems: number;
+  totalValue: number;
+  lowStockCount: number;
+  byCategory?: { category: string; count: number; value: number }[];
+}
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<InventorySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [showLowStock, setShowLowStock] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [form, setForm] = useState({ name: "", sku: "", category: "Supplements", quantity: "", unit: "pcs", minStock: "5", costPrice: "", sellPrice: "", supplier: "" });
+  const [form, setForm] = useState({ name: "", sku: "", category: "SUPPLEMENT", quantity: "", unit: "pcs", minStock: "5", costPrice: "", sellPrice: "", supplierName: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [movementModal, setMovementModal] = useState<{ item: InventoryItem; type: "STOCK_IN" | "STOCK_OUT" } | null>(null);
+  const [movementModal, setMovementModal] = useState<{ item: InventoryItem; type: "PURCHASE" | "SALE" } | null>(null);
   const [movementForm, setMovementForm] = useState({ quantity: "", unitPrice: "", notes: "" });
   const [movementSubmitting, setMovementSubmitting] = useState(false);
+  const [fetchError, setFetchError] = useState("");
 
   const fetchItems = () => {
     setLoading(true);
+    setFetchError("");
     const params = new URLSearchParams({ limit: "200" });
     if (search) params.set("search", search);
     if (categoryFilter) params.set("category", categoryFilter);
@@ -44,6 +59,7 @@ export default function InventoryPage() {
     fetch(`/api/gym/inventory?${params}`, { credentials: "include" })
       .then(r => r.json())
       .then(data => { if (data.items) setItems(data.items); })
+      .catch(() => setFetchError("Failed to load inventory items"))
       .finally(() => setLoading(false));
   };
 
@@ -59,25 +75,25 @@ export default function InventoryPage() {
     return () => clearTimeout(t);
   }, [search, categoryFilter, showLowStock]);
 
-  const resetForm = () => { setForm({ name: "", sku: "", category: "Supplements", quantity: "", unit: "pcs", minStock: "5", costPrice: "", sellPrice: "", supplier: "" }); setEditingItem(null); setShowForm(false); setError(""); };
+  const resetForm = () => { setForm({ name: "", sku: "", category: "SUPPLEMENT", quantity: "", unit: "pcs", minStock: "5", costPrice: "", sellPrice: "", supplierName: "" }); setEditingItem(null); setShowForm(false); setError(""); };
 
   const startEdit = (item: InventoryItem) => {
     setEditingItem(item);
-    setForm({ name: item.name, sku: item.sku || "", category: item.category, quantity: String(item.quantity), unit: item.unit, minStock: String(item.minStock), costPrice: String(item.costPrice), sellPrice: String(item.sellPrice || ""), supplier: item.supplier || "" });
+    setForm({ name: item.name, sku: item.sku || "", category: item.category, quantity: String(item.quantity), unit: item.unit, minStock: String(item.minStock), costPrice: String(item.costPrice), sellPrice: String(item.sellPrice || ""), supplierName: item.supplierName || "" });
     setShowForm(true); setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.quantity || !form.costPrice) { setError("Name, quantity, and cost price are required"); return; }
+    if (!form.name || form.quantity === "" || form.costPrice === "") { setError("Name, quantity, and cost price are required"); return; }
     setSubmitting(true); setError("");
     try {
       const body: Record<string, unknown> = {
         name: form.name, sku: form.sku || undefined, category: form.category,
-        quantity: parseFloat(form.quantity), unit: form.unit,
-        minStock: parseFloat(form.minStock) || 0, costPrice: parseFloat(form.costPrice),
-        sellPrice: form.sellPrice ? parseFloat(form.sellPrice) : undefined,
-        supplier: form.supplier || undefined,
+         quantity: parseInt(form.quantity, 10), unit: form.unit,
+         minStock: parseInt(form.minStock, 10) || 0, costPrice: parseFloat(form.costPrice),
+         sellPrice: form.sellPrice ? parseFloat(form.sellPrice) : undefined,
+         supplierName: form.supplierName || undefined,
       };
       if (editingItem) {
         body.id = editingItem.id;
@@ -100,7 +116,7 @@ export default function InventoryPage() {
     fetchItems(); fetchSummary();
   };
 
-  const openMovement = (item: InventoryItem, type: "STOCK_IN" | "STOCK_OUT") => {
+  const openMovement = (item: InventoryItem, type: "PURCHASE" | "SALE") => {
     setMovementModal({ item, type });
     setMovementForm({ quantity: "", unitPrice: String(item.costPrice), notes: "" });
   };
@@ -117,7 +133,7 @@ export default function InventoryPage() {
         body: JSON.stringify({
           itemId: movementModal.item.id,
           type: movementModal.type,
-          quantity: parseFloat(movementForm.quantity),
+           quantity: parseInt(movementForm.quantity, 10),
           unitPrice: movementForm.unitPrice ? parseFloat(movementForm.unitPrice) : undefined,
           notes: movementForm.notes || undefined,
         }),
@@ -175,7 +191,7 @@ export default function InventoryPage() {
         <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
           className="px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20">
           <option value="">All Categories</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+           {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
         <button onClick={() => setShowLowStock(!showLowStock)}
           className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-colors cursor-pointer ${showLowStock ? "bg-red-50 border-red-200 text-red-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
@@ -191,14 +207,14 @@ export default function InventoryPage() {
             <input type="text" placeholder="Item name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputCls} />
             <input type="text" placeholder="SKU (optional)" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} className={inputCls} />
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputCls}>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+               {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
             <input type="number" placeholder="Quantity *" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} className={inputCls} />
             <input type="text" placeholder="Unit" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} className={inputCls} />
             <input type="number" placeholder="Min stock" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} className={inputCls} />
             <input type="number" placeholder="Cost price *" value={form.costPrice} onChange={e => setForm({ ...form, costPrice: e.target.value })} className={inputCls} />
             <input type="number" placeholder="Sell price" value={form.sellPrice} onChange={e => setForm({ ...form, sellPrice: e.target.value })} className={inputCls} />
-            <input type="text" placeholder="Supplier" value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} className={inputCls} />
+             <input type="text" placeholder="Supplier" value={form.supplierName} onChange={e => setForm({ ...form, supplierName: e.target.value })} className={inputCls} />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button type="submit" disabled={submitting} className="bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 border-none cursor-pointer">
@@ -220,6 +236,7 @@ export default function InventoryPage() {
           </tr></thead>
           <tbody>
             {loading ? <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 text-sm">Loading...</td></tr>
+            : fetchError ? <tr><td colSpan={6} className="px-4 py-12 text-center text-red-500 text-sm">{fetchError}</td></tr>
             : items.length === 0 ? <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 text-sm">No inventory items.</td></tr>
             : items.map(item => {
               const isLow = item.quantity <= item.minStock;
@@ -242,10 +259,10 @@ export default function InventoryPage() {
                   <td className="px-4 py-3 text-sm font-semibold text-slate-900 hidden lg:table-cell">PKR {item.costPrice.toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1.5">
-                      <button onClick={() => openMovement(item, "STOCK_IN")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 border-none bg-transparent cursor-pointer" title="Stock In">
+                       <button onClick={() => openMovement(item, "PURCHASE")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 border-none bg-transparent cursor-pointer" title="Stock In">
                         <ArrowDown size={14} />
                       </button>
-                      <button onClick={() => openMovement(item, "STOCK_OUT")} className="p-1.5 rounded-lg hover:bg-orange-50 text-orange-600 border-none bg-transparent cursor-pointer" title="Stock Out">
+                       <button onClick={() => openMovement(item, "SALE")} className="p-1.5 rounded-lg hover:bg-orange-50 text-orange-600 border-none bg-transparent cursor-pointer" title="Stock Out">
                         <ArrowUp size={14} />
                       </button>
                       <button onClick={() => startEdit(item)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 border-none bg-transparent cursor-pointer">Edit</button>
@@ -265,14 +282,14 @@ export default function InventoryPage() {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-bold text-slate-900">
-                {movementModal.type === "STOCK_IN" ? "Stock In" : "Stock Out"} — {movementModal.item.name}
+                 {movementModal.type === "PURCHASE" ? "Stock In" : "Stock Out"} — {movementModal.item.name}
               </h3>
               <button onClick={() => setMovementModal(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 border-none bg-transparent cursor-pointer"><X size={18} /></button>
             </div>
             <form onSubmit={handleMovement} className="p-6 space-y-4">
               <div>
                 <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Quantity *</label>
-                <input type="number" required min="0.01" step="any" value={movementForm.quantity} onChange={e => setMovementForm({ ...movementForm, quantity: e.target.value })}
+                 <input type="number" required min="1" step="1" value={movementForm.quantity} onChange={e => setMovementForm({ ...movementForm, quantity: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
               </div>
               <div>

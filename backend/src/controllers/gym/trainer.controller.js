@@ -2,7 +2,7 @@
 
 const { z } = require("zod");
 const trainerService = require("../../services/gym/trainer.service");
-const { ApiError, apiSuccess } = require("../../utils/apiResponse");
+const { apiSuccess } = require("../../utils/apiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
 const { paginate, boolParam } = require("../../utils/query");
 
@@ -67,6 +67,12 @@ const assignedMembers = asyncHandler(async (req, res) => {
   return apiSuccess(res, result);
 });
 
+const selfMembers = asyncHandler(async (req, res) => {
+  const { page, limit } = paginate(req.query);
+  const result = await trainerService.selfMembers({ tenantId: req.tenantId, userId: req.user.userId, page, limit });
+  return apiSuccess(res, result);
+});
+
 const workload = asyncHandler(async (req, res) => {
   const result = await trainerService.workload({ tenantId: req.tenantId, trainerId: req.params.id });
   return apiSuccess(res, result);
@@ -77,15 +83,6 @@ const workloadAll = asyncHandler(async (req, res) => {
   return apiSuccess(res, { workload: result });
 });
 
-/** Trainer-facing: the assigned roster for the currently logged-in trainer. */
-const myMembers = asyncHandler(async (req, res) => {
-  const trainer = await trainerService.resolveTrainerForUser({ tenantId: req.tenantId, userId: req.user.userId });
-  if (!trainer) throw ApiError.forbidden("No trainer profile linked to this account");
-  const { page, limit } = paginate(req.query);
-  const result = await trainerService.assignedMembers({ tenantId: req.tenantId, trainerId: trainer._id, page, limit });
-  return apiSuccess(res, result);
-});
-
 module.exports = {
   list,
   create,
@@ -94,7 +91,7 @@ module.exports = {
   assignMember,
   unassignMember,
   assignedMembers,
+  selfMembers,
   workload,
   workloadAll,
-  myMembers,
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Plus, ChevronLeft, ChevronRight, AlertCircle, X, Check } from "lucide-react";
+import { Search, Plus, ChevronLeft, ChevronRight, AlertCircle, X, Pencil } from "lucide-react";
 
 interface Tenant {
   id: string;
@@ -31,6 +31,7 @@ export default function TenantsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [createForm, setCreateForm] = useState({ name: "", slug: "", industry: "SCHOOL", plan: "TRIAL" });
   const [creating, setCreating] = useState(false);
 
@@ -83,19 +84,43 @@ export default function TenantsPage() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openCreate = () => {
+    setEditingTenant(null);
+    setCreateForm({ name: "", slug: "", industry: "SCHOOL", plan: "TRIAL" });
+    setShowCreateModal(true);
+  };
+
+  const openEdit = (t: Tenant) => {
+    setEditingTenant(t);
+    setCreateForm({ name: t.name, slug: t.slug, industry: t.industry, plan: t.plan });
+    setShowCreateModal(true);
+  };
+
+  const closeModal = () => {
+    setShowCreateModal(false);
+    setEditingTenant(null);
+    setCreateForm({ name: "", slug: "", industry: "SCHOOL", plan: "TRIAL" });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     try {
-      const res = await fetch("/api/admin/tenants", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(createForm),
-      });
+      const res = editingTenant
+        ? await fetch("/api/admin/tenants", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ id: editingTenant.id, name: createForm.name, plan: createForm.plan }),
+          })
+        : await fetch("/api/admin/tenants", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(createForm),
+          });
       if (res.ok) {
-        setShowCreateModal(false);
-        setCreateForm({ name: "", slug: "", industry: "SCHOOL", plan: "TRIAL" });
+        closeModal();
         fetchTenants();
       }
     } catch (e) {
@@ -120,7 +145,7 @@ export default function TenantsPage() {
           <p className="text-slate-500 text-sm">Manage all tenant organizations.</p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer border-none"
         >
           <Plus size={16} />
@@ -208,18 +233,26 @@ export default function TenantsPage() {
                   </td>
                   <td className="px-5 py-3.5 text-sm text-slate-600">{t._count?.users || 0}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
-                  <td className="px-5 py-3.5 text-right">
-                    <button
-                      onClick={() => toggleStatus(t)}
-                      disabled={actionLoading === t.id}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none transition-colors ${
-                        t.status === "ACTIVE"
-                          ? "bg-red-50 text-red-600 hover:bg-red-100"
-                          : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                      }`}
-                    >
-                      {actionLoading === t.id ? "..." : t.status === "ACTIVE" ? "Suspend" : "Activate"}
-                    </button>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => openEdit(t)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors border-none bg-transparent cursor-pointer"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => toggleStatus(t)}
+                        disabled={actionLoading === t.id}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none transition-colors ${
+                          t.status === "ACTIVE"
+                            ? "bg-red-50 text-red-600 hover:bg-red-100"
+                            : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                        }`}
+                      >
+                        {actionLoading === t.id ? "..." : t.status === "ACTIVE" ? "Suspend" : "Activate"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -254,17 +287,17 @@ export default function TenantsPage() {
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* Create / Edit Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-slate-900">Create New Tenant</h3>
-              <button onClick={() => setShowCreateModal(false)} className="p-1 rounded-lg hover:bg-slate-100 cursor-pointer border-none bg-transparent">
+              <h3 className="text-lg font-bold text-slate-900">{editingTenant ? "Edit Tenant" : "Create New Tenant"}</h3>
+              <button onClick={closeModal} className="p-1 rounded-lg hover:bg-slate-100 cursor-pointer border-none bg-transparent">
                 <X size={18} className="text-slate-400" />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Name</label>
                 <input
@@ -280,17 +313,19 @@ export default function TenantsPage() {
                 <input
                   type="text"
                   required
+                  disabled={!!editingTenant}
                   value={createForm.slug}
                   onChange={(e) => setCreateForm({ ...createForm, slug: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 disabled:bg-slate-50 disabled:text-slate-400"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Industry</label>
                 <select
+                  disabled={!!editingTenant}
                   value={createForm.industry}
                   onChange={(e) => setCreateForm({ ...createForm, industry: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm disabled:bg-slate-50 disabled:text-slate-400"
                 >
                   <option value="SCHOOL">School</option>
                   <option value="CLINIC">Clinic</option>
@@ -298,6 +333,7 @@ export default function TenantsPage() {
                   <option value="RESTAURANT">Restaurant</option>
                   <option value="BOOKSHOP">Bookshop</option>
                 </select>
+                {editingTenant && <p className="text-[11px] text-slate-400 mt-1">Slug and industry can&apos;t be changed after creation.</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Plan</label>
@@ -313,11 +349,11 @@ export default function TenantsPage() {
                 </select>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer border-none bg-transparent">
+                <button type="button" onClick={closeModal} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer border-none bg-transparent">
                   Cancel
                 </button>
                 <button type="submit" disabled={creating} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 cursor-pointer border-none disabled:opacity-50">
-                  {creating ? "Creating..." : "Create Tenant"}
+                  {creating ? "Saving..." : editingTenant ? "Save Changes" : "Create Tenant"}
                 </button>
               </div>
             </form>

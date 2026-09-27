@@ -37,4 +37,16 @@ const env = {
   demoPassword: process.env.DEMO_PASSWORD || "password123",
 };
 
+const DEFAULT_JWT_SECRET = "nexussoft-dev-secret-change-in-production";
+const DEFAULT_CRON_SECRET = "change-this-cron-secret";
+
+if (env.isProd) {
+  if (!process.env.JWT_SECRET || env.jwt.secret === DEFAULT_JWT_SECRET || env.jwt.secret.length < 32) {
+    throw new Error("JWT_SECRET must be set to a random value of at least 32 characters in production");
+  }
+  if (env.cron.enabled && (!process.env.CRON_SECRET || env.cron.secret === DEFAULT_CRON_SECRET || env.cron.secret.length < 16)) {
+    throw new Error("CRON_SECRET must be set to a random value in production when cron is enabled");
+  }
+}
+
 module.exports = env;

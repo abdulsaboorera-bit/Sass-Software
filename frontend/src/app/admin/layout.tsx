@@ -4,27 +4,35 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard, Users, Building2, Settings, Shield,
-  ChevronLeft, ChevronRight, LogOut, Zap, Bell, Menu, X
+  LayoutDashboard, Users, Building2, DollarSign, MessageCircle,
+  ChevronLeft, ChevronRight, LogOut, Zap, Menu, X
 } from "lucide-react";
 
 const sidebarLinks = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Tenants", href: "/admin/tenants", icon: Building2 },
   { label: "Users", href: "/admin/users", icon: Users },
-  { label: "Roles & Permissions", href: "/admin/roles", icon: Shield },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
+  { label: "Payments", href: "/admin/payments", icon: DollarSign },
+  { label: "Messages", href: "/admin/messages", icon: MessageCircle },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [admin, setAdmin] = useState<{ name: string; email: string } | null>(null);
 
   // Close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    fetch("/api/me", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => { if (data.user?.user) setAdmin(data.user.user); })
+      .catch(() => {});
+  }, []);
 
   const sidebarContent = (
     <>
@@ -132,17 +140,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button className="relative p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer border-none bg-transparent">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
             <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200">
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                SA
+                {admin ? admin.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : "SA"}
               </div>
               <div className="hidden md:block">
-                <p className="text-slate-900 text-xs font-semibold">Super Admin</p>
-                <p className="text-slate-500 text-[10px]">admin@orbitrixerp.com</p>
+                <p className="text-slate-900 text-xs font-semibold">{admin?.name || "Super Admin"}</p>
+                <p className="text-slate-500 text-[10px]">{admin?.email || ""}</p>
               </div>
             </div>
           </div>

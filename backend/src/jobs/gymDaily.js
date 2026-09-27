@@ -1,6 +1,6 @@
 "use strict";
 
-const { Member, GymInventoryItem, EquipmentMaintenance } = require("../models");
+const { Member, GymInventoryItem, EquipmentMaintenance, GymSettings } = require("../models");
 const billing = require("../services/gym/billing.service");
 const notifications = require("../services/notification.service");
 const { addDays, startOfDay, endOfDay, daysBetween } = require("../utils/dates");
@@ -15,7 +15,7 @@ const EQUIPMENT_MAINTENANCE_WARN_DAYS = 7;
  * Only members that were still marked ACTIVE are touched, so notifications
  * fire exactly once per expiry.
  */
-async function expireMemberships({ tenantId, now }) {
+async function expireMemberships({ tenantId, now, notify = true }) {
   const filter = { status: "ACTIVE", endDate: { $lt: now } };
   if (tenantId) filter.tenantId = tenantId;
 
@@ -23,13 +23,14 @@ async function expireMemberships({ tenantId, now }) {
   if (!expired.length) return { expired: 0 };
 
   await Member.updateMany({ _id: { $in: expired.map((m) => m._id) } }, { $set: { status: "EXPIRED" } });
-  for (const m of expired) await notifications.membershipExpired(m);
+  if (notify) for (const m of expired) await notifications.membershipExpired(m);
   return { expired: expired.length };
 }
 
 /** Notify members whose membership expires within EXPIRING_SOON_DAYS days. */
-async function notifyExpiringSoon({ tenantId, now }) {
-  const soon = endOfDay(addDays(now, EXPIRING_SOON_DAYS));
+async function notifyExpiringSoon({ tenantId, now, days = EXPIRING_SOON_DAYS, enabled = true }) {
+  if (!enabled) return { expiringSoon: 0, notified: 0 };
+  const soon = endOfDay(addDays(now, days));
   const filter = { status: "ACTIVE", endDate: { $gte: startOfDay(now), $lte: soon } };
   if (tenantId) filter.tenantId = tenantId;
 
@@ -44,8 +45,9 @@ async function notifyExpiringSoon({ tenantId, now }) {
 }
 
 /** Notify active members who haven't checked in for MISSED_ATTENDANCE_DAYS days. */
-async function notifyMissedAttendance({ tenantId, now }) {
-  const cutoff = startOfDay(addDays(now, -MISSED_ATTENDANCE_DAYS));
+async function notifyMissedAttendance({ tenantId, now, days = MISSED_ATTENDANCE_DAYS, enabled = true }) {
+  if (!enabled) return { missedAttendance: 0 };
+  const cutoff = startOfDay(addDays(now, -days));
   const filter = { status: "ACTIVE", lastAttendanceAt: { $ne: null, $lt: cutoff } };
   if (tenantId) filter.tenantId = tenantId;
 
@@ -88,15 +90,24 @@ async function runGymDaily({ tenantId } = {}) {
   const now = new Date();
   const started = Date.now();
 
-  const expired = await expireMemberships({ tenantId, now });
-  const expiring = await notifyExpiringSoon({ tenantId, now });
+  const settings = tenantId ? await GymSettings.findOne({ tenantId }).lean() : null;
+  const notificationsEnabled = settings?.enableNotifications !== false;
+  const expired = settings?.autoExpireMemberships === false
+    ? { expired: 0 }
+    : await expireMemberships({ tenantId, now, notify: notificationsEnabled });
+  const expiring = await notifyExpiringSoon({
+    tenantId,
+    now,
+    days: settings?.reminderDaysBeforeExpiry ?? EXPIRING_SOON_DAYS,
+    enabled: notificationsEnabled,
+  });
   const overdue = await billing.markOverdue({ tenantId, now });
-  const missed = await notifyMissedAttendance({ tenantId, now });
+  const missed = await notifyMissedAttendance({ tenantId, now, enabled: notificationsEnabled });
   const lowStock = await checkLowStock({ tenantId });
   const maintenance = await checkEquipmentMaintenance({ tenantId, now });
 
   // Deliver everything the pass just queued (log adapter until a real one is registered).
-  const delivery = await notifications.dispatchPending({ tenantId });
+  const delivery = notificationsEnabled ? await notifications.dispatchPending({ tenantId }) : { processed: 0, sent: 0, failed: 0 };
 
   const summary = {
     ranAt: now,

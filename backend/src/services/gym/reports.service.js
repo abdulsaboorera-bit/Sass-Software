@@ -2,23 +2,34 @@
 
 const mongoose = require("mongoose");
 const { Member, GymPayment, GymInvoice, CheckIn, GymInventoryItem, Expense, Trainer, Session } = require("../../models");
+const { parseDateInput } = require("../../utils/dates");
+const { ApiError } = require("../../utils/apiResponse");
 
 const oid = (id) => new mongoose.Types.ObjectId(String(id));
 
+function dateBounds(from, to) {
+  const start = parseDateInput(from);
+  const end = parseDateInput(to, true);
+  if ((from && !start) || (to && !end)) throw ApiError.badRequest("Invalid date range");
+  if (start && end && start > end) throw ApiError.badRequest("Date range is reversed");
+  return { start, end };
+}
+
 async function membershipReport({ tenantId, from, to }) {
   const match = { tenantId: oid(tenantId) };
-  if (from || to) {
+  const bounds = dateBounds(from, to);
+  if (bounds.start || bounds.end) {
     match.createdAt = {};
-    if (from) match.createdAt.$gte = new Date(from);
-    if (to) match.createdAt.$lte = new Date(to);
+    if (bounds.start) match.createdAt.$gte = bounds.start;
+    if (bounds.end) match.createdAt.$lte = bounds.end;
   }
   const [statusCounts, planCounts, newMembers] = await Promise.all([
     Member.aggregate([
-      { $match: { tenantId: oid(tenantId) } },
+      { $match: match },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]),
     Member.aggregate([
-      { $match: { tenantId: oid(tenantId) } },
+      { $match: match },
       { $lookup: { from: "membershipplans", localField: "planId", foreignField: "_id", as: "plan" } },
       { $unwind: "$plan" },
       { $group: { _id: "$plan.name", count: { $sum: 1 } } },
@@ -39,10 +50,11 @@ async function membershipReport({ tenantId, from, to }) {
 
 async function attendanceReport({ tenantId, from, to }) {
   const match = { tenantId: oid(tenantId) };
-  if (from || to) {
+  const bounds = dateBounds(from, to);
+  if (bounds.start || bounds.end) {
     match.checkInTime = {};
-    if (from) match.checkInTime.$gte = new Date(from);
-    if (to) match.checkInTime.$lte = new Date(to);
+    if (bounds.start) match.checkInTime.$gte = bounds.start;
+    if (bounds.end) match.checkInTime.$lte = bounds.end;
   }
   const [dailyCounts, memberCounts, peakHours] = await Promise.all([
     CheckIn.aggregate([
@@ -86,8 +98,8 @@ async function attendanceReport({ tenantId, from, to }) {
 }
 
 async function revenueReport({ tenantId, months = 6 }) {
-  const since = new Date();
-  since.setMonth(since.getMonth() - months);
+  const now = new Date();
+  const since = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
   const [revenue, expenses, pendingAmount] = await Promise.all([
     GymPayment.aggregate([
       { $match: { tenantId: oid(tenantId), paidAt: { $gte: since } } },
@@ -101,7 +113,7 @@ async function revenueReport({ tenantId, months = 6 }) {
       { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]),
     Expense.aggregate([
-      { $match: { tenantId: oid(tenantId), date: { $gte: since } } },
+       { $match: { tenantId: oid(tenantId), date: { $gte: since }, status: { $in: ["APPROVED", "PAID"] } } },
       {
         $group: {
           _id: { year: { $year: "$date" }, month: { $month: "$date" } },
@@ -116,18 +128,17 @@ async function revenueReport({ tenantId, months = 6 }) {
       { $group: { _id: null, total: { $sum: { $subtract: ["$amount", "$paidAmount"] } }, count: { $sum: 1 } } },
     ]),
   ]);
-  const expMap = new Map(expenses.map((e) => [`${e._id.year}-${e._id.month}`, e]));
-  const series = revenue.map((r) => {
-    const key = `${r._id.year}-${r._id.month}`;
-    const exp = expMap.get(key);
-    return {
-      year: r._id.year,
-      month: r._id.month,
-      revenue: r.revenue,
-      expenses: exp?.expenses || 0,
-      profit: r.revenue - (exp?.expenses || 0),
-    };
-  });
+  const monthMap = new Map();
+  for (const row of revenue) monthMap.set(`${row._id.year}-${row._id.month}`, { year: row._id.year, month: row._id.month, revenue: row.revenue, expenses: 0 });
+  for (const row of expenses) {
+    const key = `${row._id.year}-${row._id.month}`;
+    const current = monthMap.get(key) || { year: row._id.year, month: row._id.month, revenue: 0, expenses: 0 };
+    current.expenses = row.expenses;
+    monthMap.set(key, current);
+  }
+  const series = [...monthMap.values()]
+    .sort((a, b) => a.year - b.year || a.month - b.month)
+    .map((row) => ({ ...row, profit: row.revenue - row.expenses }));
   const totalRevenue = series.reduce((s, r) => s + r.revenue, 0);
   const totalExpenses = series.reduce((s, r) => s + r.expenses, 0);
   return {
@@ -157,10 +168,11 @@ async function trainerReport({ tenantId }) {
 
 async function profitLoss({ tenantId, from, to }) {
   const match = { tenantId: oid(tenantId) };
-  if (from || to) {
+  const bounds = dateBounds(from, to);
+  if (bounds.start || bounds.end) {
     match.date = {};
-    if (from) match.date.$gte = new Date(from);
-    if (to) match.date.$lte = new Date(to);
+    if (bounds.start) match.date.$gte = bounds.start;
+    if (bounds.end) match.date.$lte = bounds.end;
   }
   const [incomeAgg, expenseAgg] = await Promise.all([
     GymPayment.aggregate([
@@ -168,7 +180,7 @@ async function profitLoss({ tenantId, from, to }) {
       { $group: { _id: "$type", total: { $sum: "$amount" } } },
     ]),
     Expense.aggregate([
-      { $match: match },
+      { $match: { ...match, status: { $in: ["APPROVED", "PAID"] } } },
       { $group: { _id: "$category", total: { $sum: "$amount" } } },
     ]),
   ]);

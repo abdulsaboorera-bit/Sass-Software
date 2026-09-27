@@ -6,8 +6,9 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, BookOpen, Calendar, DollarSign,
   Settings, ChevronLeft, ChevronRight, Zap, Bell, LogOut,
-  GraduationCap, Menu, X, Dumbbell, BarChart3, Package, ClipboardList, CreditCard, Trophy
+  GraduationCap, Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact
 } from "lucide-react";
+import ChatWidget from "@/components/ChatWidget";
 
 interface UserData {
   user: {
@@ -23,9 +24,12 @@ interface UserData {
     industry: string;
     plan: string;
   } | null;
+  permissions: string[];
 }
 
-const industryNav: Record<string, { label: string; href: string; icon: typeof LayoutDashboard }[]> = {
+type NavLink = { label: string; href: string; icon: typeof LayoutDashboard; permission?: string };
+
+const industryNav: Record<string, NavLink[]> = {
   SCHOOL: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Students", href: "/dashboard/students", icon: Users },
@@ -53,14 +57,14 @@ const industryNav: Record<string, { label: string; href: string; icon: typeof La
   ],
   GYM: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Members", href: "/dashboard/members", icon: Users },
-    { label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy },
-    { label: "Trainers", href: "/dashboard/trainers", icon: Dumbbell },
-    { label: "Sessions", href: "/dashboard/sessions", icon: Calendar },
-    { label: "Billing", href: "/dashboard/billing", icon: CreditCard },
-    { label: "Inventory", href: "/dashboard/inventory", icon: Package },
-    { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
-    { label: "Settings", href: "/dashboard/settings", icon: Settings },
+    { label: "Members", href: "/dashboard/members", icon: Users, permission: "members.view" },
+    { label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy, permission: "members.view" },
+    { label: "Attendance", href: "/dashboard/sessions", icon: Calendar, permission: "attendance.view" },
+    { label: "Directory", href: "/dashboard/directory", icon: Contact, permission: "members.view" },
+    { label: "Billing", href: "/dashboard/billing", icon: CreditCard, permission: "billing.view" },
+    { label: "Inventory", href: "/dashboard/inventory", icon: Package, permission: "inventory.view" },
+    { label: "Reports", href: "/dashboard/reports", icon: BarChart3, permission: "analytics.view" },
+    { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
   BOOKSHOP: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -90,7 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             router.push("/admin");
             return;
           }
-          setUserData(data.user);
+           setUserData({ ...data.user, permissions: data.user.permissions || [] });
         } else {
           router.push("/login");
         }
@@ -110,9 +114,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.refresh();
   };
 
-  const nav = userData?.tenant
+  const rawNav = userData?.tenant
     ? industryNav[userData.tenant.industry] || industryNav.SCHOOL
     : [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }];
+  const nav = rawNav.filter((link) => {
+    if (!link.permission) return true;
+    const [resource] = link.permission.split(".");
+    const permissions = userData?.permissions || [];
+    return permissions.includes("*") || permissions.includes(link.permission) || permissions.includes(`${resource}.*`) || (link.permission === "members.view" && permissions.includes("members.view.assigned"));
+  });
 
   if (loading) {
     return (
@@ -253,6 +263,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+
+      {userData?.tenant && <ChatWidget />}
     </div>
   );
 }

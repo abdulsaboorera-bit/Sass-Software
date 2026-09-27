@@ -8,11 +8,7 @@ import type { NextConfig } from "next";
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000";
 
 const nextConfig: NextConfig = {
-  // The app runs fine at runtime; the remaining errors are strict-mode type
-  // mismatches in third-party chart typings (Recharts) and lint rules. Don't
-  // let them block production builds. Re-enable and clean these up later.
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
+  turbopack: { root: process.cwd() },
 
   async rewrites() {
     return [

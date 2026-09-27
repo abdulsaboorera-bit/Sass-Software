@@ -3,10 +3,35 @@
 const PDFDocument = require("pdfkit");
 const { Member, GymPayment, CheckIn, GymInvoice, Tenant } = require("../../models");
 const { ApiError } = require("../../utils/apiResponse");
+const { apiSuccess } = require("../../utils/apiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
 const { toCsv } = require("../../utils/csv");
 const { qrDataUrl } = require("../../utils/qr");
-const { computeMembershipStatus } = require("../../utils/dates");
+const { computeMembershipStatus, parseDateInput } = require("../../utils/dates");
+const billingService = require("../../services/gym/billing.service");
+
+/** Shared date-range attendance query, decorated with each row's fee status. */
+async function queryAttendance({ tenantId, from, to }) {
+  const filter = { tenantId };
+  if (from || to) {
+    const start = parseDateInput(from);
+    const end = parseDateInput(to, true);
+    if ((from && !start) || (to && !end)) throw ApiError.badRequest("Invalid date range");
+    if (start && end && start > end) throw ApiError.badRequest("Date range is reversed");
+    filter.checkInTime = {};
+    if (start) filter.checkInTime.$gte = start;
+    if (end) filter.checkInTime.$lte = end;
+  }
+  const rows = await CheckIn.find(filter).populate("memberId", "name memberNo").sort({ checkInTime: -1 }).limit(5000).lean();
+  const latestInvoices = await billingService.latestInvoicesByMember({
+    tenantId,
+    memberIds: rows.map((r) => r.memberId && r.memberId._id).filter(Boolean),
+  });
+  for (const r of rows) {
+    r.feeStatus = r.memberId ? latestInvoices.get(String(r.memberId._id))?.status || null : null;
+  }
+  return rows;
+}
 
 function sendCsv(res, filename, csv) {
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -45,24 +70,66 @@ const paymentsCsv = asyncHandler(async (req, res) => {
 });
 
 const attendanceCsv = asyncHandler(async (req, res) => {
-  const rows = await CheckIn.find({ tenantId: req.tenantId }).populate("memberId", "name memberNo").sort({ checkInTime: -1 }).limit(5000).lean();
+  const rows = await queryAttendance({ tenantId: req.tenantId, from: req.query.from, to: req.query.to });
   const csv = toCsv(rows, [
     { label: "Member", map: (r) => (r.memberId ? r.memberId.name : "") },
     { label: "Member No", map: (r) => (r.memberId ? r.memberId.memberNo : "") },
-    { label: "Check-in", map: (r) => new Date(r.checkInTime).toISOString() },
-    { label: "Check-out", map: (r) => (r.checkOutTime ? new Date(r.checkOutTime).toISOString() : "") },
+    { label: "Check-in", map: (r) => new Date(r.checkInTime).toLocaleString() },
     { key: "dayKey", label: "Day" },
+    { label: "Fee Status", map: (r) => r.feeStatus || "" },
   ]);
   sendCsv(res, "attendance.csv", csv);
 });
 
+const attendancePdf = asyncHandler(async (req, res) => {
+  const rows = await queryAttendance({ tenantId: req.tenantId, from: req.query.from, to: req.query.to });
+  const tenant = await Tenant.findById(req.tenantId).select("name").lean();
+
+  const doc = new PDFDocument({ size: "A4", margin: 50 });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", 'inline; filename="attendance.pdf"');
+  doc.pipe(res);
+
+  doc.fontSize(20).text(tenant ? tenant.name : "Gym", { align: "left" });
+  doc.moveDown(0.3).fontSize(10).fillColor("#666").text("ATTENDANCE REPORT");
+  if (req.query.from || req.query.to) {
+    doc.text(`${req.query.from || "…"} to ${req.query.to || "…"}`);
+  }
+  doc.moveDown();
+
+  const colX = { member: 50, memberNo: 220, checkIn: 320, fee: 450 };
+  doc.fontSize(9).fillColor("#666");
+  doc.text("Member", colX.member, doc.y, { continued: false });
+  doc.text("Member No", colX.memberNo, doc.y - doc.currentLineHeight());
+  doc.text("Check-in", colX.checkIn, doc.y - doc.currentLineHeight());
+  doc.text("Fee Status", colX.fee, doc.y - doc.currentLineHeight());
+  doc.moveDown(0.5);
+  doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#e2e8f0").stroke();
+  doc.moveDown(0.3);
+
+  doc.fillColor("#000").fontSize(9);
+  for (const r of rows) {
+    if (doc.y > 760) doc.addPage();
+    const y = doc.y;
+    doc.text(r.memberId ? r.memberId.name : "—", colX.member, y, { width: 160 });
+    doc.text(r.memberId ? r.memberId.memberNo : "—", colX.memberNo, y, { width: 90 });
+    doc.text(new Date(r.checkInTime).toLocaleString(), colX.checkIn, y, { width: 120 });
+    doc.text(r.feeStatus || "—", colX.fee, y, { width: 90 });
+    doc.moveDown(0.6);
+  }
+
+  if (rows.length === 0) doc.text("No check-ins in this range.");
+
+  doc.end();
+});
+
 // ── Digital membership card (QR) ─────────────────────────
 const memberCard = asyncHandler(async (req, res) => {
-  const member = await Member.findOne({ _id: req.params.id, tenantId: req.tenantId }).populate("plan", "name").lean();
+  const member = await Member.findOne({ _id: req.params.id, tenantId: req.tenantId, ...(req.memberScope ? { trainerId: req.memberScope } : {}) }).populate("plan", "name").lean();
   if (!member) throw ApiError.notFound("Member not found");
   const tenant = await Tenant.findById(req.tenantId).select("name logo").lean();
   const qr = await qrDataUrl(member.memberNo);
-  return res.json({
+  return apiSuccess(res, {
     card: {
       gym: tenant ? tenant.name : "Gym",
       name: member.name,
@@ -115,4 +182,4 @@ const invoicePdf = asyncHandler(async (req, res) => {
   doc.end();
 });
 
-module.exports = { membersCsv, paymentsCsv, attendanceCsv, memberCard, invoicePdf };
+module.exports = { membersCsv, paymentsCsv, attendanceCsv, attendancePdf, memberCard, invoicePdf };

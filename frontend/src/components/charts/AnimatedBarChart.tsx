@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -52,6 +52,7 @@ export default function AnimatedBarChart({
 }: Props) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const gradientId = `barGradient-${useId().replace(/:/g, "")}`;
 
   useEffect(() => {
     const el = ref.current;
@@ -68,8 +69,6 @@ export default function AnimatedBarChart({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-
-  const gradientId = `barGradient-${Math.random().toString(36).substr(2, 9)}`;
 
   return (
     <div ref={ref} style={{ width: "100%", height }}>

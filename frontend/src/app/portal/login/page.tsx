@@ -8,6 +8,7 @@ export default function MemberPortalLogin() {
   const router = useRouter();
   const [memberNo, setMemberNo] = useState("");
   const [phone, setPhone] = useState("");
+  const [tenantSlug, setTenantSlug] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +20,7 @@ export default function MemberPortalLogin() {
       const res = await fetch("/api/gym/portal/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberNo, phone }),
+       body: JSON.stringify({ memberNo, phone, tenantSlug: tenantSlug || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
@@ -59,6 +60,11 @@ export default function MemberPortalLogin() {
             <div>
               <label className="block text-slate-700 dark:text-slate-300 text-xs font-bold mb-1.5 uppercase tracking-wide">Phone</label>
               <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="03xxxxxxxxx"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="block text-slate-700 dark:text-slate-300 text-xs font-bold mb-1.5 uppercase tracking-wide">Gym code (optional)</label>
+              <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} placeholder="iron-pulse-gym"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
             </div>
 

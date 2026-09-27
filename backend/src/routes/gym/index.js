@@ -1,9 +1,9 @@
 "use strict";
 
 const express = require("express");
-const { requireAuth, requireTenant } = require("../../middleware/auth");
+const { requireAuth, requireTenant, requireIndustry } = require("../../middleware/auth");
 const { makeCrudRouter } = require("../../utils/crud");
-const { MembershipPlan, Session, BodyMeasurement, GymPayment } = require("../../models");
+const { MembershipPlan, Session, BodyMeasurement } = require("../../models");
 
 const membersRoutes = require("./members.routes");
 const attendanceRoutes = require("./attendance.routes");
@@ -19,7 +19,10 @@ const settingsRoutes = require("./settings.routes");
 const bookingsRoutes = require("./bookings.routes");
 const insightsRoutes = require("./insights.routes");
 const portalRoutes = require("./portal.routes");
+const staffRoutes = require("./staff.routes");
+const staffAttendanceRoutes = require("./staffAttendance.routes");
 const checkinsCtrl = require("../../controllers/gym/checkins.controller");
+const billingCtrl = require("../../controllers/gym/billing.controller");
 const { requirePermission, requireAnyPermission } = require("../../middleware/rbac");
 
 const router = express.Router();
@@ -30,7 +33,7 @@ router.use("/cron", cronRoutes);
 router.use("/portal", portalRoutes);
 
 // Everything below requires an authenticated user operating within a tenant.
-router.use(requireAuth, requireTenant);
+router.use(requireAuth, requireTenant, requireIndustry("GYM"));
 
 router.use("/members", membersRoutes);
 router.use("/attendance", attendanceRoutes);
@@ -44,10 +47,12 @@ router.use("/reports", reportsRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/bookings", bookingsRoutes);
 router.use("/insights", insightsRoutes);
+router.use("/staff", staffRoutes);
+router.use("/staff-attendance", staffAttendanceRoutes);
 
 // Check-in kiosk endpoint (toggle by memberNo).
 router.get("/checkins", requirePermission("attendance.view"), checkinsCtrl.list);
-router.post("/checkins", requireAnyPermission("attendance.mark", "attendance.create"), checkinsCtrl.toggle);
+router.post("/checkins", requireAnyPermission("attendance.mark", "attendance.create"), checkinsCtrl.checkIn);
 
 // Membership plans — frontend reads { plans } and manages them collection-style.
 router.use(
@@ -88,19 +93,15 @@ router.use(
   })
 );
 
-// Payments — collection-level list for gym billing overview.
-router.use(
-  "/payments",
-  makeCrudRouter({
-    model: GymPayment,
-    permission: "billing",
-    listKey: "payments",
-    itemKey: "payment",
-    filterFields: ["memberId", "invoiceId", "method"],
-    populate: [{ path: "memberId", select: "name memberNo" }],
-    sort: { paidAt: -1 },
-    perms: { view: "billing.view", create: "billing.create", edit: "billing.create", remove: "billing.create" },
-  })
-);
+// Payment reads share the legacy collection URL. Writes go through the billing
+// service so invoice balances and statuses cannot be bypassed.
+const paymentsRouter = express.Router();
+paymentsRouter.get("/", requirePermission("billing.view"), billingCtrl.listPayments);
+paymentsRouter.post("/", requirePermission("billing.create"), billingCtrl.recordPayment);
+paymentsRouter.patch("/", requirePermission("billing.edit"), billingCtrl.updatePayment);
+paymentsRouter.delete("/", requirePermission("billing.edit"), billingCtrl.deletePayment);
+paymentsRouter.patch("/:id", requirePermission("billing.edit"), billingCtrl.updatePayment);
+paymentsRouter.delete("/:id", requirePermission("billing.edit"), billingCtrl.deletePayment);
+router.use("/payments", paymentsRouter);
 
 module.exports = router;

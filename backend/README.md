@@ -54,8 +54,6 @@ npm run dev                   # http://localhost:4000  (nodemon)   |  npm start 
 |---|---|---|
 | `admin@nexussoft.io` | platform super admin | all tenants |
 | `gym@demo.com` | Owner | Iron Pulse Gym |
-| `reception@demo.com` | Receptionist | Iron Pulse Gym |
-| `trainer@demo.com` | Trainer (scoped) | only assigned members |
 | `school@demo.com`, `clinic@demo.com`, `restaurant@demo.com`, `bookshop@demo.com` | Owner | respective tenant |
 
 ---
@@ -88,14 +86,13 @@ is checked per request; `*` = all, `resource.*` = any action on a resource.
 
 **System roles** (seeded per tenant, see `src/seed/roles.js`):
 - **owner** -> `["*"]` (full access)
-- **receptionist** -> manage members, billing, attendance (+ front-desk perms across modules)
-- **trainer** -> `members.view.assigned`, `trainers.view.self`, `attendance.mark`, `sessions.view`
+- Custom roles can use `members.view.assigned` for trainer-scoped access.
 
 **Trainer scoping:** member read endpoints run `memberViewScope`. Callers with
 `members.view` see everyone; callers with only `members.view.assigned` are
 restricted to the members assigned to the Trainer profile linked to their user
-(`Trainer.userId`). Verified: a trainer sees only their assigned members and is
-`403` on create/analytics.
+(`Trainer.userId`). A scoped trainer sees only assigned members and is `403` on
+member creation and analytics.
 
 ---
 

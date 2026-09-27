@@ -11,7 +11,8 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node src/seed/seed.js",
-    "cron:daily": "node src/jobs/runDaily.js"
+    "cron:daily": "node src/jobs/runDaily.js",
+    "test": "node --test test/contracts.test.js test/gym.integration.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

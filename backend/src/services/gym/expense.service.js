@@ -3,6 +3,8 @@
 const mongoose = require("mongoose");
 const { Expense } = require("../../models");
 const { ApiError } = require("../../utils/apiResponse");
+const { sanitize } = require("../../utils/crud");
+const { parseDateInput } = require("../../utils/dates");
 
 const oid = (id) => new mongoose.Types.ObjectId(String(id));
 
@@ -10,10 +12,14 @@ async function list({ tenantId, category, status, from, to, page = 1, limit = 50
   const filter = { tenantId };
   if (category) filter.category = category;
   if (status) filter.status = status;
-  if (from || to) {
+  const start = parseDateInput(from);
+  const end = parseDateInput(to, true);
+  if ((from && !start) || (to && !end)) throw ApiError.badRequest("Invalid date range");
+  if (start && end && start > end) throw ApiError.badRequest("Date range is reversed");
+  if (start || end) {
     filter.date = {};
-    if (from) filter.date.$gte = new Date(from);
-    if (to) filter.date.$lte = new Date(to);
+    if (start) filter.date.$gte = start;
+    if (end) filter.date.$lte = end;
   }
   const skip = (page - 1) * limit;
   const [rows, total] = await Promise.all([
@@ -35,7 +41,7 @@ async function create({ tenantId, data }) {
 }
 
 async function update({ tenantId, id, data }) {
-  const expense = await Expense.findOneAndUpdate({ _id: id, tenantId }, data, { new: true }).lean({ virtuals: true });
+  const expense = await Expense.findOneAndUpdate({ _id: id, tenantId }, sanitize(data), { new: true, runValidators: true }).lean({ virtuals: true });
   if (!expense) throw ApiError.notFound("Expense not found");
   return expense;
 }
@@ -48,10 +54,14 @@ async function remove({ tenantId, id }) {
 
 async function summary({ tenantId, from, to }) {
   const match = { tenantId: oid(tenantId) };
-  if (from || to) {
+  const start = parseDateInput(from);
+  const end = parseDateInput(to, true);
+  if ((from && !start) || (to && !end)) throw ApiError.badRequest("Invalid date range");
+  if (start && end && start > end) throw ApiError.badRequest("Date range is reversed");
+  if (start || end) {
     match.date = {};
-    if (from) match.date.$gte = new Date(from);
-    if (to) match.date.$lte = new Date(to);
+    if (start) match.date.$gte = start;
+    if (end) match.date.$lte = end;
   }
   const [totalExpenses, byCategory, byMonth] = await Promise.all([
     Expense.aggregate([

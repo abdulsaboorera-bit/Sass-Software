@@ -4,7 +4,7 @@ const { z } = require("zod");
 const inventoryService = require("../../services/gym/inventory.service");
 const { apiSuccess } = require("../../utils/apiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
-const { paginate } = require("../../utils/query");
+const { paginate, boolParam } = require("../../utils/query");
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -34,7 +34,7 @@ const list = asyncHandler(async (req, res) => {
     tenantId: req.tenantId,
     category: req.query.category,
     search: req.query.search,
-    lowStock: req.query.lowStock,
+    lowStock: boolParam(req.query.lowStock),
     page, limit,
   });
   return apiSuccess(res, result);
@@ -51,9 +51,12 @@ const create = asyncHandler(async (req, res) => {
   return apiSuccess(res, { item }, 201);
 });
 
+const updateSchema = createSchema.partial();
+
 const update = asyncHandler(async (req, res) => {
   const id = req.params.id || req.body.id;
-  const item = await inventoryService.update({ tenantId: req.tenantId, id, data: req.body });
+  const data = updateSchema.parse(req.body);
+  const item = await inventoryService.update({ tenantId: req.tenantId, id, data });
   return apiSuccess(res, { item });
 });
 

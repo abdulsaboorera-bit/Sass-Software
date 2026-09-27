@@ -21,8 +21,8 @@ const BADGES = [
 ];
 
 /** Compute a member's stats and the badges they've earned. */
-async function memberBadges({ tenantId, memberId }) {
-  const member = await Member.findOne({ _id: memberId, tenantId })
+async function memberBadges({ tenantId, memberId, trainerScope }) {
+  const member = await Member.findOne({ _id: memberId, tenantId, ...(trainerScope ? { trainerId: trainerScope } : {}) })
     .select("name memberNo currentStreak longestStreak startDate")
     .lean();
   if (!member) throw ApiError.notFound("Member not found");

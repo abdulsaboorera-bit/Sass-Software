@@ -26,6 +26,7 @@ router.get("/members/:id/card", memberViewScope, exportCtrl.memberCard);
 router.get("/export/members.csv", requirePermission("members.view"), exportCtrl.membersCsv);
 router.get("/export/payments.csv", requireAnyPermission("billing.view", "members.view"), exportCtrl.paymentsCsv);
 router.get("/export/attendance.csv", requireAnyPermission("attendance.view", "members.view"), exportCtrl.attendanceCsv);
+router.get("/export/attendance.pdf", requireAnyPermission("attendance.view", "members.view"), exportCtrl.attendancePdf);
 
 // Invoice / receipt PDF
 router.get("/invoices/:id/pdf", requireAnyPermission("billing.view", "members.view"), exportCtrl.invoicePdf);

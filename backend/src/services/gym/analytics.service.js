@@ -1,8 +1,8 @@
 "use strict";
 
 const mongoose = require("mongoose");
-const { Member, GymPayment, GymInvoice, Trainer, CheckIn, Session, GymInventoryItem, Expense } = require("../../models");
-const { monthRange, dayKey } = require("../../utils/dates");
+const { Member, GymPayment, GymInvoice, CheckIn, Session, GymInventoryItem, Expense, StaffAttendance } = require("../../models");
+const { monthRange, dayKey, startOfDay, endOfDay } = require("../../utils/dates");
 const attendance = require("./attendance.service");
 
 const oid = (id) => new mongoose.Types.ObjectId(String(id));
@@ -191,9 +191,8 @@ async function inventoryStats({ tenantId }) {
 /** Today's expenses total. */
 async function todayExpenses({ tenantId }) {
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const [result] = await Expense.aggregate([
-    { $match: { tenantId: oid(tenantId), date: { $gte: startOfDay } } },
+    { $match: { tenantId: oid(tenantId), date: { $gte: startOfDay(now), $lte: endOfDay(now) }, status: { $in: ["APPROVED", "PAID"] } } },
     { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
   ]);
   return { total: result?.total || 0, count: result?.count || 0 };
@@ -201,12 +200,12 @@ async function todayExpenses({ tenantId }) {
 
 /** One-call dashboard payload for the admin analytics screen. */
 async function dashboard({ tenantId }) {
-  const [members, rev, pending, attendanceTrend, totalTrainers, todayCheckinsCount, expiringSoon, inventory, todayExp] = await Promise.all([
+  const [members, rev, pending, attendanceTrend, staffPresentToday, todayCheckinsCount, expiringSoon, inventory, todayExp] = await Promise.all([
     memberStats({ tenantId }),
     revenue({ tenantId, months: 6 }),
     pendingPayments({ tenantId }),
     attendance.trends({ tenantId, days: 30 }),
-    Trainer.countDocuments({ tenantId, isActive: true }),
+    StaffAttendance.countDocuments({ tenantId, dayKey: dayKey(), status: "PRESENT" }),
     todayCheckins({ tenantId }),
     upcomingRenewals({ tenantId, days: 7 }),
     inventoryStats({ tenantId }),
@@ -218,7 +217,7 @@ async function dashboard({ tenantId }) {
     revenue: rev,
     pendingPayments: pending,
     attendanceTrend,
-    totalTrainers,
+    staffPresentToday,
     todayCheckins: todayCheckinsCount,
     expiringSoon: expiringSoon.length,
     expiringSoonMembers: expiringSoon,

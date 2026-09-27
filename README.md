@@ -33,8 +33,8 @@ npm run dev                   # http://localhost:3000  (proxies /api/* -> :4000)
 > middleware verifies the auth cookie the backend issues.
 
 ### Demo logins (password `password123`)
-`admin@nexussoft.io` (super admin) · `gym@demo.com` · `reception@demo.com` ·
-`trainer@demo.com` (scoped) · `school@demo.com` · `clinic@demo.com` ·
+`admin@nexussoft.io` (super admin) · `gym@demo.com` (gym owner) ·
+`school@demo.com` · `clinic@demo.com` ·
 `restaurant@demo.com` · `bookshop@demo.com`
 
 ## Architecture

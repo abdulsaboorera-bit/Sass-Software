@@ -1,16 +1,17 @@
 "use strict";
 
+const mongoose = require("mongoose");
 const { GymInvoice, GymPayment, Member } = require("../../models");
 const { ApiError } = require("../../utils/apiResponse");
 const { invoiceRef } = require("../../utils/ids");
-const { startOfDay, endOfDay } = require("../../utils/dates");
+const { parseDateInput } = require("../../utils/dates");
 const notifications = require("../notification.service");
 
 /** Create an invoice with a unique human reference; emits a PAYMENT_DUE event. */
 async function createInvoice({ tenantId, memberId, type = "MEMBERSHIP", planId, amount, dueDate, periodStart, periodEnd, notes }) {
   const member = await Member.findOne({ _id: memberId, tenantId });
   if (!member) throw ApiError.notFound("Member not found");
-  if (amount == null || Number(amount) < 0) throw ApiError.badRequest("A valid amount is required");
+  if (amount == null || !Number.isFinite(Number(amount)) || Number(amount) < 0) throw ApiError.badRequest("A valid amount is required");
 
   // Retry a couple of times in the (rare) event of a ref collision.
   let invoice;
@@ -27,7 +28,8 @@ async function createInvoice({ tenantId, memberId, type = "MEMBERSHIP", planId, 
         periodStart,
         periodEnd,
         notes,
-        status: "PENDING",
+         status: Number(amount) === 0 ? "PAID" : "PENDING",
+         paidAt: Number(amount) === 0 ? new Date() : null,
       });
     } catch (err) {
       if (err && err.code === 11000 && attempt < 2) continue;
@@ -35,7 +37,7 @@ async function createInvoice({ tenantId, memberId, type = "MEMBERSHIP", planId, 
     }
   }
 
-  await notifications.paymentDue(invoice, member);
+  if (invoice.status !== "PAID") await notifications.paymentDue(invoice, member);
   return invoice;
 }
 
@@ -44,20 +46,42 @@ async function listInvoices({ tenantId, memberId, status, from, to, page = 1, li
   if (memberId) filter.memberId = memberId;
   if (status) filter.status = status;
   if (from || to) {
+    const start = parseDateInput(from);
+    const end = parseDateInput(to, true);
+    if ((from && !start) || (to && !end)) throw ApiError.badRequest("Invalid date range");
+    if (start && end && start > end) throw ApiError.badRequest("Date range is reversed");
     filter.dueDate = {};
-    if (from) filter.dueDate.$gte = startOfDay(new Date(from));
-    if (to) filter.dueDate.$lte = endOfDay(new Date(to));
+    if (start) filter.dueDate.$gte = start;
+    if (end) filter.dueDate.$lte = end;
   }
   const skip = (page - 1) * limit;
   const [rows, total] = await Promise.all([
-    GymInvoice.find(filter).populate("memberId", "name memberNo phone").sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    GymInvoice.find(filter).populate("memberId", "name memberNo phone").sort({ createdAt: -1 }).skip(skip).limit(limit).lean({ virtuals: true }),
     GymInvoice.countDocuments(filter),
   ]);
   return { invoices: rows, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
 }
 
+async function listPayments({ tenantId, memberId, invoiceId, method, page = 1, limit = 50 }) {
+  const filter = { tenantId };
+  if (memberId) filter.memberId = memberId;
+  if (invoiceId) filter.invoiceId = invoiceId;
+  if (method) filter.method = method;
+  const skip = (page - 1) * limit;
+  const [rows, total] = await Promise.all([
+    GymPayment.find(filter)
+      .populate("memberId", "name memberNo")
+      .sort({ paidAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean({ virtuals: true }),
+    GymPayment.countDocuments(filter),
+  ]);
+  return { payments: rows, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+}
+
 async function getInvoice({ tenantId, id }) {
-  const invoice = await GymInvoice.findOne({ _id: id, tenantId }).populate("memberId", "name memberNo phone").lean();
+  const invoice = await GymInvoice.findOne({ _id: id, tenantId }).populate("memberId", "name memberNo phone").lean({ virtuals: true });
   if (!invoice) throw ApiError.notFound("Invoice not found");
   const payments = await GymPayment.find({ tenantId, invoiceId: id }).sort({ paidAt: -1 }).lean();
   return { ...invoice, payments };
@@ -68,12 +92,20 @@ async function getInvoice({ tenantId, id }) {
  * (PAID / PARTIAL) and stamps paidAt when fully settled.
  */
 async function recordPayment({ tenantId, invoiceId, memberId, amount, method, reference, type, paidAt }) {
-  if (amount == null || Number(amount) <= 0) throw ApiError.badRequest("A valid amount is required");
+  if (amount == null || !Number.isFinite(Number(amount)) || Number(amount) <= 0) throw ApiError.badRequest("A valid amount is required");
 
   let invoice = null;
+  const paymentAmount = Number(amount);
   if (invoiceId) {
     invoice = await GymInvoice.findOne({ _id: invoiceId, tenantId });
     if (!invoice) throw ApiError.notFound("Invoice not found");
+    if (invoice.status === "CANCELLED") throw ApiError.badRequest("Cannot pay a cancelled invoice");
+    if (invoice.status === "PAID") throw ApiError.badRequest("Invoice is already paid");
+    const balance = Math.max(0, Number(invoice.amount) - Number(invoice.paidAmount || 0));
+    if (paymentAmount > balance) throw ApiError.badRequest(`Payment exceeds the outstanding balance of ${balance}`);
+    if (memberId && String(memberId) !== String(invoice.memberId)) {
+      throw ApiError.badRequest("Payment member does not match the invoice");
+    }
     memberId = invoice.memberId;
   }
   if (!memberId) throw ApiError.badRequest("memberId or invoiceId is required");
@@ -85,34 +117,101 @@ async function recordPayment({ tenantId, invoiceId, memberId, amount, method, re
     tenantId,
     memberId,
     invoiceId: invoiceId || null,
-    amount: Number(amount),
+    amount: paymentAmount,
     method,
     reference,
     type: type || (invoice ? invoice.type : "MEMBERSHIP"),
     paidAt: paidAt ? new Date(paidAt) : new Date(),
   });
 
+  let updatedInvoice = null;
   if (invoice) {
-    invoice.paidAmount = Number(invoice.paidAmount || 0) + Number(amount);
-    if (invoice.paidAmount >= Number(invoice.amount)) {
-      invoice.status = "PAID";
-      invoice.paidAt = new Date();
-    } else if (invoice.paidAmount > 0) {
-      invoice.status = "PARTIAL";
+    const previousPaid = Number(invoice.paidAmount || 0);
+    const nextPaid = previousPaid + paymentAmount;
+    try {
+      updatedInvoice = await GymInvoice.findOneAndUpdate(
+        {
+          _id: invoice._id,
+          tenantId,
+          status: { $in: ["PENDING", "PARTIAL", "OVERDUE"] },
+          paidAmount: previousPaid,
+        },
+        {
+          $set: {
+            status: nextPaid >= Number(invoice.amount) ? "PAID" : "PARTIAL",
+            paidAt: nextPaid >= Number(invoice.amount) ? new Date() : null,
+          },
+          $inc: { paidAmount: paymentAmount },
+        },
+        { new: true }
+      ).lean({ virtuals: true });
+      if (!updatedInvoice) throw ApiError.conflict("Invoice was updated by another payment; please retry");
+    } catch (err) {
+      await GymPayment.deleteOne({ _id: payment._id });
+      throw err;
     }
-    await invoice.save();
   }
 
-  return { payment: payment.toObject(), invoice: invoice ? invoice.toObject() : null };
+  return { payment: payment.toObject(), invoice: updatedInvoice };
+}
+
+async function updatePayment({ tenantId, id, data }) {
+  const payment = await GymPayment.findOne({ _id: id, tenantId });
+  if (!payment) throw ApiError.notFound("Payment not found");
+  if (data.amount !== undefined && payment.invoiceId) {
+    throw ApiError.badRequest("Invoice payment amounts cannot be edited; delete and record a replacement payment");
+  }
+  const update = { ...data };
+  if (update.paidAt) update.paidAt = new Date(update.paidAt);
+  const updated = await GymPayment.findOneAndUpdate(
+    { _id: id, tenantId },
+    update,
+    { new: true, runValidators: true }
+  ).lean({ virtuals: true });
+  return updated;
+}
+
+async function deletePayment({ tenantId, id }) {
+  const payment = await GymPayment.findOne({ _id: id, tenantId });
+  if (!payment) throw ApiError.notFound("Payment not found");
+
+  if (payment.invoiceId) {
+    const invoice = await GymInvoice.findOne({ _id: payment.invoiceId, tenantId });
+    if (!invoice) throw ApiError.conflict("Payment invoice no longer exists");
+    if (invoice.status === "CANCELLED") throw ApiError.badRequest("Cannot remove a payment from a cancelled invoice");
+    const previousPaid = Number(invoice.paidAmount || 0);
+    const nextPaid = previousPaid - Number(payment.amount);
+    if (nextPaid < 0) throw ApiError.conflict("Invoice balance is inconsistent");
+    const nextStatus = nextPaid === 0 ? (invoice.dueDate < new Date() ? "OVERDUE" : "PENDING") : "PARTIAL";
+    const updatedInvoice = await GymInvoice.findOneAndUpdate(
+      { _id: invoice._id, tenantId, paidAmount: previousPaid },
+      { $inc: { paidAmount: -Number(payment.amount) }, $set: { status: nextStatus, paidAt: null } },
+      { new: true }
+    );
+    if (!updatedInvoice) throw ApiError.conflict("Invoice was updated by another request; please retry");
+    try {
+      await payment.deleteOne();
+    } catch (err) {
+      await GymInvoice.updateOne({ _id: invoice._id, tenantId }, { $inc: { paidAmount: Number(payment.amount) }, $set: { status: invoice.status, paidAt: invoice.paidAt || null } });
+      throw err;
+    }
+  } else {
+    await payment.deleteOne();
+  }
+  return { success: true };
 }
 
 async function cancelInvoice({ tenantId, id }) {
   const invoice = await GymInvoice.findOneAndUpdate(
-    { _id: id, tenantId, status: { $in: ["PENDING", "PARTIAL", "OVERDUE"] } },
+    { _id: id, tenantId, status: { $in: ["PENDING", "OVERDUE"] } },
     { status: "CANCELLED" },
     { new: true }
   ).lean();
-  if (!invoice) throw ApiError.notFound("Open invoice not found");
+  if (!invoice) {
+    const partial = await GymInvoice.exists({ _id: id, tenantId, status: "PARTIAL" });
+    if (partial) throw ApiError.badRequest("Cannot cancel a partially paid invoice");
+    throw ApiError.notFound("Open invoice not found");
+  }
   return invoice;
 }
 
@@ -144,12 +243,43 @@ async function memberPayments({ tenantId, memberId }) {
   return GymPayment.find({ tenantId, memberId }).sort({ paidAt: -1 }).lean();
 }
 
+/**
+ * Each member's most recent invoice (by createdAt), keyed by memberId string.
+ * One aggregation for however many members you need — used everywhere a
+ * member-level "fee status" needs to be shown (check-in, attendance log,
+ * member directory) instead of querying per member.
+ */
+async function latestInvoicesByMember({ tenantId, memberIds }) {
+  const ids = [...new Set(memberIds.map(String))].filter(Boolean).map((id) => new mongoose.Types.ObjectId(id));
+  if (!ids.length) return new Map();
+
+  const rows = await GymInvoice.aggregate([
+    { $match: { tenantId: new mongoose.Types.ObjectId(String(tenantId)), memberId: { $in: ids } } },
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: "$memberId",
+        status: { $first: "$status" },
+        amount: { $first: "$amount" },
+        paidAmount: { $first: "$paidAmount" },
+        dueDate: { $first: "$dueDate" },
+        invoiceRef: { $first: "$invoiceRef" },
+      },
+    },
+  ]);
+  return new Map(rows.map((r) => [String(r._id), { status: r.status, amount: r.amount, paidAmount: r.paidAmount, dueDate: r.dueDate, invoiceRef: r.invoiceRef }]));
+}
+
 module.exports = {
   createInvoice,
   listInvoices,
+  listPayments,
   getInvoice,
   recordPayment,
+  updatePayment,
+  deletePayment,
   cancelInvoice,
   markOverdue,
   memberPayments,
+  latestInvoicesByMember,
 };

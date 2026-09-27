@@ -1,47 +1,66 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart3, Users, Calendar, DollarSign, TrendingUp, AlertTriangle } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-type ReportTab = "membership" | "attendance" | "revenue" | "trainers" | "pnl";
+type ReportTab = "membership" | "attendance" | "revenue" | "pnl";
+
+interface ReportData {
+  series?: { year: number; month: number; revenue: number; expenses: number; profit: number }[];
+  totalRevenue?: number;
+  totalExpenses?: number;
+  netProfit?: number;
+  pendingAmount?: number;
+  byStatus?: { status: string; count: number }[];
+  byPlan?: { plan: string; count: number }[];
+  newByMonth?: { year: number; month: number; count: number }[];
+  daily?: { date: string; count: number; uniqueMembers: number }[];
+  peakHours?: { hour: number; count: number }[];
+  topMembers?: { id: string; name: string; memberNo: string; visits: number }[];
+  income?: { breakdown?: { type: string; total: number }[]; total?: number };
+  expenses?: { breakdown?: { category: string; total: number }[]; total?: number };
+}
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [months, setMonths] = useState(6);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState("");
 
-  const fetchReport = async (tab: ReportTab) => {
-    setLoading(true); setData(null);
+  const fetchReport = useCallback(async (tab: ReportTab) => {
+    setLoading(true); setData(null); setFetchError("");
     try {
       const params = new URLSearchParams();
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
       if (tab === "revenue") params.set("months", String(months));
 
-      const res = await fetch(`/api/gym/reports/${tab}?${params}`, { credentials: "include" });
+       const reportPath = tab === "pnl" ? "profit-loss" : tab;
+       const res = await fetch(`/api/gym/reports/${reportPath}?${params}`, { credentials: "include" });
       const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to generate report");
       setData(json);
-    } catch { setData(null); }
+    } catch (e: unknown) { setData(null); setFetchError(e instanceof Error ? e.message : "Failed to generate report"); }
     setLoading(false);
-  };
+  }, [dateFrom, dateTo, months]);
+
+  useEffect(() => { void fetchReport(activeTab); }, [activeTab, fetchReport]);
 
   const handleTabChange = (tab: ReportTab) => {
     setActiveTab(tab);
-    fetchReport(tab);
   };
 
   const tabs: { key: ReportTab; label: string; icon: typeof BarChart3 }[] = [
     { key: "revenue", label: "Revenue", icon: DollarSign },
     { key: "membership", label: "Membership", icon: Users },
     { key: "attendance", label: "Attendance", icon: Calendar },
-    { key: "trainers", label: "Trainers", icon: TrendingUp },
     { key: "pnl", label: "P&L", icon: BarChart3 },
   ];
 
@@ -86,7 +105,10 @@ export default function ReportsPage() {
 
       {/* Content */}
       {loading && <div className="text-center py-12 text-slate-400 text-sm">Generating report...</div>}
-      {!loading && !data && (
+      {!loading && fetchError && (
+        <div className="text-center py-12 text-red-500 text-sm bg-red-50 rounded-xl border border-red-200">{fetchError}</div>
+      )}
+      {!loading && !data && !fetchError && (
         <div className="text-center py-16 text-slate-400">
           <BarChart3 size={40} className="mx-auto mb-3 text-slate-300" />
           <p className="text-sm">Select a report type and click <strong>Generate</strong> to view analytics.</p>
@@ -97,7 +119,6 @@ export default function ReportsPage() {
           {activeTab === "revenue" && <RevenueReport data={data} />}
           {activeTab === "membership" && <MembershipReport data={data} />}
           {activeTab === "attendance" && <AttendanceReport data={data} />}
-          {activeTab === "trainers" && <TrainerReport data={data} />}
           {activeTab === "pnl" && <PnLReport data={data} />}
         </div>
       )}
@@ -117,10 +138,10 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
   );
 }
 
-function RevenueReport({ data }: { data: any }) {
+function RevenueReport({ data }: { data: ReportData }) {
   const chartData = useMemo(() => {
     if (!data?.series) return [];
-    return data.series.map((s: any) => ({
+     return data.series.map((s) => ({
       name: MONTHS[s.month - 1] || `${s.month}`,
       Revenue: s.revenue,
       Expenses: s.expenses,
@@ -154,7 +175,7 @@ function RevenueReport({ data }: { data: any }) {
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
               <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
-              <Tooltip formatter={(v: number) => [`PKR ${v.toLocaleString()}`, ""]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
+               <Tooltip formatter={(v: unknown) => [`PKR ${Number(v ?? 0).toLocaleString()}`, ""]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
               <Legend />
               <Area type="monotone" dataKey="Revenue" stroke="#3b82f6" fill="url(#revGrad)" strokeWidth={2} />
               <Area type="monotone" dataKey="Expenses" stroke="#ef4444" fill="url(#expGrad)" strokeWidth={2} />
@@ -167,10 +188,10 @@ function RevenueReport({ data }: { data: any }) {
   );
 }
 
-function MembershipReport({ data }: { data: any }) {
-  const statusData = useMemo(() => (data?.byStatus || []).map((s: any) => ({ name: s.status, value: s.count })), [data]);
-  const planData = useMemo(() => (data?.byPlan || []).map((p: any) => ({ name: p.plan, value: p.count })), [data]);
-  const monthData = useMemo(() => (data?.newByMonth || []).map((m: any) => ({ name: MONTHS[m.month - 1], count: m.count })).reverse(), [data]);
+function MembershipReport({ data }: { data: ReportData }) {
+  const statusData = useMemo(() => (data?.byStatus || []).map((s) => ({ name: s.status, value: s.count })), [data]);
+  const planData = useMemo(() => (data?.byPlan || []).map((p) => ({ name: p.plan, value: p.count })), [data]);
+  const monthData = useMemo(() => (data?.newByMonth || []).map((m) => ({ name: MONTHS[m.month - 1], count: m.count })).reverse(), [data]);
 
   return (
     <>
@@ -181,14 +202,14 @@ function MembershipReport({ data }: { data: any }) {
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                  {statusData.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                   {statusData.map((_: unknown, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
               </PieChart>
             </ResponsiveContainer>
           ) : <p className="text-sm text-slate-400 text-center py-8">No data</p>}
           <div className="flex flex-wrap gap-2 mt-2 justify-center">
-            {statusData.map((d: any, i: number) => (
+             {statusData.map((d, i: number) => (
               <span key={d.name} className="flex items-center gap-1 text-xs text-slate-600">
                 <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} /> {d.name} ({d.value})
               </span>
@@ -228,9 +249,10 @@ function MembershipReport({ data }: { data: any }) {
   );
 }
 
-function AttendanceReport({ data }: { data: any }) {
-  const dailyData = useMemo(() => (data?.daily || []).map((d: any) => ({ name: d.date?.slice(5) || d.date, checkins: d.count, unique: d.uniqueMembers })).reverse(), [data]);
-  const peakData = useMemo(() => (data?.peakHours || []).map((h: any) => ({ name: `${h.hour}:00`, count: h.count })), [data]);
+function AttendanceReport({ data }: { data: ReportData }) {
+  const dailyData = useMemo(() => (data?.daily || []).map((d) => ({ name: d.date?.slice(5) || d.date, checkins: d.count, unique: d.uniqueMembers })).reverse(), [data]);
+  const peakData = useMemo(() => (data?.peakHours || []).map((h) => ({ name: `${h.hour}:00`, count: h.count })), [data]);
+  const topMembers = data?.topMembers || [];
 
   return (
     <>
@@ -266,7 +288,7 @@ function AttendanceReport({ data }: { data: any }) {
           ) : <p className="text-sm text-slate-400 text-center py-8">No peak hour data</p>}
         </div>
       </div>
-      {data?.topMembers?.length > 0 && (
+      {topMembers.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <h3 className="font-bold text-slate-900 text-sm mb-4">Most Active Members</h3>
           <div className="overflow-x-auto">
@@ -278,8 +300,8 @@ function AttendanceReport({ data }: { data: any }) {
                 <th className="text-right py-2 font-semibold text-slate-500">Visits</th>
               </tr></thead>
               <tbody>
-                {data.topMembers.map((m: any, i: number) => (
-                  <tr key={m._id} className="border-b border-slate-50">
+                 {topMembers.map((m, i: number) => (
+                   <tr key={m.id} className="border-b border-slate-50">
                     <td className="py-2 text-slate-400">{i + 1}</td>
                     <td className="py-2 font-medium text-slate-900">{m.name}</td>
                     <td className="py-2 text-slate-500 font-mono text-xs">{m.memberNo}</td>
@@ -295,66 +317,7 @@ function AttendanceReport({ data }: { data: any }) {
   );
 }
 
-function TrainerReport({ data }: { data: any }) {
-  const trainers = data?.trainers || [];
-  const chartData = useMemo(() => trainers.map((t: any) => ({
-    name: t.name?.split(" ")[0] || "—",
-    Members: t.memberCount,
-    Active: t.activeMembers,
-    Sessions: t.sessions,
-  })), [trainers]);
-
-  return (
-    <>
-      {chartData.length > 0 && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h3 className="font-bold text-slate-900 text-sm mb-4">Trainer Workload</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-              <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
-              <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
-              <Legend />
-              <Bar dataKey="Members" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Active" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Sessions" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead><tr className="border-b border-slate-200 bg-slate-50">
-            <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase text-xs">Trainer</th>
-            <th className="text-left px-4 py-3 font-bold text-slate-500 uppercase text-xs">Specialization</th>
-            <th className="text-right px-4 py-3 font-bold text-slate-500 uppercase text-xs">Members</th>
-            <th className="text-right px-4 py-3 font-bold text-slate-500 uppercase text-xs">Active</th>
-            <th className="text-right px-4 py-3 font-bold text-slate-500 uppercase text-xs">Sessions</th>
-            <th className="text-right px-4 py-3 font-bold text-slate-500 uppercase text-xs">Fee</th>
-          </tr></thead>
-          <tbody>
-            {trainers.map((t: any) => (
-              <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="px-4 py-3 font-semibold text-slate-900">{t.name}</td>
-                <td className="px-4 py-3 text-slate-600">{t.specialization || "—"}</td>
-                <td className="px-4 py-3 text-right font-semibold text-slate-900">{t.memberCount}</td>
-                <td className="px-4 py-3 text-right font-semibold text-green-700">{t.activeMembers}</td>
-                <td className="px-4 py-3 text-right font-semibold text-slate-900">{t.sessions}</td>
-                <td className="px-4 py-3 text-right text-slate-600">PKR {Number(t.fee).toLocaleString()}</td>
-              </tr>
-            ))}
-            {trainers.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">No trainer data</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
-}
-
-function PnLReport({ data }: { data: any }) {
+function PnLReport({ data }: { data: ReportData }) {
   const incomeBreakdown = data?.income?.breakdown || [];
   const expenseBreakdown = data?.expenses?.breakdown || [];
 
@@ -363,7 +326,7 @@ function PnLReport({ data }: { data: any }) {
       <div className="bg-white border border-slate-200 rounded-xl p-5">
         <h3 className="font-bold text-slate-900 text-sm mb-4">Income</h3>
         <div className="space-y-2 mb-4">
-          {incomeBreakdown.map((item: any) => (
+           {incomeBreakdown.map((item) => (
             <div key={item.type} className="flex items-center justify-between py-2 border-b border-slate-50">
               <span className="text-sm text-slate-600">{item.type || "General"}</span>
               <span className="text-sm font-bold text-green-700">PKR {Number(item.total).toLocaleString()}</span>
@@ -379,7 +342,7 @@ function PnLReport({ data }: { data: any }) {
       <div className="bg-white border border-slate-200 rounded-xl p-5">
         <h3 className="font-bold text-slate-900 text-sm mb-4">Expenses</h3>
         <div className="space-y-2 mb-4">
-          {expenseBreakdown.map((item: any) => (
+           {expenseBreakdown.map((item) => (
             <div key={item.category} className="flex items-center justify-between py-2 border-b border-slate-50">
               <span className="text-sm text-slate-600">{item.category || "General"}</span>
               <span className="text-sm font-bold text-red-600">PKR {Number(item.total).toLocaleString()}</span>

@@ -103,7 +103,7 @@ const remove = asyncHandler(async (req, res) => {
 });
 
 const payments = asyncHandler(async (req, res) => {
-  const history = await memberService.paymentHistory({ tenantId: req.tenantId, id: req.params.id });
+  const history = await memberService.paymentHistory({ tenantId: req.tenantId, id: req.params.id, trainerScope: req.memberScope });
   return apiSuccess(res, { payments: history });
 });
 

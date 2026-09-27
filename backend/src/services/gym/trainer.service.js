@@ -92,7 +92,7 @@ async function assignedMembers({ tenantId, trainerId, page = 1, limit = 20 }) {
   const filter = { tenantId, trainerId };
   const skip = (page - 1) * limit;
   const [rows, total] = await Promise.all([
-    Member.find(filter).populate("planId", "name").sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Member.find(filter).populate("plan", "name price duration").sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     Member.countDocuments(filter),
   ]);
   return {
@@ -100,6 +100,12 @@ async function assignedMembers({ tenantId, trainerId, page = 1, limit = 20 }) {
     members: rows,
     pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   };
+}
+
+async function selfMembers({ tenantId, userId, page = 1, limit = 20 }) {
+  const trainer = await Trainer.findOne({ tenantId, userId }).select("_id").lean();
+  if (!trainer) throw ApiError.notFound("Trainer profile not found");
+  return assignedMembers({ tenantId, trainerId: trainer._id, page, limit });
 }
 
 /** Workload metrics for a single trainer. */
@@ -153,11 +159,6 @@ async function workloadAll({ tenantId }) {
   ]);
 }
 
-/** Resolve the trainer profile linked to a login user (trainer-scoped RBAC). */
-async function resolveTrainerForUser({ tenantId, userId }) {
-  return Trainer.findOne({ tenantId, userId }).select("_id name").lean();
-}
-
 module.exports = {
   list,
   create,
@@ -166,7 +167,7 @@ module.exports = {
   assignMember,
   unassignMember,
   assignedMembers,
+  selfMembers,
   workload,
   workloadAll,
-  resolveTrainerForUser,
 };

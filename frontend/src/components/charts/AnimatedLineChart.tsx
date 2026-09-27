@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -44,6 +44,7 @@ export default function AnimatedLineChart({
 }: Props) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const gradientId = useId().replace(/:/g, "");
 
   useEffect(() => {
     const el = ref.current;
@@ -61,8 +62,8 @@ export default function AnimatedLineChart({
     return () => observer.disconnect();
   }, []);
 
-  const gradientId1 = `areaGrad1-${Math.random().toString(36).substr(2, 9)}`;
-  const gradientId2 = `areaGrad2-${Math.random().toString(36).substr(2, 9)}`;
+  const gradientId1 = `areaGrad1-${gradientId}`;
+  const gradientId2 = `areaGrad2-${gradientId}`;
 
   return (
     <div ref={ref} style={{ width: "100%", height }}>

@@ -35,6 +35,7 @@ export async function middleware(request: NextRequest) {
   // localStorage), not the staff access_token cookie — so it is public to this
   // staff middleware and guards itself.
   const isMemberPortal = pathname === "/portal" || pathname.startsWith("/portal/");
+  const isMemberPortalApi = pathname === "/api/gym/portal" || pathname.startsWith("/api/gym/portal/");
 
   // Check if the path is a static file or Next.js internal
   const isStaticFile =
@@ -42,7 +43,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/api/") === false && pathname.includes(".");
 
-  if (publicPaths.includes(pathname) || isSolutionPage || isMemberPortal || isStaticFile) {
+  if (publicPaths.includes(pathname) || isSolutionPage || isMemberPortal || isMemberPortalApi || isStaticFile) {
     return NextResponse.next();
   }
 

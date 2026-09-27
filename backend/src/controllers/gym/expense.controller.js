@@ -42,9 +42,12 @@ const create = asyncHandler(async (req, res) => {
   return apiSuccess(res, { expense }, 201);
 });
 
+const updateSchema = createSchema.partial();
+
 const update = asyncHandler(async (req, res) => {
   const id = req.params.id || req.body.id;
-  const expense = await expenseService.update({ tenantId: req.tenantId, id, data: req.body });
+  const data = updateSchema.parse(req.body);
+  const expense = await expenseService.update({ tenantId: req.tenantId, id, data });
   return apiSuccess(res, { expense });
 });
 

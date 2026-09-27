@@ -7,6 +7,8 @@ const { loadMembership } = require("./auth");
 /**
  * Does a permissions array grant `permission`?
  * "*" is a wildcard super-permission; "members.*" grants any members.* action.
+ * Scoped permissions such as "members.view.assigned" intentionally do not
+ * grant the broader "members.view" permission.
  */
 function permits(permissions, permission) {
   if (!Array.isArray(permissions)) return false;
@@ -18,8 +20,13 @@ function permits(permissions, permission) {
 /**
  * Require a specific permission string (e.g. "members.create") within the
  * current tenant. Composes with requireAuth + requireTenant which must run
- * first. Super admins acting on a tenant they don't belong to are allowed
- * through (platform-level override), matching the previous behaviour.
+ * first. Platform super admins (role SUPER_ADMIN, no tenant of their own)
+ * acting on a tenant they don't belong to are allowed through.
+ *
+ * Tenant owners are *also* stored with role "SUPER_ADMIN" (that's how tenant
+ * ownership is modeled) — the `!req.user.tenantId` check is what stops a
+ * tenant owner whose membership was removed/reassigned from still being
+ * treated as a platform admin with blanket access to their old tenant.
  */
 function requirePermission(permission) {
   return asyncHandler(async (req, _res, next) => {
@@ -27,9 +34,8 @@ function requirePermission(permission) {
 
     const membership = await loadMembership(req);
 
-    // Platform super admin with no tenant membership => full access.
     if (!membership) {
-      if (req.user.role === "SUPER_ADMIN") return next();
+      if (req.user.role === "SUPER_ADMIN" && !req.user.tenantId) return next();
       throw ApiError.forbidden();
     }
 
@@ -51,7 +57,7 @@ function requireAnyPermission(...permissionList) {
     if (!req.user) throw ApiError.unauthorized();
     const membership = await loadMembership(req);
     if (!membership) {
-      if (req.user.role === "SUPER_ADMIN") return next();
+      if (req.user.role === "SUPER_ADMIN" && !req.user.tenantId) return next();
       throw ApiError.forbidden();
     }
     const perms = membership.role ? membership.role.permissions : [];

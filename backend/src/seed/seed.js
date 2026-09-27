@@ -2,8 +2,8 @@
 
 /**
  * Idempotent seed. Creates the platform super admin, one tenant per industry,
- * the three system roles for each tenant, a demo owner (and, for the gym, a
- * receptionist + a trainer login), and demo gym data.
+ * the owner role for each tenant (single admin login — no receptionist/trainer
+ * logins), and demo gym data including a small staff roster.
  *
  *   npm run seed
  */
@@ -12,6 +12,7 @@ const {
   Tenant, User, TenantRole, TenantUser,
   MembershipPlan, Trainer, Member, Session, CheckIn, GymInvoice, GymPayment,
   GymInventoryItem, StockMovement, Expense, ClassBooking, GymSettings, TrainerSchedule,
+  Staff,
 } = require("../models");
 const { hashPassword } = require("../utils/password");
 const { SYSTEM_ROLES } = require("./roles");
@@ -46,12 +47,11 @@ async function ensureMembership(tenantId, userId, roleId) {
   if (!existing) await TenantUser.create({ tenantId, userId, roleId });
 }
 
-async function seedGym(tenant, roles) {
+async function seedGym(tenant, ownerUser) {
   if (await Member.countDocuments({ tenantId: tenant._id })) {
     console.log("  gym demo data already present, skipping");
     return;
   }
-  const passwordHash = await hashPassword(env.demoPassword);
 
   // Plans
   const [monthly, quarterly, annual] = await MembershipPlan.create([
@@ -60,23 +60,17 @@ async function seedGym(tenant, roles) {
     { tenantId: tenant._id, name: "Annual", duration: 365, price: 36000 },
   ]);
 
-  // Trainer login user + Trainer profile (demonstrates trainer-scoped access)
-  const trainerUser = await upsertUser({
-    email: "trainer@demo.com",
-    name: "Coach Bilal",
-    passwordHash,
-    tenantId: tenant._id,
-  });
-  await ensureMembership(tenant._id, trainerUser._id, roles.trainer._id);
-
+  // Trainer directory (no login — the single admin manages everything)
   const [coachBilal, coachSana] = await Trainer.create([
-    { tenantId: tenant._id, name: "Coach Bilal", phone: "03001112233", specialization: "Strength", fee: 8000, userId: trainerUser._id, maxMembers: 30 },
+    { tenantId: tenant._id, name: "Coach Bilal", phone: "03001112233", specialization: "Strength", fee: 8000, maxMembers: 30 },
     { tenantId: tenant._id, name: "Coach Sana", phone: "03004445566", specialization: "Cardio & HIIT", fee: 7000, maxMembers: 25 },
   ]);
 
-  // Receptionist login
-  const recUser = await upsertUser({ email: "reception@demo.com", name: "Front Desk", passwordHash, tenantId: tenant._id });
-  await ensureMembership(tenant._id, recUser._id, roles.receptionist._id);
+  // Staff roster (front-desk/cleaning etc.) used only for attendance marking.
+  await Staff.create([
+    { tenantId: tenant._id, name: "Ali Raza", phone: "03007778899", role: "Front Desk" },
+    { tenantId: tenant._id, name: "Sana Bibi", phone: "03006667788", role: "Cleaning" },
+  ]);
 
   // Members — a spread of active / expiring-soon / expired
   const now = new Date();
@@ -237,9 +231,8 @@ async function seedGym(tenant, roles) {
     await ClassBooking.create(bookings);
   }
 
-  console.log("  seeded plans, 2 trainers, 5 members, invoices, check-ins, sessions");
+  console.log("  seeded plans, 2 trainers, 2 staff, 5 members, invoices, check-ins, sessions");
   console.log("  seeded inventory, expenses, settings, schedules, class bookings");
-  console.log(`  gym logins: reception@demo.com / trainer@demo.com  (pw: ${env.demoPassword})`);
 }
 
 async function main() {
@@ -273,7 +266,7 @@ async function main() {
     await ensureMembership(tenant._id, ownerUser._id, roles.owner._id);
     console.log(`  owner login: ${ind.industry.toLowerCase()}@demo.com / ${env.demoPassword}`);
 
-    if (ind.industry === "GYM") await seedGym(tenant, roles);
+    if (ind.industry === "GYM") await seedGym(tenant, ownerUser);
   }
 
   console.log("\nSeeding complete.");

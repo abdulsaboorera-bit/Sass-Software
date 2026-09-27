@@ -3,7 +3,7 @@
 const { verifyAccessToken } = require("../utils/jwt");
 const { ApiError } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
-const { TenantUser } = require("../models");
+const { Tenant, TenantUser } = require("../models");
 
 /**
  * Read the access token from the httpOnly cookie (as the Next.js app sets it)
@@ -34,10 +34,15 @@ const requireAuth = (req, _res, next) => {
   next();
 };
 
-/** Require platform super admin (tenant-independent). */
+/**
+ * Require platform super admin (tenant-independent). Tenant owners are also
+ * stored with role "SUPER_ADMIN" (that's how tenant ownership is modeled),
+ * so this must also confirm the caller has no tenant — otherwise every
+ * tenant owner would have full platform admin API access.
+ */
 const requireSuperAdmin = (req, _res, next) => {
   if (!req.user) throw ApiError.unauthorized();
-  if (req.user.role !== "SUPER_ADMIN") throw ApiError.forbidden();
+  if (req.user.role !== "SUPER_ADMIN" || req.user.tenantId) throw ApiError.forbidden();
   next();
 };
 
@@ -57,6 +62,16 @@ const requireTenant = (req, _res, next) => {
   req.tenantId = String(tenantId);
   next();
 };
+
+/** Require a tenant to belong to a specific vertical before serving its APIs. */
+const requireIndustry = (industry) => asyncHandler(async (req, _res, next) => {
+  if (!req.tenantId) throw ApiError.forbidden("No tenant context");
+  const tenant = await Tenant.findOne({ _id: req.tenantId, industry }).select("_id industry status").lean();
+  if (!tenant) throw ApiError.forbidden(`This tenant does not use the ${industry.toLowerCase()} module`);
+  if (["SUSPENDED", "CANCELLED"].includes(tenant.status)) throw ApiError.forbidden("Tenant is not active");
+  req.tenant = tenant;
+  next();
+});
 
 /**
  * Load the caller's TenantUser membership (with role) for the current tenant
@@ -84,5 +99,6 @@ module.exports = {
   requireAuth,
   requireSuperAdmin,
   requireTenant,
+  requireIndustry,
   loadMembership,
 };

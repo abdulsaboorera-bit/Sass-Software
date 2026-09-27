@@ -16,6 +16,20 @@ function endOfDay(d = new Date()) {
   return x;
 }
 
+/** Parse a date query value without treating a date-only value as UTC. */
+function parseDateInput(value, end = false) {
+  if (!value) return null;
+  const raw = String(value);
+  let date;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split("-").map(Number);
+    date = new Date(year, month - 1, day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0);
+  } else {
+    date = new Date(raw);
+  }
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function addDays(d, days) {
   return new Date(new Date(d).getTime() + days * DAY_MS);
 }
@@ -58,6 +72,7 @@ module.exports = {
   DAY_MS,
   startOfDay,
   endOfDay,
+  parseDateInput,
   addDays,
   daysBetween,
   monthRange,

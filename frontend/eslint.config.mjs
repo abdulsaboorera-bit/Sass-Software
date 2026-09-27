@@ -13,6 +13,16 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // Data-loading effects intentionally update local state after an
+      // external request. The React 19 rule flags the helper call itself.
+      "react-hooks/set-state-in-effect": "off",
+      // Several pages keep stable fetch helpers below their effects; effects
+      // run after render, so this is not a temporal runtime access.
+      "react-hooks/immutability": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

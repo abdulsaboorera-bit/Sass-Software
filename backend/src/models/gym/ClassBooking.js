@@ -19,7 +19,9 @@ const classBookingSchema = new Schema(
   baseOptions
 );
 
-classBookingSchema.index({ tenantId: 1, sessionId: 1, date: 1 });
-classBookingSchema.index({ tenantId: 1, memberId: 1, date: 1 });
+classBookingSchema.index(
+  { tenantId: 1, sessionId: 1, date: 1, memberId: 1 },
+  { unique: true, partialFilterExpression: { status: { $in: ["BOOKED", "CHECKED_IN"] } } }
+);
 
 module.exports = mongoose.models.ClassBooking || mongoose.model("ClassBooking", classBookingSchema);

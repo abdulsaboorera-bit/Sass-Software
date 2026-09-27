@@ -30,6 +30,24 @@ interface QuickAction {
   color: string;
 }
 
+interface RevenuePoint { year: number; month: number; total: number }
+interface AttendancePoint { day: string; count: number }
+interface ExpiringMember { id: string; name: string; endDate: string; plan?: { name: string } | null }
+interface GymData {
+  dashboard?: {
+    members?: { total?: number; active?: number; expired?: number; frozen?: number; cancelled?: number; newThisMonth?: number };
+    todayCheckins?: number;
+    revenue?: { currentMonth?: number };
+    pendingPayments?: { count?: number };
+    expiringSoon?: number;
+    expiringSoonMembers?: ExpiringMember[];
+    staffPresentToday?: number;
+  };
+  revenue?: { series?: RevenuePoint[] };
+  attendance?: { trend?: AttendancePoint[] };
+  pending?: { count?: number };
+}
+
 const CHART_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -95,23 +113,21 @@ const industryConfig: Record<string, {
       { label: "Pending Payments", value: d.pendingPayments ?? "—", icon: CreditCard, color: "bg-red-50 text-red-600", href: "/dashboard/billing" },
       { label: "Expiring Soon", value: d.expiringSoon ?? "—", icon: AlertCircle, color: "bg-orange-50 text-orange-600", href: "/dashboard/members" },
       { label: "New This Month", value: d.newThisMonth ?? "—", icon: UserPlus, color: "bg-purple-50 text-purple-600", href: "/dashboard/members" },
-      { label: "Trainers", value: d.trainers ?? "—", icon: Dumbbell, color: "bg-indigo-50 text-indigo-600", href: "/dashboard/trainers" },
+      { label: "Staff Present Today", value: d.staffPresentToday ?? "—", icon: Dumbbell, color: "bg-indigo-50 text-indigo-600", href: "/dashboard/sessions" },
       { label: "Total Members", value: d.totalMembers ?? "—", icon: Users, color: "bg-slate-50 text-slate-600", href: "/dashboard/members" },
     ],
     actions: [
       { label: "Add Member", href: "/dashboard/members", icon: Users, color: "bg-blue-600" },
-      { label: "Check-in", href: "/dashboard/sessions", icon: Clock, color: "bg-emerald-600" },
-      { label: "View Trainers", href: "/dashboard/trainers", icon: Dumbbell, color: "bg-purple-600" },
+      { label: "Attendance", href: "/dashboard/sessions", icon: Clock, color: "bg-emerald-600" },
       { label: "Billing", href: "/dashboard/billing", icon: DollarSign, color: "bg-amber-600" },
-      { label: "Sessions", href: "/dashboard/sessions", icon: Calendar, color: "bg-indigo-600" },
       { label: "Inventory", href: "/dashboard/inventory", icon: Package, color: "bg-rose-600" },
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3, color: "bg-cyan-600" },
       { label: "Settings", href: "/dashboard/settings", icon: RefreshCw, color: "bg-slate-600" },
     ],
     gettingStarted: [
-      { title: "Add trainers", desc: "Register trainers and their specialties." },
       { title: "Register members", desc: "Add members with membership plans." },
       { title: "Track check-ins", desc: "Monitor daily gym attendance." },
+      { title: "Mark staff attendance", desc: "Track daily presence for your staff roster." },
       { title: "Manage billing", desc: "Track membership payments and dues." },
     ],
   },
@@ -164,8 +180,9 @@ const industryConfig: Record<string, {
 export default function DashboardPage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [stats, setStats] = useState<Record<string, number>>({});
-  const [gymData, setGymData] = useState<any>(null);
+  const [gymData, setGymData] = useState<GymData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [renderNow] = useState(() => Date.now());
 
   useEffect(() => {
     fetch("/api/me").then(r => r.json()).then(data => {
@@ -211,10 +228,10 @@ export default function DashboardPage() {
         });
       } else if (industry === "GYM") {
         const [dashRes, revenueRes, attendanceRes, pendingRes] = await Promise.all([
-          fetch("/api/gym/analytics/dashboard").then(r => r.json()).catch(() => null),
-          fetch("/api/gym/analytics/revenue?months=6").then(r => r.json()).catch(() => null),
-          fetch("/api/gym/attendance/trends?days=30").then(r => r.json()).catch(() => null),
-          fetch("/api/gym/analytics/pending-payments").then(r => r.json()).catch(() => null),
+          fetch("/api/gym/analytics/dashboard", { credentials: "include" }).then(r => r.json()).catch(() => null),
+          fetch("/api/gym/analytics/revenue?months=6", { credentials: "include" }).then(r => r.json()).catch(() => null),
+          fetch("/api/gym/attendance/trends?days=30", { credentials: "include" }).then(r => r.json()).catch(() => null),
+          fetch("/api/gym/analytics/pending-payments", { credentials: "include" }).then(r => r.json()).catch(() => null),
         ]);
         setGymData({
           dashboard: dashRes,
@@ -232,7 +249,7 @@ export default function DashboardPage() {
           pendingPayments: dashRes?.pendingPayments?.count || 0,
           expiringSoon: dashRes?.expiringSoon || 0,
           newThisMonth: dashRes?.members?.newThisMonth || 0,
-          trainers: dashRes?.totalTrainers || 0,
+          staffPresentToday: dashRes?.staffPresentToday || 0,
         });
       } else if (industry === "RESTAURANT") {
         const [ordersRes, tablesRes, menuRes] = await Promise.all([
@@ -276,16 +293,16 @@ export default function DashboardPage() {
 
   const revenueChartData = useMemo(() => {
     if (!gymData?.revenue?.series) return [];
-    return gymData.revenue.series.map((s: any) => ({
+     return gymData.revenue.series.map((s: RevenuePoint) => ({
       name: MONTH_NAMES[s.month - 1] || `${s.month}`,
       revenue: s.total,
     }));
   }, [gymData]);
 
   const attendanceChartData = useMemo(() => {
-    if (!gymData?.attendance?.daily) return [];
-    return [...gymData.attendance.daily].reverse().map((d: any) => ({
-      name: d.date?.slice(5) || d.date,
+     if (!gymData?.attendance?.trend) return [];
+     return [...gymData.attendance.trend].reverse().map((d: AttendancePoint) => ({
+       name: d.day?.slice(5) || d.day,
       checkins: d.count,
     }));
   }, [gymData]);
@@ -309,6 +326,7 @@ export default function DashboardPage() {
   const config = industryConfig[industry] || industryConfig.SCHOOL;
   const statCards = config.stats(stats);
   const isGym = industry === "GYM";
+  const expiringSoonMembers = gymData?.dashboard?.expiringSoonMembers ?? [];
 
   return (
     <div>
@@ -358,7 +376,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
                   <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                  <Tooltip formatter={(v: number) => [`PKR ${v.toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                   <Tooltip formatter={(v: unknown) => [`PKR ${Number(v ?? 0).toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
                   <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fill="url(#revGrad)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -372,15 +390,15 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height={220}>
                 <RePieChart>
                   <Pie data={memberStatusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                    {memberStatusData.map((_: any, i: number) => (
+                     {memberStatusData.map((_: unknown, i: number) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: number) => [v, "Members"]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                   <Tooltip formatter={(v: unknown) => [Number(v ?? 0), "Members"]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
                 </RePieChart>
               </ResponsiveContainer>
               <div className="flex flex-wrap gap-3 mt-2">
-                {memberStatusData.map((d: any, i: number) => (
+                 {memberStatusData.map((d: { name: string; value: number }, i: number) => (
                   <div key={d.name} className="flex items-center gap-1.5 text-xs text-slate-600">
                     <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
                     {d.name} ({d.value})
@@ -429,7 +447,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Gym Expiring Soon Widget */}
-      {isGym && gymData?.dashboard?.expiringSoonMembers?.length > 0 && (
+      {isGym && expiringSoonMembers.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-900">Expiring Soon</h3>
@@ -446,8 +464,8 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {gymData.dashboard.expiringSoonMembers.slice(0, 5).map((m: any) => {
-                  const daysLeft = Math.ceil((new Date(m.endDate).getTime() - Date.now()) / 86400000);
+                 {expiringSoonMembers.slice(0, 5).map((m: ExpiringMember) => {
+                  const daysLeft = Math.ceil((new Date(m.endDate).getTime() - renderNow) / 86400000);
                   return (
                     <tr key={m.id} className="border-b border-slate-50">
                       <td className="py-2.5 font-medium text-slate-900">{m.name}</td>

@@ -31,14 +31,16 @@ export default function MemberPortal() {
     if (!localStorage.getItem("member_token")) { router.push("/portal/login"); return; }
     (async () => {
       try {
-        const [m, b, a, i] = await Promise.all([
+        const responses = await Promise.all([
           authFetch("/me"), authFetch("/badges"), authFetch("/attendance"), authFetch("/invoices"),
         ]);
-        if (m.status === 401) { router.push("/portal/login"); return; }
-        setMe(await m.json());
-        setBadges(await b.json());
-        setAttendance(await a.json());
-        setInvoices(await i.json());
+        if (responses[0].status === 401) { router.push("/portal/login"); return; }
+        if (responses.some((response) => !response.ok)) throw new Error("Portal data is temporarily unavailable");
+        const [meData, badgesData, attendanceData, invoicesData] = await Promise.all(responses.map((response) => response.json()));
+        setMe(meData);
+        setBadges(badgesData);
+        setAttendance(attendanceData);
+        setInvoices(invoicesData);
       } catch {
         setErr("Failed to load your data.");
       } finally {

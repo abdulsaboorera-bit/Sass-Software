@@ -6,6 +6,7 @@ const meCtrl = require("../controllers/me.controller");
 
 const authRoutes = require("./auth.routes");
 const adminRoutes = require("./admin.routes");
+const messagesRoutes = require("./messages.routes");
 const gymRoutes = require("./gym");
 const schoolRoutes = require("./school");
 const clinicRoutes = require("./clinic");
@@ -20,6 +21,7 @@ router.get("/me", requireAuth, meCtrl.me);
 
 router.use("/auth", authRoutes);
 router.use("/admin", adminRoutes);
+router.use("/messages", messagesRoutes);
 router.use("/gym", gymRoutes);
 router.use("/school", schoolRoutes);
 router.use("/clinic", clinicRoutes);

@@ -3,16 +3,18 @@
 const mongoose = require("mongoose");
 const { GymInventoryItem, StockMovement } = require("../../models");
 const { ApiError } = require("../../utils/apiResponse");
+const { sanitize } = require("../../utils/crud");
 
 const oid = (id) => new mongoose.Types.ObjectId(String(id));
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 async function list({ tenantId, category, search, lowStock, page = 1, limit = 50 }) {
   const filter = { tenantId };
   if (category) filter.category = category;
   if (search) {
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { sku: { $regex: search, $options: "i" } },
+       { name: { $regex: escapeRegex(search), $options: "i" } },
+       { sku: { $regex: escapeRegex(search), $options: "i" } },
     ];
   }
   if (lowStock) {
@@ -38,8 +40,42 @@ async function create({ tenantId, data }) {
 }
 
 async function update({ tenantId, id, data }) {
-  const item = await GymInventoryItem.findOneAndUpdate({ _id: id, tenantId }, data, { new: true }).lean({ virtuals: true });
+  const existing = await GymInventoryItem.findOne({ _id: id, tenantId });
+  if (!existing) throw ApiError.notFound("Inventory item not found");
+
+  const updateData = sanitize(data);
+  const requestedQuantity = updateData.quantity;
+  delete updateData.quantity;
+  let item = await GymInventoryItem.findOneAndUpdate(
+    { _id: id, tenantId },
+    updateData,
+    { new: true, runValidators: true }
+  ).lean({ virtuals: true });
   if (!item) throw ApiError.notFound("Inventory item not found");
+
+  if (requestedQuantity !== undefined && requestedQuantity !== existing.quantity) {
+    const delta = Number(requestedQuantity) - Number(existing.quantity);
+    item = await GymInventoryItem.findOneAndUpdate(
+      { _id: id, tenantId, quantity: existing.quantity },
+      { $inc: { quantity: delta } },
+      { new: true, runValidators: true }
+    ).lean({ virtuals: true });
+    if (!item) throw ApiError.conflict("Stock changed while updating this item; please retry");
+    try {
+      await StockMovement.create({
+        tenantId,
+        itemId: id,
+        type: "ADJUSTMENT",
+        quantity: Math.abs(delta),
+        unitPrice: Number(item.costPrice || 0),
+        totalCost: Math.abs(delta) * Number(item.costPrice || 0),
+        notes: `Manual quantity adjustment (${delta > 0 ? "+" : ""}${delta})`,
+      });
+    } catch (err) {
+      await GymInventoryItem.updateOne({ _id: id, tenantId }, { $inc: { quantity: -delta } });
+      throw err;
+    }
+  }
   return item;
 }
 
@@ -50,22 +86,34 @@ async function remove({ tenantId, id }) {
 }
 
 async function recordMovement({ tenantId, itemId, type, quantity, unitPrice, reference, notes, createdBy }) {
-  const item = await GymInventoryItem.findOne({ _id: itemId, tenantId });
+  const qty = Number(quantity);
+  const item = await GymInventoryItem.findOne({ _id: itemId, tenantId }).select("name quantity costPrice").lean();
   if (!item) throw ApiError.notFound("Inventory item not found");
 
-  const qty = Number(quantity);
-  const totalCost = Number(unitPrice || item.costPrice) * qty;
-
-  if (type === "SALE" || type === "DAMAGED") {
-    if (item.quantity < qty) throw ApiError.badRequest(`Insufficient stock for "${item.name}" (available: ${item.quantity})`);
-    item.quantity -= qty;
-  } else {
-    item.quantity += qty;
+  const decreases = type === "SALE" || type === "DAMAGED";
+  const delta = decreases ? -qty : qty;
+  const updated = await GymInventoryItem.findOneAndUpdate(
+    {
+      _id: itemId,
+      tenantId,
+      ...(decreases ? { quantity: { $gte: qty } } : {}),
+    },
+    { $inc: { quantity: delta } },
+    { new: true, runValidators: true }
+  ).lean({ virtuals: true });
+  if (!updated) {
+    if (decreases) throw ApiError.badRequest(`Insufficient stock for "${item.name}" (available: ${item.quantity})`);
+    throw ApiError.notFound("Inventory item not found");
   }
-  await item.save();
 
-  await StockMovement.create({ tenantId, itemId, type, quantity: qty, unitPrice: Number(unitPrice || item.costPrice), totalCost, reference, notes, createdBy });
-  return item.toObject();
+  const price = Number(unitPrice ?? item.costPrice);
+  try {
+    await StockMovement.create({ tenantId, itemId, type, quantity: qty, unitPrice: price, totalCost: price * qty, reference, notes, createdBy });
+  } catch (err) {
+    await GymInventoryItem.updateOne({ _id: itemId, tenantId }, { $inc: { quantity: -delta } });
+    throw err;
+  }
+  return updated;
 }
 
 async function movements({ tenantId, itemId, type, page = 1, limit = 50 }) {

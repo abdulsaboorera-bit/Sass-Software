@@ -6,7 +6,6 @@ const { requirePermission, requireAnyPermission } = require("../../middleware/rb
 
 const router = express.Router();
 
-// Trainers may mark attendance too; reads need attendance.view.
 router.post("/check-in", requireAnyPermission("attendance.mark", "attendance.create"), ctrl.checkIn);
 router.post("/check-out", requireAnyPermission("attendance.mark", "attendance.edit"), ctrl.checkOut);
 

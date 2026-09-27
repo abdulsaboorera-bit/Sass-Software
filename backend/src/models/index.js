@@ -16,6 +16,8 @@ const TenantRole = require("./core/TenantRole");
 const TenantUser = require("./core/TenantUser");
 const Branch = require("./core/Branch");
 const Notification = require("./core/Notification");
+const PlatformSubscription = require("./core/PlatformSubscription");
+const Message = require("./core/Message");
 
 // ── Gym ──────────────────────────────────────────────────
 const MembershipPlan = require("./gym/MembershipPlan");
@@ -34,6 +36,8 @@ const GymSettings = require("./gym/GymSettings");
 const TrainerSchedule = require("./gym/TrainerSchedule");
 const TrainerLeave = require("./gym/TrainerLeave");
 const EquipmentMaintenance = require("./gym/EquipmentMaintenance");
+const Staff = require("./gym/Staff");
+const StaffAttendance = require("./gym/StaffAttendance");
 
 // ── Other verticals ──────────────────────────────────────
 const school = require("./school");
@@ -51,6 +55,8 @@ module.exports = {
   TenantUser,
   Branch,
   Notification,
+  PlatformSubscription,
+  Message,
   // gym
   MembershipPlan,
   Trainer,
@@ -68,6 +74,8 @@ module.exports = {
   TrainerSchedule,
   TrainerLeave,
   EquipmentMaintenance,
+  Staff,
+  StaffAttendance,
   // school / clinic / restaurant / bookshop
   ...school,
   ...clinic,

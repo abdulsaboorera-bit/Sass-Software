@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Fragment, useEffect, useState, useCallback } from "react";
 import { Plus, Search, Pencil, Trash2, X, ChevronDown, ChevronUp, Download, Filter, Calendar, CreditCard } from "lucide-react";
 
 interface Member {
@@ -13,7 +13,6 @@ interface Member {
   startDate: string;
   endDate: string;
   plan: { id: string; name: string; price: string };
-  trainer?: { id: string; name: string } | null;
   daysUntilExpiry?: number;
   effectiveStatus?: string;
 }
@@ -23,11 +22,6 @@ interface Plan {
   name: string;
   price: string;
   duration: number;
-}
-
-interface Trainer {
-  id: string;
-  name: string;
 }
 
 interface CheckIn {
@@ -52,13 +46,11 @@ const emptyForm = {
   phone: "",
   email: "",
   planId: "",
-  trainerId: "",
 };
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -70,9 +62,12 @@ export default function MembersPage() {
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [memberHistory, setMemberHistory] = useState<{ checkins: CheckIn[]; payments: Payment[] }>({ checkins: [], payments: [] });
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [fetchError, setFetchError] = useState("");
+  const [totalCount, setTotalCount] = useState(0);
 
   const fetchMembers = useCallback(() => {
     setLoading(true);
+    setFetchError("");
     const params = new URLSearchParams({ limit: "100" });
     if (search) params.set("search", search);
     if (statusFilter) params.set("status", statusFilter);
@@ -80,7 +75,9 @@ export default function MembersPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.members) setMembers(data.members);
+        if (data.pagination?.total) setTotalCount(data.pagination.total);
       })
+      .catch(() => setFetchError("Failed to load members"))
       .finally(() => setLoading(false));
   }, [search, statusFilter]);
 
@@ -92,26 +89,18 @@ export default function MembersPage() {
       });
   };
 
-  const fetchTrainers = () => {
-    fetch("/api/gym/trainers", { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.trainers) setTrainers(data.trainers);
-      });
-  };
-
   useEffect(() => { fetchMembers(); }, [fetchMembers]);
-  useEffect(() => { fetchPlans(); fetchTrainers(); }, []);
+  useEffect(() => { fetchPlans(); }, []);
 
   const fetchMemberHistory = async (memberId: string) => {
     setHistoryLoading(true);
     try {
       const [checkinsRes, paymentsRes] = await Promise.all([
-        fetch(`/api/gym/checkins?memberId=${memberId}&limit=10`, { credentials: "include" }).then(r => r.json()).catch(() => ({ checkins: [] })),
+        fetch(`/api/gym/checkins?memberId=${memberId}&limit=10`, { credentials: "include" }).then(r => r.json()).catch(() => ({ checkIns: [] })),
         fetch(`/api/gym/payments?memberId=${memberId}&limit=10`, { credentials: "include" }).then(r => r.json()).catch(() => ({ payments: [] })),
       ]);
       setMemberHistory({
-        checkins: checkinsRes.checkins || [],
+        checkins: checkinsRes.checkIns || [],
         payments: paymentsRes.payments || [],
       });
     } catch {
@@ -144,7 +133,6 @@ export default function MembersPage() {
       phone: m.phone,
       email: m.email || "",
       planId: m.plan?.id || "",
-      trainerId: m.trainer?.id || "",
     });
     setError("");
     setModalOpen(true);
@@ -173,7 +161,6 @@ export default function MembersPage() {
             phone: form.phone,
             email: form.email || undefined,
             planId: form.planId || undefined,
-            trainerId: form.trainerId || undefined,
           }),
         });
         const data = await res.json();
@@ -189,7 +176,6 @@ export default function MembersPage() {
             phone: form.phone,
             email: form.email || undefined,
             planId: form.planId,
-            trainerId: form.trainerId || undefined,
           }),
         });
         const data = await res.json();
@@ -217,11 +203,10 @@ export default function MembersPage() {
   };
 
   const exportCSV = () => {
-    const headers = ["Member No", "Name", "Phone", "Email", "Plan", "Status", "Start Date", "End Date", "Trainer"];
+    const headers = ["Member No", "Name", "Phone", "Email", "Plan", "Status", "Start Date", "End Date"];
     const rows = members.map(m => [
       m.memberNo, m.name, m.phone, m.email || "", m.plan?.name || "", m.status,
       new Date(m.startDate).toLocaleDateString(), new Date(m.endDate).toLocaleDateString(),
-      m.trainer?.name || "",
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -248,7 +233,7 @@ export default function MembersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900">Members</h2>
-          <p className="text-slate-500 text-sm">{members.length} total members</p>
+          <p className="text-slate-500 text-sm">{totalCount || members.length} total members</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={exportCSV} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors text-sm cursor-pointer">
@@ -295,7 +280,6 @@ export default function MembersPage() {
               <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Member</th>
               <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase hidden md:table-cell">Phone</th>
               <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase hidden lg:table-cell">Plan</th>
-              <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase hidden xl:table-cell">Trainer</th>
               <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Status</th>
               <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase hidden lg:table-cell">Expires</th>
               <th className="text-right px-4 py-3 text-xs font-bold text-slate-500 uppercase">Actions</th>
@@ -303,13 +287,15 @@ export default function MembersPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400 text-sm">Loading...</td></tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400 text-sm">Loading...</td></tr>
+            ) : fetchError ? (
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-red-500 text-sm">{fetchError}</td></tr>
             ) : members.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400 text-sm">No members found.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400 text-sm">No members found.</td></tr>
             ) : (
               members.map((m) => (
-                <>
-                  <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <Fragment key={m.id}>
+                  <tr className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-2 py-3">
                       <button onClick={() => toggleExpand(m.id)} className="p-1 rounded hover:bg-slate-200 text-slate-400 border-none bg-transparent cursor-pointer">
                         {expandedMember === m.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -323,16 +309,6 @@ export default function MembersPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 hidden md:table-cell">{m.phone}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 hidden lg:table-cell">{m.plan?.name || "—"}</td>
-                    <td className="px-4 py-3 hidden xl:table-cell">
-                      {m.trainer ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700">
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                          {m.trainer.name}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(m.effectiveStatus || m.status)}`}>
                         {m.effectiveStatus || m.status}
@@ -357,7 +333,7 @@ export default function MembersPage() {
                   </tr>
                   {expandedMember === m.id && (
                     <tr key={`${m.id}-expand`}>
-                      <td colSpan={8} className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                      <td colSpan={7} className="px-6 py-4 bg-slate-50 border-b border-slate-200">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
                             <h4 className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1.5">
@@ -401,7 +377,7 @@ export default function MembersPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))
             )}
           </tbody>
@@ -448,16 +424,6 @@ export default function MembersPage() {
                   <option value="">Select a plan</option>
                   {plans.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} — PKR {Number(p.price).toLocaleString()} ({p.duration} days)</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Trainer (optional)</label>
-                <select value={form.trainerId} onChange={(e) => setForm({ ...form, trainerId: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
-                  <option value="">No trainer</option>
-                  {trainers.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
               </div>

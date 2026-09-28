@@ -3,7 +3,8 @@
 const express = require("express");
 const { requireAuth, requireTenant, requireIndustry } = require("../../middleware/auth");
 const { makeCrudRouter } = require("../../utils/crud");
-const { MembershipPlan, Session, BodyMeasurement } = require("../../models");
+const { MembershipPlan, Session, BodyMeasurement, Trainer, Member } = require("../../models");
+const { ApiError } = require("../../utils/apiResponse");
 
 const membersRoutes = require("./members.routes");
 const attendanceRoutes = require("./attendance.routes");
@@ -26,6 +27,11 @@ const billingCtrl = require("../../controllers/gym/billing.controller");
 const { requirePermission, requireAnyPermission } = require("../../middleware/rbac");
 
 const router = express.Router();
+
+const validateReference = (model, field, label) => async (payload, req) => {
+  if (payload[field] && !(await model.exists({ _id: payload[field], tenantId: req.tenantId }))) throw ApiError.badRequest(`Invalid ${label}`);
+  return payload;
+};
 
 // Cron trigger + member portal are mounted first, WITHOUT the staff tenant
 // guard. Cron uses the x-cron-secret header; the portal uses its own member JWT.
@@ -79,6 +85,8 @@ router.use(
     filterFields: ["trainerId", "dayOfWeek", "isActive"],
     populate: [{ path: "trainerId", select: "name" }],
     sort: { dayOfWeek: 1 },
+    beforeCreate: validateReference(Trainer, "trainerId", "trainer"),
+    beforeUpdate: validateReference(Trainer, "trainerId", "trainer"),
   })
 );
 router.use(
@@ -90,6 +98,8 @@ router.use(
     itemKey: "measurement",
     filterFields: ["memberId"],
     sort: { recordedAt: -1 },
+    beforeCreate: validateReference(Member, "memberId", "member"),
+    beforeUpdate: validateReference(Member, "memberId", "member"),
   })
 );
 

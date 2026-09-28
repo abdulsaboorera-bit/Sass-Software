@@ -9,8 +9,8 @@ const userSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: "Tenant", default: null, index: true },
 
-    email: { type: String, required: true, lowercase: true, trim: true, index: true },
-    passwordHash: { type: String, required: true },
+    email: { type: String, required: true, lowercase: true, trim: true },
+    passwordHash: { type: String, required: true, select: false },
     name: { type: String, required: true },
     phone: { type: String },
     avatar: { type: String },
@@ -22,9 +22,9 @@ const userSchema = new Schema(
   baseOptions
 );
 
-// Email is unique per tenant (a user with the same email may exist across tenants),
-// mirroring the previous @@unique([tenantId, email]).
-userSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+// Login is email-only, so email must be globally unique to avoid ambiguous
+// authentication across tenants.
+userSchema.index({ email: 1 }, { unique: true });
 
 // Never leak the password hash through JSON serialisation.
 userSchema.set("toJSON", {

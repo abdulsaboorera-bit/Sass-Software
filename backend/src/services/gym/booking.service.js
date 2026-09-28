@@ -58,6 +58,7 @@ async function create({ tenantId, sessionId, memberId, date, bookedBy }) {
   if (normalizedDate < today) throw ApiError.badRequest("Booking date must be today or in the future");
   if (normalizedDate.getDay() !== session.dayOfWeek) throw ApiError.badRequest("Date does not match the selected class day");
   if (computeMembershipStatus(member, normalizedDate) !== "ACTIVE") throw ApiError.badRequest("Membership is not active on the booking date");
+  if (member.startDate && new Date(member.startDate) > normalizedDate) throw ApiError.badRequest("Membership has not started yet");
   bookingDate.setHours(0, 0, 0, 0);
   const existing = await ClassBooking.findOne({
     tenantId, sessionId, memberId,

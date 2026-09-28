@@ -19,7 +19,7 @@ const attendanceReport = asyncHandler(async (req, res) => {
 });
 
 const revenueReport = asyncHandler(async (req, res) => {
-  const months = Math.min(parseInt(req.query.months) || 6, 24);
+  const months = Math.min(Math.max(parseInt(req.query.months, 10) || 6, 1), 24);
   const result = await reportsService.revenueReport({ tenantId: req.tenantId, months });
   return apiSuccess(res, result);
 });

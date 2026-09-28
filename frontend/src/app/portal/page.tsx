@@ -12,6 +12,8 @@ interface Me {
   gym?: { name: string; currency: string } | null;
 }
 interface Badge { code: string; label: string; icon: string }
+interface ClassSession { id: string; name: string; dayOfWeek: number; startTime: string; endTime: string; capacity: number; trainerId?: { name: string } | null }
+interface Booking { id: string; date: string; status: string; sessionId?: { name: string; startTime: string; endTime: string } | null }
 
 export default function MemberPortal() {
   const router = useRouter();
@@ -19,6 +21,9 @@ export default function MemberPortal() {
   const [badges, setBadges] = useState<{ earned: Badge[]; locked: Badge[] } | null>(null);
   const [attendance, setAttendance] = useState<{ monthly?: { daysAttended: number } } | null>(null);
   const [invoices, setInvoices] = useState<{ invoices: { id: string; invoiceRef: string; amount: number; status: string; dueDate: string }[] } | null>(null);
+  const [classes, setClasses] = useState<ClassSession[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookingBusy, setBookingBusy] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -32,15 +37,17 @@ export default function MemberPortal() {
     (async () => {
       try {
         const responses = await Promise.all([
-          authFetch("/me"), authFetch("/badges"), authFetch("/attendance"), authFetch("/invoices"),
+          authFetch("/me"), authFetch("/badges"), authFetch("/attendance"), authFetch("/invoices"), authFetch("/classes"), authFetch("/bookings"),
         ]);
         if (responses[0].status === 401) { router.push("/portal/login"); return; }
         if (responses.some((response) => !response.ok)) throw new Error("Portal data is temporarily unavailable");
-        const [meData, badgesData, attendanceData, invoicesData] = await Promise.all(responses.map((response) => response.json()));
+        const [meData, badgesData, attendanceData, invoicesData, classesData, bookingsData] = await Promise.all(responses.map((response) => response.json()));
         setMe(meData);
         setBadges(badgesData);
         setAttendance(attendanceData);
         setInvoices(invoicesData);
+        setClasses(classesData.classes || []);
+        setBookings(bookingsData.bookings || []);
       } catch {
         setErr("Failed to load your data.");
       } finally {
@@ -50,6 +57,35 @@ export default function MemberPortal() {
   }, [authFetch, router]);
 
   const logout = () => { localStorage.removeItem("member_token"); router.push("/portal/login"); };
+
+  const nextClassDate = (dayOfWeek: number) => {
+    const date = new Date();
+    const distance = (dayOfWeek - date.getDay() + 7) % 7 || 7;
+    date.setDate(date.getDate() + distance);
+    return date.toISOString().slice(0, 10);
+  };
+
+  const bookClass = async (sessionId: string, dayOfWeek: number) => {
+    setBookingBusy(sessionId);
+    try {
+      const response = await fetch("/api/gym/portal/bookings", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("member_token")}` }, body: JSON.stringify({ sessionId, date: nextClassDate(dayOfWeek) }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to book class");
+      setBookings((current) => [data.booking, ...current]);
+    } catch (error) { setErr(error instanceof Error ? error.message : "Unable to book class"); }
+    finally { setBookingBusy(null); }
+  };
+
+  const cancelBooking = async (id: string) => {
+    setBookingBusy(id);
+    try {
+      const response = await fetch(`/api/gym/portal/bookings/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("member_token")}` } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to cancel booking");
+      setBookings((current) => current.map((booking) => booking.id === id ? { ...booking, status: "CANCELLED" } : booking));
+    } catch (error) { setErr(error instanceof Error ? error.message : "Unable to cancel booking"); }
+    finally { setBookingBusy(null); }
+  };
 
   if (loading) return <div className="min-h-screen grid place-items-center text-slate-400">Loading…</div>;
   if (err || !me) return <div className="min-h-screen grid place-items-center text-red-500">{err || "Not found"}</div>;
@@ -114,6 +150,11 @@ export default function MemberPortal() {
               </span>
             ))}
           </div>
+        </Section>
+
+        <Section title="Classes & bookings">
+          {classes.length === 0 ? <p className="text-slate-400 text-sm">No classes are available right now.</p> : <div className="space-y-2">{classes.map((session) => <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 py-2.5"><div><p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{session.name}</p><p className="text-xs text-slate-500">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][session.dayOfWeek]} · {session.startTime} - {session.endTime}</p></div><button disabled={bookingBusy === session.id} onClick={() => bookClass(session.id, session.dayOfWeek)} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold border-none cursor-pointer disabled:opacity-50">{bookingBusy === session.id ? "Booking..." : "Book next class"}</button></div>)}</div>}
+          {bookings.filter((booking) => booking.status !== "CANCELLED").length > 0 && <div className="mt-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Your bookings</p>{bookings.filter((booking) => booking.status !== "CANCELLED").map((booking) => <div key={booking.id} className="flex items-center justify-between py-2 text-sm"><span className="text-slate-700 dark:text-slate-200">{booking.sessionId?.name || "Class"} · {new Date(booking.date).toLocaleDateString()}</span><button disabled={bookingBusy === booking.id} onClick={() => cancelBooking(booking.id)} className="text-xs text-red-600 bg-transparent border-none cursor-pointer">Cancel</button></div>)}</div>}
         </Section>
 
         {/* Invoices */}

@@ -1,9 +1,9 @@
 "use strict";
 
 const mongoose = require("mongoose");
-const { CheckIn, Member } = require("../../models");
+const { CheckIn, Member, GymSettings } = require("../../models");
 const { ApiError } = require("../../utils/apiResponse");
-const { dayKey, addDays, monthRange, startOfDay, endOfDay, parseDateInput, computeMembershipStatus } = require("../../utils/dates");
+const { dayKeyInTimezone, addDays, monthRange, startOfDay, endOfDay, parseDateInput, computeMembershipStatus } = require("../../utils/dates");
 const billingService = require("./billing.service");
 
 const oid = (id) => new mongoose.Types.ObjectId(String(id));
@@ -20,8 +20,11 @@ async function checkIn({ tenantId, memberId, method = "MANUAL", trainerId, at })
   const when = at ? new Date(at) : new Date();
   if (Number.isNaN(when.getTime())) throw ApiError.badRequest("Invalid check-in time");
   if (when.getTime() > Date.now() + 5 * 60 * 1000) throw ApiError.badRequest("Check-in time cannot be in the future");
+  if (member.startDate && new Date(member.startDate) > when) throw ApiError.badRequest("Membership has not started yet");
   if (computeMembershipStatus(member, when) !== "ACTIVE") throw ApiError.badRequest("Member does not have an active membership");
-  const key = dayKey(when);
+  const settings = await GymSettings.findOne({ tenantId }).select("timezone").lean();
+  const timezone = settings?.timezone || "Asia/Karachi";
+  const key = dayKeyInTimezone(when, timezone);
 
   if (await CheckIn.exists({ tenantId, memberId, dayKey: key })) {
     throw ApiError.conflict("Member already checked in today");
@@ -44,7 +47,7 @@ async function checkIn({ tenantId, memberId, method = "MANUAL", trainerId, at })
 
   // Backdated check-ins must not move the member's latest attendance backwards.
   if (!member.lastAttendanceDay || key >= member.lastAttendanceDay) {
-    const yesterday = dayKey(addDays(startOfDay(when), -1));
+    const yesterday = dayKeyInTimezone(addDays(when, -1), timezone);
     if (member.lastAttendanceDay === yesterday) {
       member.currentStreak = (member.currentStreak || 0) + 1;
     } else if (member.lastAttendanceDay !== key) {
@@ -75,7 +78,8 @@ async function checkOut({ tenantId, checkInId, memberId, at }) {
   if (checkInId) filter._id = checkInId;
   else if (memberId) {
     filter.memberId = memberId;
-    filter.dayKey = dayKey(when);
+    const settings = await GymSettings.findOne({ tenantId }).select("timezone").lean();
+    filter.dayKey = dayKeyInTimezone(when, settings?.timezone || "Asia/Karachi");
   } else throw ApiError.badRequest("checkInId or memberId is required");
 
   const record = await CheckIn.findOneAndUpdate(

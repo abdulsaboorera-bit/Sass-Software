@@ -1,8 +1,8 @@
 "use strict";
 
 const mongoose = require("mongoose");
-const { Member, GymPayment, GymInvoice, CheckIn, Session, GymInventoryItem, Expense, StaffAttendance } = require("../../models");
-const { monthRange, dayKey, startOfDay, endOfDay } = require("../../utils/dates");
+const { Member, GymPayment, GymInvoice, CheckIn, Session, GymInventoryItem, Expense, StaffAttendance, GymSettings } = require("../../models");
+const { monthRange, dayKeyInTimezone, startOfDay, endOfDay } = require("../../utils/dates");
 const attendance = require("./attendance.service");
 
 const oid = (id) => new mongoose.Types.ObjectId(String(id));
@@ -131,7 +131,8 @@ async function pendingPayments({ tenantId }) {
 
 /** Today's check-in count. */
 async function todayCheckins({ tenantId }) {
-  const today = dayKey();
+  const settings = await GymSettings.findOne({ tenantId }).select("timezone").lean();
+  const today = dayKeyInTimezone(new Date(), settings?.timezone || "Asia/Karachi");
   return CheckIn.countDocuments({ tenantId, dayKey: today });
 }
 
@@ -200,12 +201,14 @@ async function todayExpenses({ tenantId }) {
 
 /** One-call dashboard payload for the admin analytics screen. */
 async function dashboard({ tenantId }) {
+  const settings = await GymSettings.findOne({ tenantId }).select("timezone").lean();
+  const today = dayKeyInTimezone(new Date(), settings?.timezone || "Asia/Karachi");
   const [members, rev, pending, attendanceTrend, staffPresentToday, todayCheckinsCount, expiringSoon, inventory, todayExp] = await Promise.all([
     memberStats({ tenantId }),
     revenue({ tenantId, months: 6 }),
     pendingPayments({ tenantId }),
     attendance.trends({ tenantId, days: 30 }),
-    StaffAttendance.countDocuments({ tenantId, dayKey: dayKey(), status: "PRESENT" }),
+    StaffAttendance.countDocuments({ tenantId, dayKey: today, status: { $in: ["PRESENT", "LATE"] } }),
     todayCheckins({ tenantId }),
     upcomingRenewals({ tenantId, days: 7 }),
     inventoryStats({ tenantId }),

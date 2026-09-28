@@ -39,20 +39,23 @@ export default function BillingPage() {
   const [form, setForm] = useState({ invoiceId: "", memberId: "", amount: "", method: "CASH", reference: "", type: "MEMBERSHIP", notes: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const fetchInvoices = () => {
+    setLoadError("");
     fetch("/api/gym/billing/invoices?limit=50", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => { if (data.invoices) setInvoices(data.invoices); })
-      .catch(() => {})
+      .catch((err: unknown) => setLoadError(err instanceof Error ? err.message : "Failed to load invoices"))
       .finally(() => setLoading(false));
   };
 
   const fetchPayments = () => {
+    setLoadError("");
     fetch("/api/gym/payments?limit=50", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => { if (data.payments) setPayments(data.payments); })
-      .catch(() => {})
+      .catch((err: unknown) => setLoadError(err instanceof Error ? err.message : "Failed to load payments"))
       .finally(() => setLoading(false));
   };
 
@@ -98,6 +101,7 @@ export default function BillingPage() {
         if (!res.ok) throw new Error(data.error || "Failed to create invoice");
         setModalOpen(false);
         fetchInvoices();
+        fetchPayments();
       } else {
         if (!form.memberId || !form.amount) { setError("Member and amount are required"); setSaving(false); return; }
         const res = await fetch("/api/gym/billing/payments", {
@@ -117,6 +121,7 @@ export default function BillingPage() {
         if (!res.ok) throw new Error(data.error || "Failed to record payment");
         setModalOpen(false);
         fetchPayments();
+        fetchInvoices();
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed");
@@ -189,17 +194,19 @@ export default function BillingPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-slate-100 rounded-xl p-1">
-        <button onClick={() => { setTab("invoices"); setLoading(true); }}
+         <button onClick={() => { if (tab === "invoices") fetchInvoices(); else { setTab("invoices"); setLoading(true); } }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all border-none cursor-pointer ${tab === "invoices" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700 bg-transparent"}`}>
           <FileText size={14} /> Invoices
         </button>
-        <button onClick={() => { setTab("payments"); setLoading(true); }}
+         <button onClick={() => { if (tab === "payments") fetchPayments(); else { setTab("payments"); setLoading(true); } }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all border-none cursor-pointer ${tab === "payments" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700 bg-transparent"}`}>
           <CreditCard size={14} /> Payments
         </button>
       </div>
 
-      {/* Invoices Table */}
+       {loadError && <div className="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">{loadError}</div>}
+
+       {/* Invoices Table */}
       {tab === "invoices" && (
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
           <table className="w-full">
@@ -229,14 +236,15 @@ export default function BillingPage() {
                       </>
                     ) : <span className="text-slate-400 text-sm">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-slate-900">PKR {Number(inv.amount).toLocaleString()}</td>
+                   <td className="px-4 py-3 text-sm font-semibold text-slate-900"><div>PKR {Number(inv.amount).toLocaleString()}</div><div className="text-[11px] font-normal text-slate-400">Paid {Number(inv.paidAmount || 0).toLocaleString()} · Due {Math.max(0, Number(inv.amount) - Number(inv.paidAmount || 0)).toLocaleString()}</div></td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(inv.status)}`}>
                       {inv.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">{new Date(inv.dueDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-right">
+                   <td className="px-4 py-3 text-right">
+                     <a href={`/api/gym/insights/invoices/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center mr-2 px-2 py-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600">Receipt</a>
                     {inv.status !== "PAID" && inv.status !== "CANCELLED" && (
                        <button onClick={() => markPaid(inv)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors cursor-pointer">
                         <CheckCircle size={12} /> Mark Paid

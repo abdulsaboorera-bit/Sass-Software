@@ -2,7 +2,6 @@
 
 const { z } = require("zod");
 const authService = require("../services/auth.service");
-const { User, Tenant, TenantUser } = require("../models");
 const { apiSuccess } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const { setAuthCookies, clearAuthCookies } = require("../utils/cookies");
@@ -16,6 +15,8 @@ const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().min(2, "Name is required"),
+  businessName: z.string().min(2, "Business name is required"),
+  industry: z.enum(["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP"]),
   phone: z.string().optional(),
 });
 
@@ -38,8 +39,9 @@ const login = asyncHandler(async (req, res) => {
 
 const signup = asyncHandler(async (req, res) => {
   const data = signupSchema.parse(req.body);
-  const user = await authService.signup(data);
-  return apiSuccess(res, { user: { id: user.id, name: user.name, email: user.email } }, 201);
+  const result = await authService.signup({ ...data, ...reqMeta(req) });
+  setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+  return apiSuccess(res, { user: result.user, tenant: result.tenant }, 201);
 });
 
 const refresh = asyncHandler(async (req, res) => {
@@ -58,7 +60,8 @@ const logout = asyncHandler(async (req, res) => {
 
 /** Current user + tenant memberships + effective permissions. */
 const me = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.userId).lean();
+  const { User, Tenant, TenantUser } = require("../models");
+  const user = await User.findById(req.user.userId).select("-passwordHash").lean();
   if (!user) return apiSuccess(res, { user: null });
 
   const tenant = user.tenantId ? await Tenant.findById(user.tenantId).lean() : null;

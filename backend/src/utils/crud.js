@@ -12,9 +12,26 @@ const PROTECTED = new Set(["_id", "id", "tenantId", "createdAt", "updatedAt", "_
 function sanitize(body) {
   const out = {};
   for (const [k, v] of Object.entries(body || {})) {
-    if (!PROTECTED.has(k)) out[k] = v;
+    if (PROTECTED.has(k)) continue;
+    if (k.startsWith("$") || k.includes(".")) throw ApiError.badRequest("Invalid field name");
+    out[k] = sanitizeValue(v);
   }
   return out;
+}
+
+function sanitizeValue(value) {
+  if (Array.isArray(value)) return value.map(sanitizeValue);
+  if (!value || typeof value !== "object" || value instanceof Date) return value;
+  const out = {};
+  for (const [key, nested] of Object.entries(value)) {
+    if (key.startsWith("$") || key.includes(".")) throw ApiError.badRequest("Invalid nested field name");
+    out[key] = sanitizeValue(nested);
+  }
+  return out;
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -44,6 +61,7 @@ function makeCrudRouter({
   sort = { createdAt: -1 },
   filterFields = [],
   beforeCreate,
+  beforeUpdate,
   afterCreate,
   decorateRows, // async (rows, req) => rows  (e.g. add _count)
   perms = {},
@@ -64,7 +82,7 @@ function makeCrudRouter({
   const buildFilter = (req) => {
     const filter = { tenantId: req.tenantId };
     if (req.query.search && searchFields.length) {
-      filter.$or = searchFields.map((f) => ({ [f]: { $regex: req.query.search, $options: "i" } }));
+      filter.$or = searchFields.map((f) => ({ [f]: { $regex: escapeRegex(req.query.search), $options: "i" } }));
     }
     for (const f of filterFields) {
       if (req.query[f] !== undefined && req.query[f] !== "") filter[f] = req.query[f];
@@ -105,9 +123,11 @@ function makeCrudRouter({
   });
 
   const doUpdate = async (id, req) => {
+    let updates = sanitize(req.body);
+    if (beforeUpdate) updates = (await beforeUpdate(updates, req)) || updates;
     const doc = await model.findOneAndUpdate(
       { _id: id, tenantId: req.tenantId },
-      sanitize(req.body),
+      updates,
       { new: true, runValidators: true }
     );
     if (!doc) throw ApiError.notFound(`${model.modelName} not found`);

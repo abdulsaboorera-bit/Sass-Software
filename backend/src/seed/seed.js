@@ -20,6 +20,10 @@ const { addDays, dayKey } = require("../utils/dates");
 const { invoiceRef } = require("../utils/ids");
 const env = require("../config/env");
 
+if (env.isProd && process.env.ALLOW_PRODUCTION_SEED !== "true") {
+  throw new Error("Refusing to seed a production database without ALLOW_PRODUCTION_SEED=true");
+}
+
 const INDUSTRIES = [
   { slug: "greenfield-school", name: "Greenfield Academy", industry: "SCHOOL" },
   { slug: "care-plus-clinic", name: "CarePlus Clinic", industry: "CLINIC" },
@@ -39,6 +43,7 @@ async function upsertUser({ email, name, passwordHash, tenantId }) {
 async function ensureRole(tenantId, def) {
   let role = await TenantRole.findOne({ tenantId, slug: def.slug });
   if (!role) role = await TenantRole.create({ tenantId, ...def });
+  else if (role.isSystem) await TenantRole.updateOne({ _id: role._id }, { $set: { name: def.name, permissions: def.permissions, isSystem: true } });
   return role;
 }
 

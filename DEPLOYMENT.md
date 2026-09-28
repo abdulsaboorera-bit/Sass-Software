@@ -28,12 +28,12 @@ Browser ──HTTPS──▶ Vercel (Next.js)  ──/api/* rewrite──▶ Ren
 ## 1) Backend on Render
 
 **Option A — Blueprint (uses `render.yaml`):** Render → **New + → Blueprint** →
-select this repo. It picks up `render.yaml` (rootDir `backend`, `npm start`,
-health check `/health`). Then fill the secret env vars.
+select this repo. It picks up `render.yaml` (rootDir `backend`, index
+provisioning before `npm start`, health check `/health/ready`). Then fill the secret env vars.
 
 **Option B — Manual:** New + → **Web Service** → this repo →
 - Root Directory: `backend`
-- Build: `npm install`  ·  Start: `npm start`
+- Build: `npm install`  ·  Start: `npm run db:indexes && npm start`
 
 **Env vars (Render):**
 | Key | Value |
@@ -81,4 +81,5 @@ setting/changing it.
 
 ## Notes / gotchas
 - **Secrets never live in git** — `.env` files are ignored; only `*.env.example` are committed. Set real values in the Render/Vercel dashboards.
-- The in-process `node-cron` runs on Render (a persistent server). Free instances that sleep may miss the 02:00 run — for guaranteed runs, hit `POST /api/backend?...` `/api/gym/cron/daily` with the `x-cron-secret` header from an external scheduler (e.g. cron-job.org), or use Render Cron Jobs (`node src/jobs/runDaily.js`).
+- The in-process `node-cron` runs on Render (a persistent server). Free instances that sleep may miss the 02:00 run — for guaranteed runs, hit `/api/gym/cron/daily` with the `x-cron-secret` header from an external scheduler, or use Render Cron Jobs (`node src/jobs/runDaily.js`).
+- Production startup synchronizes MongoDB indexes before serving traffic. Configure Atlas backups/PITR and test a restore before onboarding customers.

@@ -11,6 +11,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node src/seed/seed.js",
+    "db:indexes": "node src/jobs/syncIndexes.js",
     "cron:daily": "node src/jobs/runDaily.js",
     "test": "node --test test/contracts.test.js test/gym.integration.test.js"
   },
@@ -25,7 +26,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
     "morgan": "^1.10.0",
-    "node-cron": "^3.0.3",
+    "node-cron": "4.6.0",
     "pdfkit": "^0.19.1",
     "qrcode": "^1.5.4",
     "zod": "^3.24.1"

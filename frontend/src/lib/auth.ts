@@ -1,9 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "nexussoft-dev-secret-change-in-production"
-);
+const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? "" : "nexussoft-dev-secret-change-in-production");
+if (!jwtSecret) throw new Error("JWT_SECRET must be configured in production");
+const JWT_SECRET = new TextEncoder().encode(jwtSecret);
 
 // ═══════════════════════════════════════════════════════════
 //   PASSWORD HASHING

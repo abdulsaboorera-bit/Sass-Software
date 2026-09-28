@@ -26,6 +26,6 @@ const inventoryItemSchema = new Schema(
 
 inventoryItemSchema.index({ tenantId: 1, name: 1 });
 inventoryItemSchema.index({ tenantId: 1, category: 1 });
-inventoryItemSchema.index({ tenantId: 1, sku: 1 }, { sparse: true });
+inventoryItemSchema.index({ tenantId: 1, sku: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.models.GymInventoryItem || mongoose.model("GymInventoryItem", inventoryItemSchema);

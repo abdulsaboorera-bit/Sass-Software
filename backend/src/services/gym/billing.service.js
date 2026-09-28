@@ -1,7 +1,7 @@
 "use strict";
 
 const mongoose = require("mongoose");
-const { GymInvoice, GymPayment, Member } = require("../../models");
+const { GymInvoice, GymPayment, Member, MembershipPlan } = require("../../models");
 const { ApiError } = require("../../utils/apiResponse");
 const { invoiceRef } = require("../../utils/ids");
 const { parseDateInput } = require("../../utils/dates");
@@ -12,6 +12,12 @@ async function createInvoice({ tenantId, memberId, type = "MEMBERSHIP", planId, 
   const member = await Member.findOne({ _id: memberId, tenantId });
   if (!member) throw ApiError.notFound("Member not found");
   if (amount == null || !Number.isFinite(Number(amount)) || Number(amount) < 0) throw ApiError.badRequest("A valid amount is required");
+  if (planId && !(await MembershipPlan.exists({ _id: planId, tenantId }))) throw ApiError.badRequest("Invalid plan");
+  const parsedDueDate = dueDate ? new Date(dueDate) : new Date();
+  if (Number.isNaN(parsedDueDate.getTime())) throw ApiError.badRequest("Invalid due date");
+  if (periodStart && Number.isNaN(new Date(periodStart).getTime())) throw ApiError.badRequest("Invalid period start");
+  if (periodEnd && Number.isNaN(new Date(periodEnd).getTime())) throw ApiError.badRequest("Invalid period end");
+  if (periodStart && periodEnd && new Date(periodStart) > new Date(periodEnd)) throw ApiError.badRequest("Invoice period is reversed");
 
   // Retry a couple of times in the (rare) event of a ref collision.
   let invoice;
@@ -24,7 +30,7 @@ async function createInvoice({ tenantId, memberId, type = "MEMBERSHIP", planId, 
         type,
         planId: planId || null,
         amount: Number(amount),
-        dueDate: dueDate ? new Date(dueDate) : new Date(),
+         dueDate: parsedDueDate,
         periodStart,
         periodEnd,
         notes,
@@ -182,7 +188,9 @@ async function deletePayment({ tenantId, id }) {
     const previousPaid = Number(invoice.paidAmount || 0);
     const nextPaid = previousPaid - Number(payment.amount);
     if (nextPaid < 0) throw ApiError.conflict("Invoice balance is inconsistent");
-    const nextStatus = nextPaid === 0 ? (invoice.dueDate < new Date() ? "OVERDUE" : "PENDING") : "PARTIAL";
+    const nextStatus = nextPaid === 0
+      ? (invoice.dueDate < new Date() ? "OVERDUE" : "PENDING")
+      : (invoice.dueDate < new Date() ? "OVERDUE" : "PARTIAL");
     const updatedInvoice = await GymInvoice.findOneAndUpdate(
       { _id: invoice._id, tenantId, paidAmount: previousPaid },
       { $inc: { paidAmount: -Number(payment.amount) }, $set: { status: nextStatus, paidAt: null } },
@@ -227,15 +235,18 @@ async function markOverdue({ tenantId, now = new Date() } = {}) {
   const due = await GymInvoice.find(filter).populate("memberId", "name phone tenantId").lean();
   if (!due.length) return { marked: 0 };
 
-  await GymInvoice.updateMany(
-    { _id: { $in: due.map((d) => d._id) } },
-    { $set: { status: "OVERDUE" } }
-  );
-
+  let marked = 0;
   for (const inv of due) {
-    await notifications.paymentOverdue(inv, inv.memberId);
+    const updated = await GymInvoice.findOneAndUpdate(
+      { _id: inv._id, tenantId: inv.tenantId, status: { $in: ["PENDING", "PARTIAL"] } },
+      { $set: { status: "OVERDUE" } },
+      { new: true }
+    ).lean();
+    if (!updated) continue;
+    marked += 1;
+    await notifications.paymentOverdue(updated, inv.memberId);
   }
-  return { marked: due.length };
+  return { marked };
 }
 
 /** Full payment history for a member. */

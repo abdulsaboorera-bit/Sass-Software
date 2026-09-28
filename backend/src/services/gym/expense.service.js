@@ -54,6 +54,7 @@ async function remove({ tenantId, id }) {
 
 async function summary({ tenantId, from, to }) {
   const match = { tenantId: oid(tenantId) };
+  match.status = { $in: ["APPROVED", "PAID"] };
   const start = parseDateInput(from);
   const end = parseDateInput(to, true);
   if ((from && !start) || (to && !end)) throw ApiError.badRequest("Invalid date range");

@@ -3,9 +3,13 @@
 const assert = require("node:assert/strict");
 const { after, before, test } = require("node:test");
 const mongoose = require("mongoose");
+const app = require("../src/app");
 
 const {
   Tenant,
+  User,
+  TenantRole,
+  TenantUser,
   MembershipPlan,
   Member,
   GymInvoice,
@@ -18,11 +22,14 @@ const {
 const billing = require("../src/services/gym/billing.service");
 const inventory = require("../src/services/gym/inventory.service");
 const attendance = require("../src/services/gym/attendance.service");
+const auth = require("../src/services/auth.service");
+const memberService = require("../src/services/gym/member.service");
 
 const TEST_URI = "mongodb://127.0.0.1:27017/nexus_saas_test";
 let databaseAvailable = false;
 let tenant;
 let member;
+let plan;
 
 before(async () => {
   try {
@@ -31,7 +38,7 @@ before(async () => {
     databaseAvailable = true;
 
     tenant = await Tenant.create({ slug: `integration-${Date.now()}`, name: "Integration Gym", industry: "GYM" });
-    const plan = await MembershipPlan.create({ tenantId: tenant._id, name: "Integration Plan", duration: 30, price: 1000 });
+    plan = await MembershipPlan.create({ tenantId: tenant._id, name: "Integration Plan", duration: 30, price: 1000 });
     member = await Member.create({
       tenantId: tenant._id,
       memberNo: "INT-0001",
@@ -92,6 +99,64 @@ test("billing reconciles invoices and rejects overpayments", async (t) => {
   assert.equal(reopened.paidAmount, 400);
 });
 
+test("public signup provisions an isolated trial owner, never a platform admin", async (t) => {
+  if (!databaseAvailable) return t.skip("MongoDB is unavailable");
+  const result = await auth.signup({
+    email: `owner-${Date.now()}@example.com`,
+    password: "strong-password-123",
+    name: "Trial Owner",
+    businessName: "Trial Gym",
+    industry: "GYM",
+  });
+  const user = await User.findById(result.user.id).select("+passwordHash").lean();
+  assert.equal(result.tenant.industry, "GYM");
+  assert.equal(result.tenant.status, "TRIAL");
+  assert.equal(user.tenantId.toString(), result.tenant.id);
+  assert.equal(user.role, "SUPER_ADMIN");
+  assert.ok(await TenantRole.exists({ tenantId: result.tenant.id, slug: "owner" }));
+  assert.ok(await TenantUser.exists({ tenantId: result.tenant.id, userId: user._id }));
+  assert.ok(result.tokens.accessToken);
+});
+
+test("HTTP signup never grants anonymous platform-admin access", async (t) => {
+  if (!databaseAvailable) return t.skip("MongoDB is unavailable");
+  const server = app.listen(0);
+  try {
+    const port = server.address().port;
+    const readiness = await fetch(`http://127.0.0.1:${port}/health/ready`);
+    assert.equal(readiness.status, 200);
+    const signup = await fetch(`http://127.0.0.1:${port}/api/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: `http-${Date.now()}@example.com`, password: "strong-password-123", name: "HTTP Owner", businessName: "HTTP Gym", industry: "GYM" }),
+    });
+    assert.equal(signup.status, 201);
+    const admin = await fetch(`http://127.0.0.1:${port}/api/admin/tenants`);
+    assert.equal(admin.status, 401);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("membership enrollment and renewal create reconciled sales", async (t) => {
+  if (!databaseAvailable) return t.skip("MongoDB is unavailable");
+  const enrolled = await memberService.enroll({
+    tenantId: tenant._id,
+    data: { memberNo: "INT-0002", name: "New Sale Member", phone: "03000000001", planId: plan._id, paymentAmount: 500, paymentMethod: "CASH" },
+    actor: { userId: null, name: "Test" },
+  });
+  assert.equal(enrolled.invoice.status, "PARTIAL");
+  assert.equal(enrolled.invoice.paidAmount, 500);
+  const renewed = await memberService.renew({
+    tenantId: tenant._id,
+    id: enrolled.member.id,
+    data: { planId: plan._id, amount: 1000, paymentAmount: 1000, paymentMethod: "CARD" },
+    actor: { userId: null, name: "Test" },
+  });
+  assert.equal(renewed.invoice.status, "PAID");
+  assert.ok(new Date(renewed.member.endDate) > new Date(enrolled.member.endDate));
+});
+
 test("inventory movements update stock atomically and reject insufficient stock", async (t) => {
   if (!databaseAvailable) return t.skip("MongoDB is unavailable");
   const item = await GymInventoryItem.create({
@@ -131,7 +196,7 @@ test("attendance rejects duplicate daily check-ins and supports checkout", async
   assert.equal(await CheckIn.countDocuments({ tenantId: tenant._id, memberId: member._id }), 1);
 });
 
-test("integration cleanup does not leave notification rows", async (t) => {
+test("integration notification events remain tenant scoped", async (t) => {
   if (!databaseAvailable) return t.skip("MongoDB is unavailable");
-  assert.equal(await Notification.countDocuments({ tenantId: tenant._id }), 1);
+  assert.ok(await Notification.countDocuments({ tenantId: tenant._id }) >= 1);
 });

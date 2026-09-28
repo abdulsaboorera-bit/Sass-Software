@@ -55,6 +55,39 @@ function dayKey(d = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
+function zonedParts(d, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(d));
+  return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]));
+}
+
+function dayKeyInTimezone(d = new Date(), timeZone = "UTC") {
+  const parts = zonedParts(d, timeZone);
+  return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+function startOfDayInTimezone(d = new Date(), timeZone = "UTC") {
+  const parts = zonedParts(d, timeZone);
+  const guess = Date.UTC(parts.year, parts.month - 1, parts.day);
+  const local = zonedParts(new Date(guess), timeZone);
+  const offset = Date.UTC(local.year, local.month - 1, local.day, local.hour, local.minute, local.second) - guess;
+  const result = new Date(guess - offset);
+  const corrected = zonedParts(result, timeZone);
+  return new Date(guess - (Date.UTC(corrected.year, corrected.month - 1, corrected.day, corrected.hour, corrected.minute, corrected.second) - result.getTime()));
+}
+
+function endOfDayInTimezone(d = new Date(), timeZone = "UTC") {
+  return new Date(startOfDayInTimezone(addDays(d, 1), timeZone).getTime() - 1);
+}
+
 /**
  * Derive a membership's effective status from its stored status + endDate.
  * A member frozen by staff stays frozen regardless of dates; otherwise the
@@ -77,5 +110,8 @@ module.exports = {
   daysBetween,
   monthRange,
   dayKey,
+  dayKeyInTimezone,
+  startOfDayInTimezone,
+  endOfDayInTimezone,
   computeMembershipStatus,
 };

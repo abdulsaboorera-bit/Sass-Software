@@ -160,7 +160,7 @@ async function trainerReport({ tenantId }) {
         Member.countDocuments({ tenantId, trainerId: t._id, status: "ACTIVE" }),
         Session.countDocuments({ tenantId, trainerId: t._id, isActive: true }),
       ]);
-      return { id: t.id, name: t.name, specialization: t.specialization, fee: t.fee, memberCount, activeMembers, sessions };
+      return { id: String(t._id), name: t.name, specialization: t.specialization, fee: t.fee, memberCount, activeMembers, sessions };
     })
   );
   return results;

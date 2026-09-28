@@ -147,8 +147,15 @@ async function dispatchPending({ tenantId, limit = 200 } = {}) {
   let failed = 0;
 
   for (const n of pending) {
-    const adapter = adapters[n.channel] || adapters.LOG;
+    const adapter = adapters[n.channel];
     try {
+      if (!adapter) {
+        n.status = "FAILED";
+        n.error = `No adapter registered for ${n.channel}`;
+        failed += 1;
+        await n.save();
+        continue;
+      }
       const result = await adapter(n);
       if (result && result.ok) {
         n.status = "SENT";

@@ -58,11 +58,15 @@ const industryNav: Record<string, NavLink[]> = {
   GYM: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Members", href: "/dashboard/members", icon: Users, permission: "members.view" },
+    { label: "Plans", href: "/dashboard/plans", icon: CreditCard, permission: "members.view" },
+    { label: "Classes", href: "/dashboard/gym-classes", icon: Calendar, permission: "sessions.view" },
+    { label: "Trainers", href: "/dashboard/trainers", icon: Users, permission: "trainers.view" },
     { label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy, permission: "members.view" },
     { label: "Attendance", href: "/dashboard/sessions", icon: Calendar, permission: "attendance.view" },
     { label: "Directory", href: "/dashboard/directory", icon: Contact, permission: "members.view" },
     { label: "Billing", href: "/dashboard/billing", icon: CreditCard, permission: "billing.view" },
     { label: "Inventory", href: "/dashboard/inventory", icon: Package, permission: "inventory.view" },
+    { label: "Expenses", href: "/dashboard/expenses", icon: DollarSign, permission: "billing.view" },
     { label: "Reports", href: "/dashboard/reports", icon: BarChart3, permission: "analytics.view" },
     { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
@@ -123,6 +127,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const permissions = userData?.permissions || [];
     return permissions.includes("*") || permissions.includes(link.permission) || permissions.includes(`${resource}.*`) || (link.permission === "members.view" && permissions.includes("members.view.assigned"));
   });
+
+  useEffect(() => {
+    if (!userData || loading || pathname === "/dashboard") return;
+    if (!nav.some((link) => pathname === link.href || pathname.startsWith(`${link.href}/`))) {
+      router.replace("/dashboard");
+    }
+  }, [loading, nav, pathname, router, userData]);
 
   if (loading) {
     return (

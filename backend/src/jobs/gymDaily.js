@@ -1,6 +1,6 @@
 "use strict";
 
-const { Member, GymInventoryItem, EquipmentMaintenance, GymSettings } = require("../models");
+const { Member, GymInventoryItem, EquipmentMaintenance, GymSettings, Tenant } = require("../models");
 const billing = require("../services/gym/billing.service");
 const notifications = require("../services/notification.service");
 const { addDays, startOfDay, endOfDay, daysBetween } = require("../utils/dates");
@@ -86,11 +86,11 @@ async function checkEquipmentMaintenance({ tenantId, now }) {
  * The full daily maintenance pass. Runs platform-wide by default, or for a
  * single tenant when `tenantId` is supplied. Safe to run repeatedly.
  */
-async function runGymDaily({ tenantId } = {}) {
-  const now = new Date();
-  const started = Date.now();
+let running = false;
 
-  const settings = tenantId ? await GymSettings.findOne({ tenantId }).lean() : null;
+async function runTenantDaily({ tenantId, now }) {
+  const started = Date.now();
+  const settings = await GymSettings.findOne({ tenantId }).lean();
   const notificationsEnabled = settings?.enableNotifications !== false;
   const expired = settings?.autoExpireMemberships === false
     ? { expired: 0 }
@@ -105,11 +105,8 @@ async function runGymDaily({ tenantId } = {}) {
   const missed = await notifyMissedAttendance({ tenantId, now, enabled: notificationsEnabled });
   const lowStock = await checkLowStock({ tenantId });
   const maintenance = await checkEquipmentMaintenance({ tenantId, now });
-
-  // Deliver everything the pass just queued (log adapter until a real one is registered).
   const delivery = notificationsEnabled ? await notifications.dispatchPending({ tenantId }) : { processed: 0, sent: 0, failed: 0 };
-
-  const summary = {
+  return {
     ranAt: now,
     tookMs: Date.now() - started,
     membershipsExpired: expired.expired,
@@ -120,8 +117,42 @@ async function runGymDaily({ tenantId } = {}) {
     equipmentDueMaintenance: maintenance.dueForMaintenance,
     notificationsDispatched: delivery,
   };
-  console.log("[cron] gym daily pass:", JSON.stringify(summary));
-  return summary;
+}
+
+async function runGymDaily({ tenantId } = {}) {
+  if (running) return { skipped: true, reason: "daily pass already running" };
+  running = true;
+  const now = new Date();
+  try {
+    const tenants = tenantId
+      ? [{ _id: tenantId }]
+      : await Tenant.find({ industry: "GYM", status: { $in: ["ACTIVE", "TRIAL"] } }).select("_id").lean();
+    const summaries = [];
+    for (const tenant of tenants) summaries.push(await runTenantDaily({ tenantId: tenant._id, now }));
+    const summary = summaries.reduce((total, item) => ({
+      ranAt: now,
+      tookMs: total.tookMs + item.tookMs,
+      membershipsExpired: total.membershipsExpired + item.membershipsExpired,
+      expiringSoonNotified: total.expiringSoonNotified + item.expiringSoonNotified,
+      invoicesMarkedOverdue: total.invoicesMarkedOverdue + item.invoicesMarkedOverdue,
+      missedAttendanceNotified: total.missedAttendanceNotified + item.missedAttendanceNotified,
+      lowStockItems: total.lowStockItems + item.lowStockItems,
+      equipmentDueMaintenance: total.equipmentDueMaintenance + item.equipmentDueMaintenance,
+      notificationsDispatched: {
+        processed: total.notificationsDispatched.processed + item.notificationsDispatched.processed,
+        sent: total.notificationsDispatched.sent + item.notificationsDispatched.sent,
+        failed: total.notificationsDispatched.failed + item.notificationsDispatched.failed,
+      },
+    }), {
+      ranAt: now, tookMs: 0, membershipsExpired: 0, expiringSoonNotified: 0,
+      invoicesMarkedOverdue: 0, missedAttendanceNotified: 0, lowStockItems: 0,
+      equipmentDueMaintenance: 0, notificationsDispatched: { processed: 0, sent: 0, failed: 0 },
+    });
+    console.log("[cron] gym daily pass:", JSON.stringify(summary));
+    return { ...summary, tenantsProcessed: tenants.length };
+  } finally {
+    running = false;
+  }
 }
 
 module.exports = {

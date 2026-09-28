@@ -39,7 +39,7 @@ npm run dev                   # http://localhost:3000  (proxies /api/* -> :4000)
 
 ## Architecture
 
-- **Auth:** JWT (HS256) in httpOnly cookies (access 15m / refresh 7d); permission-string RBAC with per-tenant system roles (owner / receptionist / trainer).
+- **Auth:** JWT (HS256) in httpOnly cookies (access 15m / refresh 7d); permission-string RBAC with per-tenant system roles (owner / receptionist / trainer / accountant / inventory manager).
 - **Gym module** (built in depth): membership status/renewal/notes-history/streaks, per-day check-in dedup, invoices with due-date + auto-overdue, trainer assignment + workload, analytics aggregations, an event-based notification outbox (WhatsApp/email/SMS-ready), and node-cron daily jobs.
 - **Frontend ↔ backend:** the Next.js app keeps calling same-origin `/api/*`; `next.config.ts` rewrites proxy those to the backend, and the backend serves the exact response shapes the pages expect.
 

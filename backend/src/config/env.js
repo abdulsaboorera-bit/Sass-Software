@@ -7,9 +7,12 @@ require("dotenv").config();
  * Every other module reads config from here rather than touching
  * process.env directly, so defaults live in exactly one place.
  */
+const nodeEnv = String(process.env.NODE_ENV || "development").toLowerCase();
+const isProd = nodeEnv === "production" || nodeEnv === "prod";
+
 const env = {
-  nodeEnv: process.env.NODE_ENV || "development",
-  isProd: (process.env.NODE_ENV || "development") === "production",
+  nodeEnv,
+  isProd,
   port: parseInt(process.env.PORT || "4000", 10),
 
   corsOrigins: (process.env.CORS_ORIGINS || "http://localhost:3000")
@@ -34,18 +37,22 @@ const env = {
     secret: process.env.CRON_SECRET || "change-this-cron-secret",
   },
 
-  demoPassword: process.env.DEMO_PASSWORD || "password123",
+  demoPassword: process.env.DEMO_PASSWORD || (isProd ? null : "password123"),
 };
 
 const DEFAULT_JWT_SECRET = "nexussoft-dev-secret-change-in-production";
 const DEFAULT_CRON_SECRET = "change-this-cron-secret";
 
 if (env.isProd) {
+  if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI must be set in production");
+  if (!process.env.CORS_ORIGINS || env.corsOrigins.some((origin) => origin.includes("localhost"))) {
+    throw new Error("CORS_ORIGINS must contain the production frontend origin in production");
+  }
   if (!process.env.JWT_SECRET || env.jwt.secret === DEFAULT_JWT_SECRET || env.jwt.secret.length < 32) {
     throw new Error("JWT_SECRET must be set to a random value of at least 32 characters in production");
   }
-  if (env.cron.enabled && (!process.env.CRON_SECRET || env.cron.secret === DEFAULT_CRON_SECRET || env.cron.secret.length < 16)) {
-    throw new Error("CRON_SECRET must be set to a random value in production when cron is enabled");
+  if (!process.env.CRON_SECRET || env.cron.secret === DEFAULT_CRON_SECRET || env.cron.secret.length < 16) {
+    throw new Error("CRON_SECRET must be set to a random value in production");
   }
 }
 

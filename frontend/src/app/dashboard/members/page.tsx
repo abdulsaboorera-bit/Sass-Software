@@ -46,6 +46,10 @@ const emptyForm = {
   phone: "",
   email: "",
   planId: "",
+  paymentAmount: "",
+  paymentMethod: "CASH",
+  status: "ACTIVE",
+  freezeReason: "",
 };
 
 export default function MembersPage() {
@@ -64,22 +68,27 @@ export default function MembersPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
   const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [renewingMember, setRenewingMember] = useState<Member | null>(null);
+  const [renewForm, setRenewForm] = useState({ planId: "", amount: "", paymentAmount: "", paymentMethod: "CASH" });
 
   const fetchMembers = useCallback(() => {
     setLoading(true);
     setFetchError("");
-    const params = new URLSearchParams({ limit: "100" });
+    const params = new URLSearchParams({ page: String(page), limit: "25" });
     if (search) params.set("search", search);
     if (statusFilter) params.set("status", statusFilter);
     fetch(`/api/gym/members?${params}`, { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         if (data.members) setMembers(data.members);
-        if (data.pagination?.total) setTotalCount(data.pagination.total);
+         if (data.pagination?.total !== undefined) setTotalCount(data.pagination.total);
+         setPages(data.pagination?.pages || 1);
       })
       .catch(() => setFetchError("Failed to load members"))
       .finally(() => setLoading(false));
-  }, [search, statusFilter]);
+  }, [page, search, statusFilter]);
 
   const fetchPlans = () => {
     fetch("/api/gym/plans", { credentials: "include" })
@@ -133,6 +142,10 @@ export default function MembersPage() {
       phone: m.phone,
       email: m.email || "",
       planId: m.plan?.id || "",
+      paymentAmount: "",
+      paymentMethod: "CASH",
+      status: m.status,
+      freezeReason: "",
     });
     setError("");
     setModalOpen(true);
@@ -145,6 +158,28 @@ export default function MembersPage() {
     setError("");
   };
 
+  const openRenew = (member: Member) => {
+    setRenewingMember(member);
+    setRenewForm({ planId: member.plan?.id || "", amount: member.plan ? String(member.plan.price) : "", paymentAmount: "", paymentMethod: "CASH" });
+    setError("");
+  };
+
+  const renew = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!renewingMember) return;
+    setSaving(true); setError("");
+    try {
+      const response = await fetch(`/api/gym/members/${renewingMember.id}/renew`, {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: renewForm.planId, amount: Number(renewForm.amount), paymentAmount: Number(renewForm.paymentAmount || 0), paymentMethod: renewForm.paymentMethod, createInvoice: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to renew membership");
+      setRenewingMember(null); fetchMembers();
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : "Unable to renew membership"); }
+    finally { setSaving(false); }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -155,12 +190,14 @@ export default function MembersPage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({
+             body: JSON.stringify({
             id: editing.id,
             name: form.name,
             phone: form.phone,
             email: form.email || undefined,
             planId: form.planId || undefined,
+            status: form.status,
+            freezeReason: form.freezeReason || undefined,
           }),
         });
         const data = await res.json();
@@ -174,9 +211,12 @@ export default function MembersPage() {
             memberNo: form.memberNo,
             name: form.name,
             phone: form.phone,
-            email: form.email || undefined,
-            planId: form.planId,
-          }),
+             email: form.email || undefined,
+             planId: form.planId,
+             createInvoice: true,
+             paymentAmount: form.paymentAmount ? Number(form.paymentAmount) : 0,
+             paymentMethod: form.paymentMethod,
+           }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to create member");
@@ -191,7 +231,7 @@ export default function MembersPage() {
   };
 
   const handleDelete = async (m: Member) => {
-    if (!confirm(`Delete member "${m.name}" (${m.memberNo})?`)) return;
+    if (!confirm(`Archive member "${m.name}" (${m.memberNo})? Financial and attendance history will be preserved.`)) return;
     try {
       const res = await fetch(`/api/gym/members?id=${m.id}`, { method: "DELETE", credentials: "include" });
       const data = await res.json();
@@ -208,7 +248,8 @@ export default function MembersPage() {
       m.memberNo, m.name, m.phone, m.email || "", m.plan?.name || "", m.status,
       new Date(m.startDate).toLocaleDateString(), new Date(m.endDate).toLocaleDateString(),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const csvValue = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map(r => r.map(csvValue).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -229,12 +270,12 @@ export default function MembersPage() {
   };
 
   return (
-    <div>
+               <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900">Members</h2>
           <p className="text-slate-500 text-sm">{totalCount || members.length} total members</p>
-        </div>
+               </div>
         <div className="flex items-center gap-3">
           <button onClick={exportCSV} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors text-sm cursor-pointer">
             <Download size={14} /> Export
@@ -244,7 +285,7 @@ export default function MembersPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+               onChange={(e) => { setPage(1); setSearch(e.target.value); }}
               placeholder="Search members..."
               className="pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
@@ -253,7 +294,7 @@ export default function MembersPage() {
             <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+               onChange={(e) => { setPage(1); setStatusFilter(e.target.value); }}
               className="pl-8 pr-6 py-2 rounded-xl border border-slate-200 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none cursor-pointer"
             >
               <option value="">All Status</option>
@@ -271,6 +312,8 @@ export default function MembersPage() {
           </button>
         </div>
       </div>
+
+      {pages > 1 && <div className="flex items-center justify-between mt-4 text-sm"><span className="text-slate-500">Page {page} of {pages}</span><div className="flex gap-2"><button disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 cursor-pointer">Previous</button><button disabled={page === pages} onClick={() => setPage((current) => current + 1)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 cursor-pointer">Next</button></div></div>}
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <table className="w-full">
@@ -325,6 +368,7 @@ export default function MembersPage() {
                         <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors border-none bg-transparent cursor-pointer">
                           <Pencil size={14} />
                         </button>
+                        <button onClick={() => openRenew(m)} className="px-2 py-1 rounded-lg hover:bg-green-50 text-xs font-semibold text-green-600 border-none bg-transparent cursor-pointer">Renew</button>
                         <button onClick={() => handleDelete(m)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors border-none bg-transparent cursor-pointer">
                           <Trash2 size={14} />
                         </button>
@@ -427,6 +471,19 @@ export default function MembersPage() {
                   ))}
                 </select>
               </div>
+              {editing && <div className="grid sm:grid-cols-2 gap-3"><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white"><option value="ACTIVE">Active</option><option value="FROZEN">Frozen</option><option value="CANCELLED">Cancelled</option></select><input placeholder="Freeze/cancellation reason" value={form.freezeReason} onChange={(e) => setForm({ ...form, freezeReason: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm" /></div>}
+              {!editing && (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Payment collected now</label>
+                    <input type="number" min="0" value={form.paymentAmount} onChange={(e) => setForm({ ...form, paymentAmount: e.target.value })} placeholder="0 for unpaid" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Payment method</label>
+                    <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-900 bg-white"><option>CASH</option><option>BANK_TRANSFER</option><option>CARD</option><option>ONLINE</option><option>JAZZCASH</option><option>EASYPAISA</option></select>
+                  </div>
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={closeModal} className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors bg-white cursor-pointer">Cancel</button>
                 <button type="submit" disabled={saving} className="px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 border-none cursor-pointer">
@@ -435,6 +492,18 @@ export default function MembersPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {renewingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setRenewingMember(null)}>
+          <form onSubmit={renew} onClick={(event) => event.stopPropagation()} className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
+            <div className="flex items-center justify-between"><h3 className="text-lg font-bold text-slate-900">Renew {renewingMember.name}</h3><button type="button" onClick={() => setRenewingMember(null)} className="p-1 rounded-lg border-none bg-transparent text-slate-400 cursor-pointer"><X size={18} /></button></div>
+            {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
+            <select required value={renewForm.planId} onChange={(event) => { const plan = plans.find((item) => item.id === event.target.value); setRenewForm({ ...renewForm, planId: event.target.value, amount: plan ? String(plan.price) : "" }); }} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white"><option value="">Select plan</option>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} — PKR {Number(plan.price).toLocaleString()}</option>)}</select>
+            <div className="grid grid-cols-2 gap-3"><input required min="0" type="number" placeholder="Invoice amount" value={renewForm.amount} onChange={(event) => setRenewForm({ ...renewForm, amount: event.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm" /><input min="0" type="number" placeholder="Payment now" value={renewForm.paymentAmount} onChange={(event) => setRenewForm({ ...renewForm, paymentAmount: event.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm" /></div>
+            <select value={renewForm.paymentMethod} onChange={(event) => setRenewForm({ ...renewForm, paymentMethod: event.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white"><option>CASH</option><option>BANK_TRANSFER</option><option>CARD</option><option>ONLINE</option><option>JAZZCASH</option><option>EASYPAISA</option></select>
+            <button disabled={saving} className="w-full bg-green-600 text-white rounded-xl py-2.5 font-semibold text-sm cursor-pointer disabled:opacity-50">{saving ? "Renewing..." : "Renew Membership"}</button>
+          </form>
         </div>
       )}
     </div>

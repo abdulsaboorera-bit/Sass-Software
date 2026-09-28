@@ -37,11 +37,30 @@ const listTenants = asyncHandler(async (req, res) => {
   return apiSuccess(res, { tenants, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 });
 
+const listRoles = asyncHandler(async (req, res) => {
+  if (!req.query.tenantId) throw ApiError.badRequest("tenantId is required");
+  const roles = await TenantRole.find({ tenantId: req.query.tenantId }).sort({ name: 1 }).lean();
+  return apiSuccess(res, { roles });
+});
+
 const createTenantSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2),
   industry: z.enum(["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP"]),
   plan: z.enum(["TRIAL", "STARTER", "PROFESSIONAL", "ENTERPRISE"]).optional(),
+});
+
+const updateTenantSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(2).optional(),
+  slug: z.string().min(2).optional(),
+  industry: z.enum(["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP"]).optional(),
+  plan: z.enum(["TRIAL", "STARTER", "PROFESSIONAL", "ENTERPRISE"]).optional(),
+  status: z.enum(["ACTIVE", "TRIAL", "SUSPENDED", "CANCELLED"]).optional(),
+  trialEndsAt: z.string().optional(),
+  timezone: z.string().optional(),
+  currency: z.string().optional(),
+  logo: z.string().optional(),
 });
 
 const createTenant = asyncHandler(async (req, res) => {
@@ -56,10 +75,10 @@ const createTenant = asyncHandler(async (req, res) => {
 });
 
 const updateTenant = asyncHandler(async (req, res) => {
-  const id = req.body.id || req.params.id;
-  if (!id) throw ApiError.badRequest("id is required");
-  const { id: _omit, ...updates } = req.body;
-  const tenant = await Tenant.findByIdAndUpdate(id, updates, { new: true });
+  const data = updateTenantSchema.parse({ ...req.body, id: req.body.id || req.params.id });
+  const { id, ...updates } = data;
+  if (updates.trialEndsAt) updates.trialEndsAt = new Date(updates.trialEndsAt);
+  const tenant = await Tenant.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
   if (!tenant) throw ApiError.notFound("Tenant not found");
   return apiSuccess(res, { tenant });
 });
@@ -78,7 +97,7 @@ const listUsers = asyncHandler(async (req, res) => {
   if (req.query.role) filter.role = req.query.role;
 
   const [users, total] = await Promise.all([
-    User.find(filter).populate("tenantId", "name slug industry").sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    User.find(filter).select("-passwordHash").populate("tenantId", "name slug industry").sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
     User.countDocuments(filter),
   ]);
   // Expose tenant alias (users page reads user.tenant).
@@ -93,13 +112,15 @@ const listUsers = asyncHandler(async (req, res) => {
  * "add/move a user to a tenant" actually functional — every permission
  * check goes through TenantUser + TenantRole, not User.tenantId.
  */
-async function syncTenantMembership(userId, tenantId) {
+async function syncTenantMembership(userId, tenantId, roleId) {
   await TenantUser.deleteMany({ userId });
   if (!tenantId) return;
 
-  const ownerRole = await TenantRole.findOne({ tenantId, slug: "owner" });
-  if (!ownerRole) throw ApiError.badRequest("Invalid tenant");
-  await TenantUser.create({ tenantId, userId, roleId: ownerRole._id });
+  const role = roleId
+    ? await TenantRole.findOne({ _id: roleId, tenantId })
+    : await TenantRole.findOne({ tenantId, slug: "owner" });
+  if (!role) throw ApiError.badRequest("Invalid tenant role");
+  await TenantUser.create({ tenantId, userId, roleId: role._id });
 }
 
 const createUserSchema = z.object({
@@ -108,6 +129,7 @@ const createUserSchema = z.object({
   password: z.string().min(8),
   role: z.enum(["SUPER_ADMIN"]).optional(),
   tenantId: z.string().optional(),
+  roleId: z.string().optional(),
 });
 
 /** "gym2@demo.com" -> "Gym2" — used when no display name is given at creation. */
@@ -122,6 +144,9 @@ const createUser = asyncHandler(async (req, res) => {
   if (data.tenantId) {
     const tenant = await Tenant.findById(data.tenantId);
     if (!tenant) throw ApiError.badRequest("Invalid tenant");
+    if (data.roleId && !(await TenantRole.exists({ _id: data.roleId, tenantId: data.tenantId }))) throw ApiError.badRequest("Invalid tenant role");
+  } else if (data.roleId) {
+    throw ApiError.badRequest("A tenant role requires a tenant");
   }
 
   const passwordHash = await hashPassword(data.password);
@@ -134,7 +159,7 @@ const createUser = asyncHandler(async (req, res) => {
     tenantId: data.tenantId || null,
   });
 
-  if (data.tenantId) await syncTenantMembership(user._id, data.tenantId);
+  if (data.tenantId) await syncTenantMembership(user._id, data.tenantId, data.roleId);
 
   return apiSuccess(res, { user }, 201);
 });
@@ -145,12 +170,13 @@ const updateUserSchema = z.object({
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
   tenantId: z.string().nullable().optional(),
+  roleId: z.string().optional(),
   status: z.enum(["ACTIVE", "INVITED", "SUSPENDED"]).optional(),
 });
 
 const updateUser = asyncHandler(async (req, res) => {
   const data = updateUserSchema.parse({ ...req.body, id: req.body.id || req.params.id });
-  const { id, password, tenantId, ...updates } = data;
+  const { id, password, tenantId, roleId, ...updates } = data;
   if (updates.email) updates.email = updates.email.toLowerCase();
   if (password) updates.passwordHash = await hashPassword(password);
 
@@ -162,11 +188,15 @@ const updateUser = asyncHandler(async (req, res) => {
     }
     updates.tenantId = tenantId || null;
   }
+  if (roleId) {
+    const targetTenantId = tenantChanging ? tenantId : (await User.findById(id).select("tenantId").lean())?.tenantId;
+    if (!targetTenantId || !(await TenantRole.exists({ _id: roleId, tenantId: targetTenantId }))) throw ApiError.badRequest("Invalid tenant role");
+  }
 
   const user = await User.findByIdAndUpdate(id, updates, { new: true });
   if (!user) throw ApiError.notFound("User not found");
 
-  if (tenantChanging) await syncTenantMembership(user._id, tenantId || null);
+  if (tenantChanging || roleId) await syncTenantMembership(user._id, tenantId !== undefined ? tenantId || null : user.tenantId, roleId);
 
   return apiSuccess(res, { user });
 });
@@ -180,4 +210,4 @@ const deleteUser = asyncHandler(async (req, res) => {
   return apiSuccess(res, { success: true });
 });
 
-module.exports = { listTenants, createTenant, updateTenant, listUsers, createUser, updateUser, deleteUser };
+module.exports = { listTenants, listRoles, createTenant, updateTenant, listUsers, createUser, updateUser, deleteUser };

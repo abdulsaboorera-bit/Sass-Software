@@ -1,10 +1,26 @@
 "use strict";
 
-const { User, Tenant, RefreshToken } = require("../models");
+const { User, Tenant, TenantRole, TenantUser, RefreshToken } = require("../models");
 const { hashPassword, verifyPassword } = require("../utils/password");
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require("../utils/jwt");
 const { ApiError } = require("../utils/apiResponse");
 const { REFRESH_MAX_AGE } = require("../utils/cookies");
+const { SYSTEM_ROLES } = require("../seed/roles");
+
+function slugify(value) {
+  return String(value).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "gym";
+}
+
+async function uniqueTenantSlug(name) {
+  const base = slugify(name);
+  let slug = base;
+  for (let attempt = 0; await Tenant.exists({ slug }); attempt += 1) {
+    slug = `${base}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+  return slug;
+}
+
+const ACTIVE_TENANT_STATUSES = ["ACTIVE", "TRIAL"];
 
 /**
  * Authenticate an email/password pair and issue a fresh token pair.
@@ -12,7 +28,7 @@ const { REFRESH_MAX_AGE } = require("../utils/cookies");
  * "delete old refresh tokens then store the new one" behaviour.
  */
 async function login({ email, password, userAgent, ipAddress }) {
-  const user = await User.findOne({ email: String(email).toLowerCase() });
+  const user = await User.findOne({ email: String(email).toLowerCase() }).select("+passwordHash");
   if (!user) throw ApiError.unauthorized("Invalid email or password");
 
   if (user.status === "SUSPENDED")
@@ -24,7 +40,7 @@ async function login({ email, password, userAgent, ipAddress }) {
   if (!ok) throw ApiError.unauthorized("Invalid email or password");
 
   const tenant = user.tenantId ? await Tenant.findById(user.tenantId) : null;
-  if (tenant && tenant.status === "SUSPENDED")
+  if (tenant && !ACTIVE_TENANT_STATUSES.includes(tenant.status))
     throw ApiError.forbidden("Your organization's account has been suspended.");
 
   user.lastLoginAt = new Date();
@@ -86,6 +102,7 @@ async function refresh({ refreshToken, userAgent, ipAddress }) {
   if (!user || user.status === "SUSPENDED") throw ApiError.unauthorized("Account unavailable");
 
   const tenant = user.tenantId ? await Tenant.findById(user.tenantId) : null;
+  if (tenant && !ACTIVE_TENANT_STATUSES.includes(tenant.status)) throw ApiError.unauthorized("Organization unavailable");
   const tokens = await issueTokens(user, tenant, { userAgent, ipAddress });
   return { tokens, user, tenant };
 }
@@ -96,24 +113,43 @@ async function logout(refreshToken) {
 }
 
 /**
- * Self-service signup: creates a User. Tenant/role wiring is intentionally
- * left to the onboarding flow (unchanged from before). `role` defaults to a
- * platform role for parity with the existing User model.
+ * Self-service signup creates an isolated trial tenant and its first owner.
+ * Public registration must never create a tenantless platform administrator.
  */
-async function signup({ email, password, name, phone }) {
-  const existing = await User.findOne({ email: String(email).toLowerCase(), tenantId: null });
+async function signup({ email, password, name, phone, businessName, industry, userAgent, ipAddress }) {
+  const normalizedEmail = String(email).toLowerCase();
+  const existing = await User.findOne({ email: normalizedEmail });
   if (existing) throw ApiError.conflict("An account with this email already exists");
 
   const passwordHash = await hashPassword(password);
-  const user = await User.create({
-    email: String(email).toLowerCase(),
-    passwordHash,
-    name,
-    phone,
-    role: "SUPER_ADMIN",
-    status: "ACTIVE",
+  const tenant = await Tenant.create({
+    slug: await uniqueTenantSlug(businessName),
+    name: businessName,
+    industry,
+    plan: "TRIAL",
+    status: "TRIAL",
+    trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
   });
-  return user;
+  let role;
+  let user;
+  try {
+    const owner = SYSTEM_ROLES.find((item) => item.slug === "owner");
+    role = await TenantRole.create({ tenantId: tenant._id, ...owner });
+    user = await User.create({ email: normalizedEmail, passwordHash, name, phone, role: "SUPER_ADMIN", status: "ACTIVE", tenantId: tenant._id });
+    await TenantUser.create({ tenantId: tenant._id, userId: user._id, roleId: role._id });
+  } catch (error) {
+    if (user) await User.deleteOne({ _id: user._id });
+    if (role) await TenantRole.deleteOne({ _id: role._id });
+    await Tenant.deleteOne({ _id: tenant._id });
+    throw error;
+  }
+
+  const tokens = await issueTokens(user, tenant, { userAgent, ipAddress });
+  return {
+    tokens,
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name, industry: tenant.industry, plan: tenant.plan, status: tenant.status },
+  };
 }
 
 module.exports = { login, refresh, logout, signup, issueTokens };

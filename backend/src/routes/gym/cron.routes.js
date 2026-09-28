@@ -18,7 +18,7 @@ const router = express.Router();
  */
 const cronAuthOrPermission = asyncHandler(async (req, res, next) => {
   const secret = req.headers["x-cron-secret"];
-  if (secret && secret === env.cron.secret) {
+  if (env.cron.enabled && secret && secret === env.cron.secret) {
     req.cronMachine = true;
     return next();
   }

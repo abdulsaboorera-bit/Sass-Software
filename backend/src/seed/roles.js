@@ -3,16 +3,26 @@
 /**
  * System role definitions.
  *
- * Every tenant gets exactly one role: Owner (full access, "*"). Gym used to
- * also seed receptionist/trainer login roles with scoped permissions; that
- * multi-role setup was removed in favor of a single admin who manages
- * everything.
+ * Every tenant gets an owner plus practical least-privilege presets. Custom
+ * roles can be added later without changing route permissions.
  */
 
 const OWNER = ["*"];
+const RECEPTIONIST = [
+  "members.view", "members.create", "members.edit", "attendance.view", "attendance.mark",
+  "billing.view", "billing.create", "inventory.view", "staff.view", "staff-attendance.view",
+  "staff-attendance.create", "sessions.view", "bookings.view", "bookings.create",
+];
+const TRAINER = ["members.view.assigned", "trainers.view", "attendance.view", "attendance.mark", "sessions.view", "bookings.view"];
+const ACCOUNTANT = ["members.view", "billing.view", "billing.create", "billing.edit", "analytics.view"];
+const INVENTORY_MANAGER = ["inventory.view", "inventory.create", "inventory.edit", "billing.view"];
 
 const SYSTEM_ROLES = [
   { name: "Owner", slug: "owner", permissions: OWNER, isSystem: true },
+  { name: "Receptionist", slug: "receptionist", permissions: RECEPTIONIST, isSystem: true },
+  { name: "Trainer", slug: "trainer", permissions: TRAINER, isSystem: true },
+  { name: "Accountant", slug: "accountant", permissions: ACCOUNTANT, isSystem: true },
+  { name: "Inventory Manager", slug: "inventory-manager", permissions: INVENTORY_MANAGER, isSystem: true },
 ];
 
-module.exports = { SYSTEM_ROLES, OWNER };
+module.exports = { SYSTEM_ROLES, OWNER, RECEPTIONIST, TRAINER, ACCOUNTANT, INVENTORY_MANAGER };

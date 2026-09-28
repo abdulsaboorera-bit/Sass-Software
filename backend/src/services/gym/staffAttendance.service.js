@@ -1,15 +1,27 @@
 "use strict";
 
-const { Staff, StaffAttendance } = require("../../models");
+const { Staff, StaffAttendance, GymSettings } = require("../../models");
 const { ApiError } = require("../../utils/apiResponse");
-const { dayKey, monthRange } = require("../../utils/dates");
+const { dayKeyInTimezone, monthRange, parseDateInput } = require("../../utils/dates");
+
+async function dateKey(tenantId, value) {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+    if (!parseDateInput(value)) throw ApiError.badRequest("Invalid attendance date");
+    return String(value);
+  }
+  const parsed = value ? parseDateInput(value) : new Date();
+  if (!parsed || Number.isNaN(parsed.getTime())) throw ApiError.badRequest("Invalid attendance date");
+  const settings = await GymSettings.findOne({ tenantId }).select("timezone").lean();
+  return dayKeyInTimezone(parsed, settings?.timezone || "Asia/Karachi");
+}
 
 /** Upsert today's (or a given day's) attendance status for one staff member. */
 async function markAttendance({ tenantId, staffId, date, status, notes }) {
   const staff = await Staff.findOne({ _id: staffId, tenantId });
   if (!staff) throw ApiError.notFound("Staff member not found");
+  if (!staff.isActive) throw ApiError.badRequest("Cannot mark attendance for inactive staff");
 
-  const key = dayKey(date ? new Date(date) : new Date());
+  const key = await dateKey(tenantId, date);
   const record = await StaffAttendance.findOneAndUpdate(
     { tenantId, staffId, dayKey: key },
     { status, notes },
@@ -20,7 +32,7 @@ async function markAttendance({ tenantId, staffId, date, status, notes }) {
 
 /** All active staff for a tenant, joined with that day's attendance status (null if unmarked). */
 async function listByDate({ tenantId, date }) {
-  const key = dayKey(date ? new Date(date) : new Date());
+  const key = await dateKey(tenantId, date);
   const [staff, records] = await Promise.all([
     Staff.find({ tenantId, isActive: true }).sort({ name: 1 }).lean(),
     StaffAttendance.find({ tenantId, dayKey: key }).lean(),
@@ -45,10 +57,12 @@ async function monthlySummary({ tenantId, staffId, year, month }) {
   if (!staff) throw ApiError.notFound("Staff member not found");
 
   const { start, end } = monthRange(year, month);
+  const settings = await GymSettings.findOne({ tenantId }).select("timezone").lean();
+  const timeZone = settings?.timezone || "Asia/Karachi";
   const records = await StaffAttendance.find({
     tenantId,
     staffId,
-    dayKey: { $gte: dayKey(start), $lte: dayKey(end) },
+    dayKey: { $gte: dayKeyInTimezone(start, timeZone), $lte: dayKeyInTimezone(end, timeZone) },
   }).lean();
 
   const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, LEAVE: 0 };

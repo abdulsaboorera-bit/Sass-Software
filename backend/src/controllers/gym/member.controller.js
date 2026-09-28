@@ -20,6 +20,10 @@ const createSchema = z.object({
   photo: z.string().optional(),
   startDate: z.string().optional(),
   note: z.string().optional(),
+  createInvoice: z.boolean().optional(),
+  invoiceAmount: z.number().nonnegative().optional(),
+  paymentAmount: z.number().nonnegative().optional(),
+  paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "CARD", "ONLINE", "JAZZCASH", "EASYPAISA"]).optional(),
 });
 
 const updateSchema = z.object({
@@ -43,6 +47,8 @@ const renewSchema = z.object({
   amount: z.number().nonnegative().optional(),
   dueDate: z.string().optional(),
   createInvoice: z.boolean().optional(),
+  paymentAmount: z.number().nonnegative().optional(),
+  paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "CARD", "ONLINE", "JAZZCASH", "EASYPAISA"]).optional(),
 });
 
 const actor = (req) => ({ userId: req.user.userId, name: req.user.name });
@@ -73,8 +79,10 @@ const getOne = asyncHandler(async (req, res) => {
 
 const create = asyncHandler(async (req, res) => {
   const data = createSchema.parse(req.body);
-  const member = await memberService.create({ tenantId: req.tenantId, data, actor: actor(req) });
-  return apiSuccess(res, { member }, 201);
+  const result = data.createInvoice === false
+    ? { member: await memberService.create({ tenantId: req.tenantId, data, actor: actor(req) }) }
+    : await memberService.enroll({ tenantId: req.tenantId, data, actor: actor(req) });
+  return apiSuccess(res, result, 201);
 });
 
 const update = asyncHandler(async (req, res) => {

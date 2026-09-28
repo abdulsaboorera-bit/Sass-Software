@@ -1,6 +1,6 @@
 "use strict";
 
-const { Member, MembershipPlan, Trainer, GymPayment } = require("../../models");
+const { Member, MembershipPlan, Trainer, GymPayment, GymInvoice, Notification } = require("../../models");
 const { ApiError } = require("../../utils/apiResponse");
 const { nextMemberNo } = require("../../utils/ids");
 const { addDays, computeMembershipStatus } = require("../../utils/dates");
@@ -80,7 +80,7 @@ async function getById({ tenantId, id, trainerScope }) {
 }
 
 async function create({ tenantId, data, actor }) {
-  const plan = await MembershipPlan.findOne({ _id: data.planId, tenantId });
+  const plan = await MembershipPlan.findOne({ _id: data.planId, tenantId, isActive: true });
   if (!plan) throw ApiError.badRequest("Invalid plan");
 
   if (data.trainerId) {
@@ -132,6 +132,31 @@ async function create({ tenantId, data, actor }) {
   return decorate(member.toObject());
 }
 
+async function enroll({ tenantId, data, actor }) {
+  const billing = require("./billing.service");
+  const plan = await MembershipPlan.findOne({ _id: data.planId, tenantId, isActive: true });
+  if (!plan) throw ApiError.badRequest("Invalid or inactive plan");
+  const member = await create({ tenantId, data, actor });
+  const memberId = member._id || member.id;
+  let invoice = null;
+  let payment = null;
+  try {
+    const amount = data.invoiceAmount != null ? Number(data.invoiceAmount) : Number(plan.price);
+    invoice = await billing.createInvoice({ tenantId, memberId, type: "MEMBERSHIP", planId: plan._id, amount, dueDate: new Date(), periodStart: member.startDate, periodEnd: member.endDate });
+    if (Number(data.paymentAmount || 0) > 0) {
+      const result = await billing.recordPayment({ tenantId, invoiceId: invoice._id, amount: Number(data.paymentAmount), method: data.paymentMethod || "CASH" });
+      payment = result.payment;
+      invoice = result.invoice;
+    }
+    return { member, invoice, payment };
+  } catch (error) {
+    if (invoice) await GymInvoice.deleteOne({ _id: invoice._id, tenantId }).catch(() => {});
+    await Notification.deleteMany({ recipientId: memberId }).catch(() => {});
+    await Member.deleteOne({ _id: memberId, tenantId });
+    throw error;
+  }
+}
+
 /**
  * Update editable fields. Notes are NEVER overwritten here — a supplied `note`
  * is appended to notesHistory. Status transitions to/from FROZEN maintain the
@@ -142,7 +167,7 @@ async function update({ tenantId, id, data, actor }) {
   if (!member) throw ApiError.notFound("Member not found");
 
   if (data.planId) {
-    const plan = await MembershipPlan.findOne({ _id: data.planId, tenantId });
+    const plan = await MembershipPlan.findOne({ _id: data.planId, tenantId, isActive: true });
     if (!plan) throw ApiError.badRequest("Invalid plan");
     member.planId = data.planId;
   }
@@ -218,7 +243,7 @@ async function renew({ tenantId, id, data, actor }) {
   if (!member) throw ApiError.notFound("Member not found");
 
   const planId = data.planId || member.planId;
-  const plan = await MembershipPlan.findOne({ _id: planId, tenantId });
+  const plan = await MembershipPlan.findOne({ _id: planId, tenantId, isActive: true });
   if (!plan) throw ApiError.badRequest("Invalid plan");
 
   const now = new Date();
@@ -228,6 +253,7 @@ async function renew({ tenantId, id, data, actor }) {
   const amount = data.amount != null ? Number(data.amount) : Number(plan.price);
 
   let invoice = null;
+  let payment = null;
   if (data.createInvoice !== false) {
     invoice = await billing.createInvoice({
       tenantId,
@@ -240,6 +266,16 @@ async function renew({ tenantId, id, data, actor }) {
       periodEnd: newEndDate,
       notes: `Renewal — ${plan.name}`,
     });
+    if (Number(data.paymentAmount || 0) > 0) {
+      const result = await billing.recordPayment({
+        tenantId,
+        invoiceId: invoice._id,
+        amount: Number(data.paymentAmount),
+        method: data.paymentMethod || "CASH",
+      });
+      invoice = result.invoice;
+      payment = result.payment;
+    }
   }
 
   member.planId = plan._id;
@@ -259,13 +295,17 @@ async function renew({ tenantId, id, data, actor }) {
   });
 
   await member.save();
-  return { member: decorate(member.toObject()), invoice };
+  return { member: decorate(member.toObject()), invoice, payment };
 }
 
 async function remove({ tenantId, id }) {
-  const member = await Member.findOneAndDelete({ _id: id, tenantId });
+  const member = await Member.findOneAndUpdate(
+    { _id: id, tenantId },
+    { $set: { status: "CANCELLED", frozenAt: null, freezeReason: "Archived by staff" } },
+    { new: true }
+  );
   if (!member) throw ApiError.notFound("Member not found");
-  return { success: true };
+  return { success: true, archived: true };
 }
 
 /** Full payment history for a member (billing "payment history per member"). */
@@ -281,6 +321,7 @@ module.exports = {
   list,
   getById,
   create,
+  enroll,
   update,
   addNote,
   renew,

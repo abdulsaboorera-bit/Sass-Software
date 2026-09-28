@@ -11,8 +11,8 @@ services:
     rootDir: backend
     plan: free
     buildCommand: npm install
-    startCommand: npm start
-    healthCheckPath: /health
+    startCommand: npm run db:indexes && npm start
+    healthCheckPath: /health/ready
     autoDeploy: true
     envVars:
       - key: NODE_ENV

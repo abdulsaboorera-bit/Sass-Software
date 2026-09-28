@@ -6,6 +6,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
+const mongoose = require("mongoose");
 
 const env = require("./config/env");
 const { attachUser } = require("./middleware/auth");
@@ -44,6 +45,15 @@ app.use(
 );
 
 app.get("/health", (_req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
+app.get("/health/ready", async (_req, res) => {
+  if (mongoose.connection.readyState !== 1) return res.status(503).json({ status: "not_ready", database: "disconnected" });
+  try {
+    await mongoose.connection.db.admin().ping();
+    return res.json({ status: "ready", database: "connected", time: new Date().toISOString() });
+  } catch {
+    return res.status(503).json({ status: "not_ready", database: "unavailable" });
+  }
+});
 
 app.use("/api", apiRoutes);
 

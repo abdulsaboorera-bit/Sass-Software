@@ -42,7 +42,7 @@ Request flow: `route -> middleware (auth/tenant/rbac/scope) -> controller (zod) 
 **Prerequisites:** Node 18+, a running MongoDB (local `mongodb://127.0.0.1:27017` or Atlas).
 
 ```bash
-cd server
+cd backend
 cp .env.example .env          # adjust MONGODB_URI / JWT_SECRET / CRON_SECRET
 npm install
 npm run seed                  # super admin, 5 tenants, system roles, demo gym data
@@ -86,6 +86,10 @@ is checked per request; `*` = all, `resource.*` = any action on a resource.
 
 **System roles** (seeded per tenant, see `src/seed/roles.js`):
 - **owner** -> `["*"]` (full access)
+- **receptionist** -> front desk members, billing, attendance, staff, and class access
+- **trainer** -> assigned-member access, attendance, trainer roster, and sessions
+- **accountant** -> billing and analytics access
+- **inventory-manager** -> inventory and billing-view access
 - Custom roles can use `members.view.assigned` for trainer-scoped access.
 
 **Trainer scoping:** member read endpoints run `memberViewScope`. Callers with
@@ -99,6 +103,8 @@ member creation and analytics.
 ## Gym module -- enhancements
 
 **Members** (`/api/gym/members`)
+- Public onboarding creates a 14-day trial tenant, owner role, and authenticated session.
+- New member enrollment can create an invoice and collect an initial payment atomically at the application workflow level.
 - `effectiveStatus` (`ACTIVE|EXPIRED|FROZEN|CANCELLED`) + `daysUntilExpiry` computed on every read.
 - `notesHistory[]` -- append-only (never overwritten). `POST /:id/notes`.
 - `renewals[]` -- full renewal history. `POST /:id/renew` extends expiry, records history, raises an invoice.
@@ -114,7 +120,7 @@ member creation and analytics.
 - `GET /trends?days=30` -- daily check-in trend.
 
 **Check-in Kiosk** (`/api/gym/checkins`)
-- `GET /` -- recent check-ins (paginated, `{ checkins, pagination }`).
+- `GET /` -- recent check-ins (paginated, `{ checkIns, pagination }`).
 - `POST /` -- toggle by `memberNo`: `{ action: "checkin"|"checkout", member: {...} }`.
 
 **Billing** (`/api/gym/billing`)
@@ -137,6 +143,8 @@ member creation and analytics.
 - `GET /members`, `GET /revenue?months`, `GET /pending-payments`.
 
 **Config resources:** `/api/gym/plans`, `/api/gym/sessions`, `/api/gym/measurements`.
+
+**Operations:** `/api/gym/expenses`, `/api/gym/staff`, `/api/gym/staff-attendance`, and `/api/gym/trainers` support the day-to-day operating workflow.
 
 **Notifications** (`/api/gym/notifications`) -- see below.
 
@@ -245,7 +253,7 @@ All endpoints return shapes the existing frontend pages expect:
 | `GET /api/gym/members` | `{ members: [...], pagination }` |
 | `GET /api/gym/plans` | `{ plans: [...] }` (no pagination) |
 | `GET /api/gym/trainers` | `{ trainers: [...], pagination }` |
-| `GET /api/gym/checkins` | `{ checkins: [...], pagination }` |
+| `GET /api/gym/checkins` | `{ checkIns: [...], pagination }` |
 | `GET /api/gym/payments` | `{ payments: [...], pagination }` |
 | `GET /api/school/students` | `{ students: [...], pagination }` |
 | `GET /api/school/classes` | `{ classes: [...] }` (no pagination, `_count.students`) |

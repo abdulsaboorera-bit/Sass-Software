@@ -1,8 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 
-const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? "" : "nexussoft-dev-secret-change-in-production");
-if (!jwtSecret) throw new Error("JWT_SECRET must be configured in production");
+// Keep public pages available when a Vercel environment variable is missing.
+// Protected requests will fail verification until JWT_SECRET is configured to
+// match the backend secret.
+const jwtSecret = process.env.JWT_SECRET || "missing-production-secret";
 const JWT_SECRET = new TextEncoder().encode(jwtSecret);
 
 // ═══════════════════════════════════════════════════════════

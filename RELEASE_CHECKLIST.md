@@ -3,6 +3,8 @@
 Run the complete case-by-case pack in [GYM_TEST_CASES.md](./GYM_TEST_CASES.md)
 before customer handover.
 
+Record the latest execution in [GYM_TEST_RESULTS.md](./GYM_TEST_RESULTS.md).
+
 Run these checks before handing a gym tenant to a customer:
 
 ```bash

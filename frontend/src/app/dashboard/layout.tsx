@@ -9,6 +9,7 @@ import {
   GraduationCap, Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
+import SessionKeepAlive from "@/components/auth/SessionKeepAlive";
 import { clearCurrentUserCache, getCurrentUser } from "@/lib/currentUser";
 
 interface UserData {
@@ -214,6 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-slate-50">
+      <SessionKeepAlive />
       {/* Desktop Sidebar */}
       <aside
         className="hidden lg:flex flex-col bg-slate-900 text-white transition-all duration-300 shrink-0"

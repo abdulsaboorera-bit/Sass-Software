@@ -79,12 +79,13 @@ export async function proxy(request: NextRequest) {
 
         if (refreshResponse.ok) {
           // Refresh succeeded — extract new tokens from Set-Cookie headers
-          const newCookies = refreshResponse.headers.get("set-cookie");
-          if (newCookies) {
+          const headersWithCookies = refreshResponse.headers as Headers & { getSetCookie?: () => string[] };
+          const newCookies = headersWithCookies.getSetCookie?.() || (refreshResponse.headers.get("set-cookie") ? [refreshResponse.headers.get("set-cookie") as string] : []);
+          if (newCookies.length) {
             const redirectResponse = NextResponse.redirect(new URL(pathname, request.url));
             // Forward Set-Cookie headers from refresh response
-            newCookies.split(",").forEach((cookie) => {
-              redirectResponse.headers.append("Set-Cookie", cookie.trim());
+            newCookies.forEach((cookie) => {
+              redirectResponse.headers.append("Set-Cookie", cookie);
             });
             return redirectResponse;
           }

@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Users, Building2, DollarSign, MessageCircle,
   ChevronLeft, ChevronRight, LogOut, Zap, Menu, X
 } from "lucide-react";
+import SessionKeepAlive from "@/components/auth/SessionKeepAlive";
 
 const sidebarLinks = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
@@ -102,6 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex h-screen bg-slate-50">
+      <SessionKeepAlive />
       {/* Desktop Sidebar */}
       <aside
         className="hidden lg:flex flex-col bg-slate-900 text-white transition-all duration-300 shrink-0"

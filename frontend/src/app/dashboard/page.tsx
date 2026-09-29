@@ -176,6 +176,28 @@ const industryConfig: Record<string, {
       { title: "Track inventory", desc: "Monitor stock levels and reorder." },
     ],
   },
+  CAR_RENTAL: {
+    title: "Car Rental Dashboard",
+    subtitle: "Manage showroom vehicles, customers, rentals, and payments.",
+    stats: (d) => [
+      { label: "Total Cars", value: d.totalCars ?? "—", icon: Package, color: "bg-blue-50 text-blue-600", href: "/dashboard/car-rental/cars" },
+      { label: "Available Cars", value: d.availableCars ?? "—", icon: CheckCircle, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/car-rental/cars" },
+      { label: "Active Rentals", value: d.activeRentals ?? "—", icon: Calendar, color: "bg-amber-50 text-amber-600", href: "/dashboard/car-rental/rentals" },
+      { label: "Collected Revenue", value: d.totalCollected ? `PKR ${Number(d.totalCollected).toLocaleString()}` : "—", icon: DollarSign, color: "bg-purple-50 text-purple-600", href: "/dashboard/car-rental/payments" },
+    ],
+    actions: [
+      { label: "Add Car", href: "/dashboard/car-rental/cars", icon: Package, color: "bg-blue-600" },
+      { label: "New Rental", href: "/dashboard/car-rental/rentals", icon: Calendar, color: "bg-emerald-600" },
+      { label: "Customers", href: "/dashboard/car-rental/customers", icon: Users, color: "bg-purple-600" },
+      { label: "Payments", href: "/dashboard/car-rental/payments", icon: DollarSign, color: "bg-amber-600" },
+    ],
+    gettingStarted: [
+      { title: "Add showroom cars", desc: "Register vehicles, rates, pictures, and availability." },
+      { title: "Register customers", desc: "Store license and contact details securely." },
+      { title: "Create a rental", desc: "Assign an available car and collect payment or deposit." },
+      { title: "Return and reconcile", desc: "Complete returns, mileage, damage notes, and balances." },
+    ],
+  },
 };
 
 export default function DashboardPage() {
@@ -251,6 +273,17 @@ export default function DashboardPage() {
           expiringSoon: dashRes?.expiringSoon || 0,
           newThisMonth: dashRes?.members?.newThisMonth || 0,
           staffPresentToday: dashRes?.staffPresentToday || 0,
+        });
+      } else if (industry === "CAR_RENTAL") {
+        const response = await fetch("/api/car-rental/dashboard", { credentials: "include" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Unable to load car rental dashboard");
+        setStats({
+          totalCars: data.cars ? Object.values(data.cars).reduce((sum: number, value) => sum + Number(value), 0) : 0,
+          availableCars: data.cars?.available || 0,
+          activeRentals: data.activeRentals || 0,
+          overdueRentals: data.overdueRentals || 0,
+          totalCollected: data.totalCollected || 0,
         });
       } else if (industry === "RESTAURANT") {
         const [ordersRes, tablesRes, menuRes] = await Promise.all([

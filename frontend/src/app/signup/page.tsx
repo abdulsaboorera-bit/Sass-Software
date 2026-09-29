@@ -11,6 +11,7 @@ const industries = [
   { value: "RESTAURANT", label: "Restaurant" },
   { value: "GYM", label: "Gym" },
   { value: "BOOKSHOP", label: "Book Shop" },
+  { value: "CAR_RENTAL", label: "Car Rental / Showroom" },
 ];
 
 export default function SignupPage() {

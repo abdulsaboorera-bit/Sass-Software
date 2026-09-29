@@ -332,6 +332,7 @@ export default function TenantsPage() {
                   <option value="GYM">Gym</option>
                   <option value="RESTAURANT">Restaurant</option>
                   <option value="BOOKSHOP">Bookshop</option>
+                  <option value="CAR_RENTAL">Car Rental</option>
                 </select>
                 {editingTenant && <p className="text-[11px] text-slate-400 mt-1">Slug and industry can&apos;t be changed after creation.</p>}
               </div>

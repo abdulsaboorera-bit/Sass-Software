@@ -80,6 +80,14 @@ const industryNav: Record<string, NavLink[]> = {
     { label: "Inventory", href: "/dashboard/inventory", icon: Calendar },
     { label: "Settings", href: "/dashboard/settings", icon: Settings },
   ],
+  CAR_RENTAL: [
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Cars", href: "/dashboard/car-rental/cars", icon: Package, permission: "cars.view" },
+    { label: "Customers", href: "/dashboard/car-rental/customers", icon: Users, permission: "customers.view" },
+    { label: "Rentals", href: "/dashboard/car-rental/rentals", icon: Calendar, permission: "rentals.view" },
+    { label: "Payments", href: "/dashboard/car-rental/payments", icon: DollarSign, permission: "billing.view" },
+    { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
+  ],
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

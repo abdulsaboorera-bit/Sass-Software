@@ -44,6 +44,7 @@ const school = require("./school");
 const clinic = require("./clinic");
 const restaurant = require("./restaurant");
 const bookshop = require("./bookshop");
+const carRental = require("./carRental");
 
 module.exports = {
   // core
@@ -81,4 +82,5 @@ module.exports = {
   ...clinic,
   ...restaurant,
   ...bookshop,
+  ...carRental,
 };

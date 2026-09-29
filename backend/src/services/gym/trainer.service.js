@@ -38,11 +38,13 @@ async function list({ tenantId, isActive, page = 1, limit = 20 }) {
 }
 
 async function create({ tenantId, data }) {
+  if (await Trainer.exists({ tenantId, phone: data.phone })) throw ApiError.conflict("A trainer with this phone already exists");
   return (await Trainer.create({ tenantId, ...data })).toObject();
 }
 
 async function update({ tenantId, id, data }) {
-  const trainer = await Trainer.findOneAndUpdate({ _id: id, tenantId }, data, { new: true }).lean({ virtuals: true });
+  if (data.phone && await Trainer.exists({ tenantId, phone: data.phone, _id: { $ne: id } })) throw ApiError.conflict("A trainer with this phone already exists");
+  const trainer = await Trainer.findOneAndUpdate({ _id: id, tenantId }, data, { new: true, runValidators: true }).lean({ virtuals: true });
   if (!trainer) throw ApiError.notFound("Trainer not found");
   return trainer;
 }

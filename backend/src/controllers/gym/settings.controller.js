@@ -1,7 +1,7 @@
 "use strict";
 
 const { z } = require("zod");
-const { GymSettings } = require("../../models");
+const { GymSettings, Tenant } = require("../../models");
 const { apiSuccess, ApiError } = require("../../utils/apiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
 const { sanitize } = require("../../utils/crud");
@@ -61,8 +61,9 @@ const updateSchema = z.object({
 
 const get = asyncHandler(async (req, res) => {
   let settings = await GymSettings.findOne({ tenantId: req.tenantId }).lean({ virtuals: true });
+  const tenant = await Tenant.findById(req.tenantId).select("name currency timezone").lean();
   if (!settings) {
-    settings = await GymSettings.create({ tenantId: req.tenantId, operatingHours: defaultOperatingHours() });
+    settings = await GymSettings.create({ tenantId: req.tenantId, gymName: tenant?.name, currency: tenant?.currency, timezone: tenant?.timezone, operatingHours: defaultOperatingHours() });
     settings = settings.toObject();
   }
   return apiSuccess(res, { settings });
@@ -82,6 +83,13 @@ const update = asyncHandler(async (req, res) => {
     data,
     { new: true, upsert: true, runValidators: true }
   ).lean({ virtuals: true });
+  await Tenant.updateOne({ _id: req.tenantId }, {
+    $set: {
+      ...(data.gymName !== undefined ? { name: data.gymName } : {}),
+      ...(data.currency !== undefined ? { currency: data.currency } : {}),
+      ...(data.timezone !== undefined ? { timezone: data.timezone } : {}),
+    },
+  });
   return apiSuccess(res, { settings });
 });
 

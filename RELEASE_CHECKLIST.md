@@ -20,6 +20,7 @@ npm audit --omit=dev
 Production requirements:
 
 - Set `MONGODB_URI`, `JWT_SECRET`, `CRON_SECRET`, `CORS_ORIGINS`, and `BACKEND_URL` in the hosting providers.
+- Set `BACKEND_URL` to the actual Render primary URL, for example `https://sass-backend-ske8.onrender.com`.
 - Run `npm run db:indexes` against the production database before accepting traffic.
 - Configure MongoDB Atlas backups/PITR and complete one isolated restore test.
 - Configure real payment, email, WhatsApp, and SMS providers before advertising those channels.

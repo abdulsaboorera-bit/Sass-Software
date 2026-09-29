@@ -83,6 +83,8 @@ const memberSchema = new Schema(
 
 memberSchema.index({ tenantId: 1, memberNo: 1 }, { unique: true });
 memberSchema.index({ tenantId: 1, endDate: 1 });
+memberSchema.index({ tenantId: 1, createdAt: -1 });
+memberSchema.index({ tenantId: 1, trainerId: 1, createdAt: -1 });
 
 // Relation aliases the frontend reads (member.plan, member.trainer).
 memberSchema.virtual("plan", { ref: "MembershipPlan", localField: "planId", foreignField: "_id", justOne: true });

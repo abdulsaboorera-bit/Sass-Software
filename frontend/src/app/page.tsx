@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useState, useEffect, useRef } from "react";
 import ScrollReveal from "@/components/animations/ScrollReveal";
-import HeroScene3D from "@/components/animations/HeroScene3D";
-import AnimatedPieChart from "@/components/charts/AnimatedPieChart";
-import AnimatedBarChart from "@/components/charts/AnimatedBarChart";
-import AnimatedLineChart from "@/components/charts/AnimatedLineChart";
+const HeroScene3D = dynamic(() => import("@/components/animations/HeroScene3D"), { ssr: false, loading: () => null });
+const AnimatedPieChart = dynamic(() => import("@/components/charts/AnimatedPieChart"), { ssr: false, loading: () => <div className="h-48" /> });
+const AnimatedBarChart = dynamic(() => import("@/components/charts/AnimatedBarChart"), { ssr: false, loading: () => <div className="h-48" /> });
+const AnimatedLineChart = dynamic(() => import("@/components/charts/AnimatedLineChart"), { ssr: false, loading: () => <div className="h-48" /> });
 import AnimatedDonutProgress from "@/components/charts/AnimatedDonutProgress";
 import AnimatedProgressBars from "@/components/ui/AnimatedProgressBars";
 import {

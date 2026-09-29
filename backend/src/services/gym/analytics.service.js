@@ -130,9 +130,9 @@ async function pendingPayments({ tenantId }) {
 }
 
 /** Today's check-in count. */
-async function todayCheckins({ tenantId }) {
-  const settings = await GymSettings.findOne({ tenantId }).select("timezone").lean();
-  const today = dayKeyInTimezone(new Date(), settings?.timezone || "Asia/Karachi");
+async function todayCheckins({ tenantId, timezone }) {
+  const resolvedTimezone = timezone || (await GymSettings.findOne({ tenantId }).select("timezone").lean())?.timezone || "Asia/Karachi";
+  const today = dayKeyInTimezone(new Date(), resolvedTimezone);
   return CheckIn.countDocuments({ tenantId, dayKey: today });
 }
 
@@ -209,7 +209,7 @@ async function dashboard({ tenantId }) {
     pendingPayments({ tenantId }),
     attendance.trends({ tenantId, days: 30 }),
     StaffAttendance.countDocuments({ tenantId, dayKey: today, status: { $in: ["PRESENT", "LATE"] } }),
-    todayCheckins({ tenantId }),
+    todayCheckins({ tenantId, timezone: settings?.timezone || "Asia/Karachi" }),
     upcomingRenewals({ tenantId, days: 7 }),
     inventoryStats({ tenantId }),
     todayExpenses({ tenantId }),

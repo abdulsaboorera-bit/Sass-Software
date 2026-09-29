@@ -20,5 +20,6 @@ const staffAttendanceSchema = new Schema(
 );
 
 staffAttendanceSchema.index({ tenantId: 1, staffId: 1, dayKey: 1 }, { unique: true });
+staffAttendanceSchema.index({ tenantId: 1, dayKey: 1, status: 1 });
 
 module.exports = mongoose.models.StaffAttendance || mongoose.model("StaffAttendance", staffAttendanceSchema);

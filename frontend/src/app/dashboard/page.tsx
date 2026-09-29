@@ -9,10 +9,11 @@ import {
   BarChart3, PieChart, RefreshCw, UserX, Snowflake, Package
 } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, PieChart as RePieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { getCurrentUser } from "@/lib/currentUser";
 
 interface UserData {
   user: { id: string; name: string; role: string };
-  tenant: { id: string; name: string; industry: string; plan: string };
+  tenant: { id: string; slug?: string; name: string; industry: string; plan: string } | null;
 }
 
 interface StatCard {
@@ -185,7 +186,7 @@ export default function DashboardPage() {
   const [renderNow] = useState(() => Date.now());
 
   useEffect(() => {
-    fetch("/api/me").then(r => r.json()).then(data => {
+    getCurrentUser().then(data => {
       if (data.user) {
         setUserData(data.user);
         const ind = data.user.tenant?.industry || "SCHOOL";

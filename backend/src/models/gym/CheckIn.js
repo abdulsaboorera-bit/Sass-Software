@@ -27,5 +27,6 @@ const checkInSchema = new Schema(
 // One check-in per member per calendar day.
 checkInSchema.index({ tenantId: 1, memberId: 1, dayKey: 1 }, { unique: true });
 checkInSchema.index({ tenantId: 1, checkInTime: -1 });
+checkInSchema.index({ tenantId: 1, memberId: 1, checkInTime: -1 });
 
 module.exports = mongoose.models.CheckIn || mongoose.model("CheckIn", checkInSchema);

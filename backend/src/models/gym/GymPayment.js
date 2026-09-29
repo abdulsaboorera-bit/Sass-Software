@@ -27,5 +27,7 @@ const gymPaymentSchema = new Schema(
 );
 
 gymPaymentSchema.index({ tenantId: 1, paidAt: -1 });
+gymPaymentSchema.index({ tenantId: 1, memberId: 1, paidAt: -1 });
+gymPaymentSchema.index({ tenantId: 1, invoiceId: 1, paidAt: -1 });
 
 module.exports = mongoose.models.GymPayment || mongoose.model("GymPayment", gymPaymentSchema);

@@ -48,6 +48,7 @@ const gymInvoiceSchema = new Schema(
 
 gymInvoiceSchema.index({ tenantId: 1, invoiceRef: 1 }, { unique: true });
 gymInvoiceSchema.index({ tenantId: 1, status: 1, dueDate: 1 });
+gymInvoiceSchema.index({ tenantId: 1, memberId: 1, createdAt: -1 });
 
 /** Outstanding balance for this invoice. */
 gymInvoiceSchema.virtual("balance").get(function () {

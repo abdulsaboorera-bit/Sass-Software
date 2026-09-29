@@ -69,11 +69,11 @@ export default function InventoryPage() {
       .then(data => setSummary(data));
   };
 
-  useEffect(() => { fetchItems(); fetchSummary(); }, []);
   useEffect(() => {
-    const t = setTimeout(fetchItems, 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(fetchItems, search ? 300 : 0);
+    return () => clearTimeout(timer);
   }, [search, categoryFilter, showLowStock]);
+  useEffect(() => { fetchSummary(); }, []);
 
   const resetForm = () => { setForm({ name: "", sku: "", category: "SUPPLEMENT", quantity: "", unit: "pcs", minStock: "5", costPrice: "", sellPrice: "", supplierName: "" }); setEditingItem(null); setShowForm(false); setError(""); };
 

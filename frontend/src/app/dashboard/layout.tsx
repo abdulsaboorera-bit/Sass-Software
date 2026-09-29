@@ -9,6 +9,7 @@ import {
   GraduationCap, Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
+import { clearCurrentUserCache, getCurrentUser } from "@/lib/currentUser";
 
 interface UserData {
   user: {
@@ -89,8 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/me")
-      .then((r) => r.json())
+    getCurrentUser()
       .then((data) => {
         if (data.user) {
           // Platform super admin (no tenant) should be in admin panel
@@ -114,6 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
+    clearCurrentUserCache();
     router.push("/login");
     router.refresh();
   };

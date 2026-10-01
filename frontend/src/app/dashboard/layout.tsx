@@ -6,7 +6,8 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, BookOpen, Calendar, DollarSign,
   Settings, ChevronLeft, ChevronRight, Zap, Bell, LogOut,
-  GraduationCap, Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact
+  GraduationCap, Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact,
+  Building2, Home, FileText, Wrench
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
 import SessionKeepAlive from "@/components/auth/SessionKeepAlive";
@@ -86,6 +87,21 @@ const industryNav: Record<string, NavLink[]> = {
     { label: "Customers", href: "/dashboard/car-rental/customers", icon: Users, permission: "customers.view" },
     { label: "Rentals", href: "/dashboard/car-rental/rentals", icon: Calendar, permission: "rentals.view" },
     { label: "Payments", href: "/dashboard/car-rental/payments", icon: DollarSign, permission: "billing.view" },
+    { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
+  ],
+  REAL_ESTATE: [
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Properties", href: "/dashboard/real-estate/properties", icon: Building2, permission: "properties.view" },
+    { label: "Units", href: "/dashboard/real-estate/units", icon: Home, permission: "units.view" },
+    { label: "Tenants", href: "/dashboard/real-estate/tenants", icon: Users, permission: "tenants.view" },
+    { label: "Leases", href: "/dashboard/real-estate/leases", icon: FileText, permission: "leases.view" },
+    { label: "Payments", href: "/dashboard/real-estate/payments", icon: DollarSign, permission: "billing.view" },
+    { label: "Expenses", href: "/dashboard/real-estate/expenses", icon: CreditCard, permission: "expenses.view" },
+    { label: "Maintenance", href: "/dashboard/real-estate/maintenance", icon: Wrench, permission: "maintenance.view" },
+    { label: "Vendors", href: "/dashboard/real-estate/vendors", icon: Contact, permission: "vendors.view" },
+    { label: "Documents", href: "/dashboard/real-estate/documents", icon: BookOpen, permission: "documents.view" },
+    { label: "Tasks", href: "/dashboard/real-estate/tasks", icon: ClipboardList, permission: "tasks.view" },
+    { label: "Reports", href: "/dashboard/real-estate/reports", icon: BarChart3, permission: "analytics.view" },
     { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
 };

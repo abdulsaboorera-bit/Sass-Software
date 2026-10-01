@@ -12,7 +12,7 @@ const tenantSchema = new Schema(
     industry: {
       type: String,
       required: true,
-      enum: ["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP", "CAR_RENTAL"],
+      enum: ["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP", "CAR_RENTAL", "REAL_ESTATE"],
       index: true,
     },
     plan: {

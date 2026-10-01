@@ -6,7 +6,8 @@ import {
   Users, BookOpen, Calendar, DollarSign, TrendingUp, Plus, ArrowRight,
   Stethoscope, Dumbbell, UtensilsCrossed, BookMarked, Clock, AlertCircle,
   CheckCircle, XCircle, ChevronRight, Activity, UserPlus, CreditCard,
-  BarChart3, PieChart, RefreshCw, UserX, Snowflake, Package
+  BarChart3, PieChart, RefreshCw, UserX, Snowflake, Package,
+  Building2, Home, Wrench, FileText
 } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, PieChart as RePieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -198,6 +199,30 @@ const industryConfig: Record<string, {
       { title: "Return and reconcile", desc: "Complete returns, mileage, damage notes, and balances." },
     ],
   },
+  REAL_ESTATE: {
+    title: "Real Estate Dashboard",
+    subtitle: "Overview of your properties, units, leases, rent, and operations.",
+    stats: (d) => [
+      { label: "Properties", value: d.totalProperties ?? "—", icon: Building2, color: "bg-blue-50 text-blue-600", href: "/dashboard/real-estate/properties" },
+      { label: "Occupied Units", value: d.occupiedUnits !== undefined ? `${d.occupiedUnits} / ${d.totalUnits ?? 0}` : "—", icon: Home, color: "bg-purple-50 text-purple-600", href: "/dashboard/real-estate/units" },
+      { label: "Occupancy Rate", value: d.occupancyRate !== undefined ? `${d.occupancyRate}%` : "—", icon: CheckCircle, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/real-estate/units" },
+      { label: "Collected (Month)", value: d.collectedThisMonth ? `PKR ${Number(d.collectedThisMonth).toLocaleString()}` : "—", icon: DollarSign, color: "bg-green-50 text-green-700", href: "/dashboard/real-estate/payments" },
+      { label: "Overdue Rent", value: d.overdueRent ? `PKR ${Number(d.overdueRent).toLocaleString()}` : "PKR 0", icon: AlertCircle, color: "bg-red-50 text-red-600", href: "/dashboard/real-estate/leases" },
+      { label: "Open Maintenance", value: d.openMaintenance ?? "—", icon: Wrench, color: "bg-amber-50 text-amber-600", href: "/dashboard/real-estate/maintenance" },
+    ],
+    actions: [
+      { label: "Add Property", href: "/dashboard/real-estate/properties", icon: Building2, color: "bg-blue-600" },
+      { label: "New Lease", href: "/dashboard/real-estate/leases", icon: FileText, color: "bg-emerald-600" },
+      { label: "Collect Rent", href: "/dashboard/real-estate/payments", icon: DollarSign, color: "bg-purple-600" },
+      { label: "Reports", href: "/dashboard/real-estate/reports", icon: BarChart3, color: "bg-amber-600" },
+    ],
+    gettingStarted: [
+      { title: "Add properties", desc: "Register buildings, addresses, and portfolio details." },
+      { title: "Create units", desc: "Define apartments, shops, or offices with rent amounts." },
+      { title: "Sign leases", desc: "Assign tenants to vacant units with due dates and deposits." },
+      { title: "Track operations", desc: "Record expenses, maintenance, and collect rent on time." },
+    ],
+  },
 };
 
 export default function DashboardPage() {
@@ -284,6 +309,24 @@ export default function DashboardPage() {
           activeRentals: data.activeRentals || 0,
           overdueRentals: data.overdueRentals || 0,
           totalCollected: data.totalCollected || 0,
+        });
+      } else if (industry === "REAL_ESTATE") {
+        const response = await fetch("/api/real-estate/dashboard", { credentials: "include" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Unable to load real estate dashboard");
+        setStats({
+          totalProperties: data.totalProperties || 0,
+          totalUnits: data.totalUnits || 0,
+          occupiedUnits: data.occupiedUnits || 0,
+          vacantUnits: data.vacantUnits || 0,
+          occupancyRate: data.occupancyRate || 0,
+          expectedRent: data.expectedRent || 0,
+          collectedThisMonth: data.collectedThisMonth || 0,
+          expensesThisMonth: data.expensesThisMonth || 0,
+          netIncome: data.netIncome || 0,
+          overdueRent: data.overdueRent || 0,
+          upcomingExpirations: data.upcomingExpirations || 0,
+          openMaintenance: data.openMaintenance || 0,
         });
       } else if (industry === "RESTAURANT") {
         const [ordersRes, tablesRes, menuRes] = await Promise.all([

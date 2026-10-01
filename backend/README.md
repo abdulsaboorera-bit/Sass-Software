@@ -91,6 +91,7 @@ is checked per request; `*` = all, `resource.*` = any action on a resource.
 - **accountant** -> billing and analytics access
 - **inventory-manager** -> inventory and billing-view access
 - **car-rental-manager** -> car, customer, rental, billing, and analytics access
+- **real-estate-manager** -> property, unit, tenant, lease, payment, expense, maintenance, vendor, document, task, and analytics access
 - Custom roles can use `members.view.assigned` for trainer-scoped access.
 
 **Trainer scoping:** member read endpoints run `memberViewScope`. Callers with

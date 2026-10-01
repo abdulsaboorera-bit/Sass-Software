@@ -45,6 +45,7 @@ const clinic = require("./clinic");
 const restaurant = require("./restaurant");
 const bookshop = require("./bookshop");
 const carRental = require("./carRental");
+const realEstate = require("./realEstate");
 
 module.exports = {
   // core
@@ -83,4 +84,5 @@ module.exports = {
   ...restaurant,
   ...bookshop,
   ...carRental,
+  ...realEstate,
 };

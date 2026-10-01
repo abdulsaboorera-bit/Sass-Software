@@ -75,7 +75,7 @@ const caseStudies = [
     ],
   },
   {
-    icon: BookOpen, industry: "Retail", color: "#3b82f6", bg: "#eff6ff",
+    icon: BookOpen, industry: "Retail", color: "#15757b", bg: "#f0f9f9",
     client: "BookWorld Stationery", location: "Faisalabad, Punjab", rating: 5,
     challenge: "Tracking 15,000+ book titles manually, losing money on overordering slow-moving stock, and no customer loyalty program.",
     solution: "Integrated Book Shop Management System with barcode POS, inventory intelligence, supplier management, and loyalty program.",
@@ -101,7 +101,7 @@ const caseStudies = [
 export default function CaseStudiesPage() {
   return (
     <>
-      <section className="relative pt-28 pb-16 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-28 pb-16 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-40" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <ScrollReveal direction="up">
@@ -119,11 +119,11 @@ export default function CaseStudiesPage() {
       </section>
 
       {/* Overview Stats */}
-      <section className="py-12 bg-[#0f172a] border-b border-white/5">
+      <section className="py-12 bg-[#0d3b3f] border-b border-white/5">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: "Avg. Revenue Growth", value: "+42%", color: "#3b82f6" },
+              { label: "Avg. Revenue Growth", value: "+42%", color: "#15757b" },
               { label: "Avg. Error Reduction", value: "-85%", color: "#10b981" },
               { label: "Avg. Time Saved", value: "18h/wk", color: "#8b5cf6" },
               { label: "Client Satisfaction", value: "98%", color: "#f97316" },

@@ -163,7 +163,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-slate-50 items-center justify-center">
+      <div className="flex h-screen bg-[#fbf9f2] items-center justify-center">
         <div className="text-slate-400 text-sm">Loading...</div>
       </div>
     );
@@ -238,11 +238,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-[#fbf9f2]">
       <SessionKeepAlive />
       {/* Desktop Sidebar */}
       <aside
-        className="hidden lg:flex flex-col bg-slate-900 text-white transition-all duration-300 shrink-0"
+        className="hidden lg:flex flex-col bg-[#0d3b3f] text-white transition-all duration-300 shrink-0"
         style={{ width: collapsed ? 72 : 260 }}
       >
         {sidebarContent}
@@ -255,7 +255,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative flex flex-col bg-slate-900 text-white w-64 h-full animate-slide-in-left z-10">
+          <aside className="relative flex flex-col bg-[#0d3b3f] text-white w-64 h-full animate-slide-in-left z-10">
             {sidebarContent}
           </aside>
         </div>

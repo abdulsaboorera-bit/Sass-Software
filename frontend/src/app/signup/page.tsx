@@ -67,7 +67,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left — Branding */}
-      <div className="hidden lg:flex flex-1 bg-slate-900 items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-[#0d3b3f] items-center justify-center p-12">
         <div className="max-w-md text-center">
           <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-6">
             <Zap size={28} fill="white" className="text-white" />

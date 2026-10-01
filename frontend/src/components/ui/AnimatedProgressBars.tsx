@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 
 const bars = [
-  { label: "Client Satisfaction", value: 98, color: "#3b82f6" },
+  { label: "Client Satisfaction", value: 98, color: "#15757b" },
   { label: "System Uptime", value: 99.9, color: "#10b981" },
   { label: "Support Resolution", value: 94, color: "#8b5cf6" },
   { label: "Feature Adoption", value: 87, color: "#f97316" },
-  { label: "On-time Delivery", value: 96, color: "#06b6d4" },
+  { label: "On-time Delivery", value: 96, color: "#4a9ea2" },
 ];
 
 export default function AnimatedProgressBars() {

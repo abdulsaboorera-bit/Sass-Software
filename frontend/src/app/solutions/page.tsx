@@ -74,7 +74,7 @@ export default function SolutionsPage() {
       {/* ══════════════════════════════════════════════════
           HERO
       ══════════════════════════════════════════════════ */}
-      <section className="relative pt-24 sm:pt-28 pb-14 sm:pb-20 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-24 sm:pt-28 pb-14 sm:pb-20 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-30" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <div className="badge badge-blue mx-auto mb-5">Our Solutions</div>
@@ -100,7 +100,7 @@ export default function SolutionsPage() {
       {/* ══════════════════════════════════════════════════
           SOLUTIONS CARDS — Kept on top for easy discovery
       ══════════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 bg-[#0f172a] relative">
+      <section className="py-14 sm:py-20 bg-[#0d3b3f] relative">
         <div className="absolute inset-0 grid-pattern opacity-25" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <SolutionsShowcase solutions={solutions} />
@@ -110,7 +110,7 @@ export default function SolutionsPage() {
       {/* ══════════════════════════════════════════════════
           WHY NEXUSSOFT — Trust signals
       ══════════════════════════════════════════════════ */}
-      <section className="py-20 bg-[#030712] relative overflow-hidden">
+      <section className="py-20 bg-[#0a2f32] relative overflow-hidden">
         <div className="absolute inset-0 grid-pattern opacity-15" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
@@ -133,7 +133,7 @@ export default function SolutionsPage() {
       {/* ══════════════════════════════════════════════════
           HOW IT WORKS — Visual workflow
       ══════════════════════════════════════════════════ */}
-      <section className="py-20 bg-[#0f172a] relative overflow-hidden">
+      <section className="py-20 bg-[#0d3b3f] relative overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-20" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
@@ -152,7 +152,7 @@ export default function SolutionsPage() {
       {/* ══════════════════════════════════════════════════
           FEATURE COMPARISON — What you get
       ══════════════════════════════════════════════════ */}
-      <section className="py-20 bg-[#030712] relative overflow-hidden">
+      <section className="py-20 bg-[#0a2f32] relative overflow-hidden">
         <div className="absolute inset-0 grid-pattern opacity-15" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
@@ -187,7 +187,7 @@ export default function SolutionsPage() {
       {/* ══════════════════════════════════════════════════
           CTA
       ══════════════════════════════════════════════════ */}
-      <section className="py-16 bg-[#030712] relative overflow-hidden">
+      <section className="py-16 bg-[#0a2f32] relative overflow-hidden">
         <div className="absolute inset-0 grid-pattern opacity-20" />
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-blue-400 text-sm font-semibold tracking-wide uppercase mb-4">Need Guidance?</p>

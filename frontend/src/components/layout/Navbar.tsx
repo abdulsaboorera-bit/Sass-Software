@@ -8,7 +8,7 @@ import { Menu, X, ChevronDown, Utensils, Stethoscope, BookOpen, GraduationCap, P
 const solutions = [
   { icon: Utensils,     name: "Restaurant Management", desc: "POS, kitchen display & inventory",  href: "/solutions/restaurant", iconBg: "#fff7ed", iconColor: "#f97316" },
   { icon: Stethoscope,  name: "Clinic Management",     desc: "EMR, appointments & prescriptions", href: "/solutions/clinic",     iconBg: "#f0fdf4", iconColor: "#10b981" },
-  { icon: BookOpen,     name: "Book Shop Management",  desc: "Inventory, POS & barcode scanning",  href: "/solutions/bookshop",   iconBg: "#eff6ff", iconColor: "#3b82f6" },
+  { icon: BookOpen,     name: "Book Shop Management",  desc: "Inventory, POS & barcode scanning",  href: "/solutions/bookshop",   iconBg: "#f0f9f9", iconColor: "#15757b" },
   { icon: GraduationCap,name: "School Management",     desc: "Students, fees & parent portal",     href: "/solutions/school",     iconBg: "#faf5ff", iconColor: "#8b5cf6" },
   { icon: Dumbbell,     name: "Gym Management",        desc: "Members, trainers & billing",        href: "/solutions/gym",        iconBg: "#fef2f2", iconColor: "#ef4444" },
 ];
@@ -70,7 +70,7 @@ export default function Navbar() {
             <Link href="/" className="flex items-center gap-2.5 shrink-0 group" style={{ textDecoration: "none" }}>
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                style={{ background: "linear-gradient(135deg, #2563eb, #3b82f6)", boxShadow: "0 2px 10px rgba(37,99,235,0.4)" }}
+                style={{ background: "linear-gradient(135deg, #15757b, #15757b)", boxShadow: "0 2px 10px rgba(21,117,123,0.4)" }}
               >
                 <Zap size={15} className="text-white" fill="white" />
               </div>
@@ -177,12 +177,12 @@ export default function Navbar() {
                 href="/demo"
                 className="inline-flex items-center gap-2 text-[0.8125rem] font-semibold px-5 py-2 rounded-full no-underline transition-all duration-250"
                 style={{
-                  background: "linear-gradient(135deg, #2563eb, #3b82f6)",
+                  background: "linear-gradient(135deg, #15757b, #15757b)",
                   color: "#ffffff",
-                  boxShadow: "0 1px 8px rgba(37,99,235,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
+                  boxShadow: "0 1px 8px rgba(21,117,123,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 20px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.1)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 8px rgba(37,99,235,0.3), inset 0 1px 0 rgba(255,255,255,0.1)"; e.currentTarget.style.transform = "translateY(0)"; }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 20px rgba(21,117,123,0.5), inset 0 1px 0 rgba(255,255,255,0.1)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 8px rgba(21,117,123,0.3), inset 0 1px 0 rgba(255,255,255,0.1)"; e.currentTarget.style.transform = "translateY(0)"; }}
               >
                 Request Demo
               </Link>
@@ -224,7 +224,7 @@ export default function Navbar() {
                     )}
                   </div>
                 ) : (
-                  <Link key={link.label} href={link.href} className="block py-3 px-3 rounded-xl no-underline text-sm font-medium" style={{ color: isActive(link.href) ? "#60a5fa" : "#d1d5db" }}>
+                  <Link key={link.label} href={link.href} className="block py-3 px-3 rounded-xl no-underline text-sm font-medium" style={{ color: isActive(link.href) ? "#4a9ea2" : "#d1d5db" }}>
                     {link.label}
                   </Link>
                 )

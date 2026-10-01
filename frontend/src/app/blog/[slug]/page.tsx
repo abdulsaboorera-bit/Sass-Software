@@ -157,7 +157,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
 
   if (!article) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
+      <div className="min-h-screen flex items-center justify-center bg-[#0d3b3f]">
         <div className="text-center">
           <h1 className="text-white text-3xl font-bold mb-4">Article Not Found</h1>
           <Link href="/blog" className="btn-primary">← Back to Blog</Link>
@@ -180,7 +180,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
 
   return (
     <>
-      <section className="relative pt-28 pb-12 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-28 pb-12 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-40" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6">
           <Link href="/blog" className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-6 transition-colors">

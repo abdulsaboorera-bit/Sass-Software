@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart3, Users, Calendar, DollarSign, TrendingUp, AlertTriangle } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
+const COLORS = ["#15757b", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#4a9ea2"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 type ReportTab = "membership" | "attendance" | "revenue" | "pnl";
@@ -164,8 +164,8 @@ function RevenueReport({ data }: { data: ReportData }) {
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#15757b" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#15757b" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
@@ -177,7 +177,7 @@ function RevenueReport({ data }: { data: ReportData }) {
               <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
                <Tooltip formatter={(v: unknown) => [`PKR ${Number(v ?? 0).toLocaleString()}`, ""]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
               <Legend />
-              <Area type="monotone" dataKey="Revenue" stroke="#3b82f6" fill="url(#revGrad)" strokeWidth={2} />
+              <Area type="monotone" dataKey="Revenue" stroke="#15757b" fill="url(#revGrad)" strokeWidth={2} />
               <Area type="monotone" dataKey="Expenses" stroke="#ef4444" fill="url(#expGrad)" strokeWidth={2} />
               <Area type="monotone" dataKey="Profit" stroke="#10b981" fill="none" strokeWidth={2} strokeDasharray="5 5" />
             </AreaChart>
@@ -225,7 +225,7 @@ function MembershipReport({ data }: { data: ReportData }) {
                 <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" width={80} />
                 <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
-                <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="value" fill="#15757b" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : <p className="text-sm text-slate-400 text-center py-8">No data</p>}
@@ -267,7 +267,7 @@ function AttendanceReport({ data }: { data: ReportData }) {
                 <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
                 <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
                 <Legend />
-                <Bar dataKey="checkins" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Total" />
+                <Bar dataKey="checkins" fill="#15757b" radius={[4, 4, 0, 0]} name="Total" />
                 <Bar dataKey="unique" fill="#10b981" radius={[4, 4, 0, 0]} name="Unique" />
               </BarChart>
             </ResponsiveContainer>

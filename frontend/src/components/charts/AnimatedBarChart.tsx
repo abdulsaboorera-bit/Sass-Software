@@ -30,8 +30,8 @@ interface Props {
 }
 
 const defaultColors = [
-  "#3b82f6",
-  "#06b6d4",
+  "#15757b",
+  "#4a9ea2",
   "#8b5cf6",
   "#f97316",
   "#10b981",
@@ -116,8 +116,8 @@ export default function AnimatedBarChart({
             {gradient && (
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.6} />
+                  <stop offset="0%" stopColor="#15757b" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#15757b" stopOpacity={0.6} />
                 </linearGradient>
               </defs>
             )}

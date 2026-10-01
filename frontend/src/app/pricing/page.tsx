@@ -44,7 +44,7 @@ const plans = [
     badge: "Most Popular",
     badgeColor: "bg-blue-500",
     gradient: "from-blue-600 to-cyan-500",
-    color: "#3b82f6",
+    color: "#15757b",
     features: [
       { text: "Up to 3 business locations", included: true },
       { text: "Up to 10 user accounts", included: true },
@@ -110,7 +110,7 @@ const comparisonData = [
 ];
 
 const featurePieData = [
-  { name: "Core Features", value: 40, color: "#3b82f6" },
+  { name: "Core Features", value: 40, color: "#15757b" },
   { name: "Analytics", value: 25, color: "#8b5cf6" },
   { name: "Integrations", value: 20, color: "#10b981" },
   { name: "Support", value: 15, color: "#f97316" },
@@ -119,7 +119,7 @@ const featurePieData = [
 export default function PricingPage() {
   return (
     <>
-      <section className="relative pt-28 pb-16 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-28 pb-16 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-40" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <ScrollReveal direction="up">
@@ -136,7 +136,7 @@ export default function PricingPage() {
       </section>
 
       {/* Feature Value Pie Chart */}
-      <section className="py-12 bg-[#0f172a]">
+      <section className="py-12 bg-[#0d3b3f]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <ScrollReveal direction="up">
             <div className="grid md:grid-cols-2 gap-8 items-center">
@@ -164,7 +164,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="py-16 bg-[#0f172a]">
+      <section className="py-16 bg-[#0d3b3f]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-3 gap-6 items-start">
             {plans.map((plan, i) => (
@@ -248,7 +248,7 @@ export default function PricingPage() {
       </section>
 
       {/* Comparison Chart */}
-      <section className="py-16 bg-[#0f172a] border-t border-white/5">
+      <section className="py-16 bg-[#0d3b3f] border-t border-white/5">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <ScrollReveal direction="up">
             <div className="text-center mb-10">
@@ -268,11 +268,11 @@ export default function PricingPage() {
               </div>
             </ScrollReveal>
             <ScrollReveal delay={100} direction="up">
-              <div className="chart-card-dark" style={{ "--chart-color": "#3b82f6" } as React.CSSProperties}>
+              <div className="chart-card-dark" style={{ "--chart-color": "#15757b" } as React.CSSProperties}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#f9fafb", marginBottom: "0.25rem" }}>Professional</h3>
                 <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "1rem" }}>Feature allocation</p>
                 <div style={{ display: "flex", justifyContent: "center" }}>
-                  <AnimatedDonutProgress value={85} color="#3b82f6" size={100} strokeWidth={8} label="85%" sublabel="Value" animationDuration={1200} />
+                  <AnimatedDonutProgress value={85} color="#15757b" size={100} strokeWidth={8} label="85%" sublabel="Value" animationDuration={1200} />
                 </div>
               </div>
             </ScrollReveal>
@@ -311,7 +311,7 @@ export default function PricingPage() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="py-14 bg-[#0f172a]">
+      <section className="py-14 bg-[#0d3b3f]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <ScrollReveal direction="up">
             <MessageSquare size={32} className="text-blue-400 mx-auto mb-4" />

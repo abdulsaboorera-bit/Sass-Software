@@ -33,7 +33,7 @@ interface Props {
 export default function AnimatedLineChart({
   data,
   height = 240,
-  color = "#3b82f6",
+  color = "#15757b",
   color2 = "#8b5cf6",
   showGrid = true,
   showAxis = true,

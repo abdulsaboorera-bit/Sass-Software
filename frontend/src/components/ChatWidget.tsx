@@ -90,7 +90,7 @@ export default function ChatWidget() {
 
       {open && (
         <div className="fixed bottom-24 right-5 z-40 w-80 sm:w-96 h-[28rem] bg-white border border-slate-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 bg-slate-900 text-white">
+          <div className="px-4 py-3 border-b border-slate-200 bg-[#0d3b3f] text-white">
             <p className="text-sm font-bold">Support</p>
             <p className="text-xs text-slate-400">Chat with the NexusSoft team</p>
           </div>

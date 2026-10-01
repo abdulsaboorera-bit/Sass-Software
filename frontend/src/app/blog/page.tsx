@@ -87,7 +87,7 @@ export default function BlogPage() {
 
   return (
     <>
-      <section className="relative pt-28 pb-16 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-28 pb-16 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-40" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <div className="badge badge-blue mx-auto mb-5">Orbitrix ERP Blog</div>
@@ -122,7 +122,7 @@ export default function BlogPage() {
                 <p className="text-slate-600 text-base leading-relaxed mb-6">{featured.excerpt}</p>
                 <Link
                   href={`/blog/${featured.slug}`}
-                  className="inline-flex items-center gap-2 bg-slate-900 text-white font-semibold px-6 py-3 rounded-xl hover:bg-slate-800 transition-all text-sm"
+                  className="inline-flex items-center gap-2 bg-[#0d3b3f] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#0f4c50] transition-all text-sm"
                 >
                   Read Article <ArrowRight size={14} />
                 </Link>
@@ -166,7 +166,7 @@ export default function BlogPage() {
       </section>
 
       {/* Newsletter */}
-      <section className="py-14 bg-[#0f172a]">
+      <section className="py-14 bg-[#0d3b3f]">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl font-extrabold text-white mb-3">Get Articles in Your Inbox</h2>
           <p className="text-slate-400 mb-6">Monthly insights on business automation and software. No spam, ever.</p>

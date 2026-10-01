@@ -9,10 +9,10 @@ import AnimatedDonutProgress from "@/components/charts/AnimatedDonutProgress";
 import AnimatedPieChart from "@/components/charts/AnimatedPieChart";
 
 const values = [
-  { icon: Target, title: "Mission-Driven", desc: "We exist to make enterprise-grade software accessible and affordable for every business in Pakistan, regardless of size.", color: "#3b82f6", bg: "#eff6ff" },
+  { icon: Target, title: "Mission-Driven", desc: "We exist to make enterprise-grade software accessible and affordable for every business in Pakistan, regardless of size.", color: "#15757b", bg: "#f0f9f9" },
   { icon: Eye, title: "Visionary", desc: "We envision a Pakistan where every restaurant, clinic, school, and shop runs on modern digital infrastructure.", color: "#8b5cf6", bg: "#faf5ff" },
   { icon: Heart, title: "Client-Centered", desc: "Your success is our success. We build long-term partnerships, not one-time transactions. Every client gets a dedicated account manager.", color: "#ec4899", bg: "#fdf2f8" },
-  { icon: Zap, title: "Innovation First", desc: "We stay ahead of the curve — constantly updating our platforms with the latest technologies to keep your business competitive.", color: "#06b6d4", bg: "#ecfeff" },
+  { icon: Zap, title: "Innovation First", desc: "We stay ahead of the curve — constantly updating our platforms with the latest technologies to keep your business competitive.", color: "#4a9ea2", bg: "#ecfeff" },
 ];
 
 const milestones = [
@@ -25,7 +25,7 @@ const milestones = [
 ];
 
 const team = [
-  { name: "Bilal Ahmed", role: "CEO & Founder", avatar: "BA", bio: "10+ years in enterprise software. Former engineering lead at a leading tech firm.", color: "#3b82f6" },
+  { name: "Bilal Ahmed", role: "CEO & Founder", avatar: "BA", bio: "10+ years in enterprise software. Former engineering lead at a leading tech firm.", color: "#15757b" },
   { name: "Sana Mirza", role: "CTO", avatar: "SM", bio: "Full-stack architect with expertise in scalable cloud systems and AI integrations.", color: "#8b5cf6" },
   { name: "Usman Iqbal", role: "Head of Product", avatar: "UI", bio: "Product designer turned strategist. Obsessed with user experience and conversion.", color: "#10b981" },
   { name: "Hina Rashid", role: "Head of Client Success", avatar: "HR", bio: "Ensures every client gets maximum value. Manages our onboarding and support teams.", color: "#f97316" },
@@ -44,7 +44,7 @@ const industryData = [
   { name: "Restaurants", value: 35, color: "#f97316" },
   { name: "Clinics", value: 25, color: "#10b981" },
   { name: "Schools", value: 20, color: "#8b5cf6" },
-  { name: "Book Shops", value: 12, color: "#3b82f6" },
+  { name: "Book Shops", value: 12, color: "#15757b" },
   { name: "Gyms", value: 8, color: "#ef4444" },
 ];
 
@@ -61,7 +61,7 @@ export default function AboutPage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative pt-28 pb-20 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-28 pb-20 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-40" />
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-blue-500/8 rounded-full blur-3xl" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
@@ -81,7 +81,7 @@ export default function AboutPage() {
           {/* Stats with donut charts */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
             {[
-              { value: "500+", label: "Clients", num: 500, color: "#3b82f6" },
+              { value: "500+", label: "Clients", num: 500, color: "#15757b" },
               { value: "5+", label: "Years", num: 83, color: "#10b981" },
               { value: "4", label: "Industries", num: 80, color: "#8b5cf6" },
               { value: "98%", label: "Satisfaction", num: 98, color: "#f97316" },
@@ -171,7 +171,7 @@ export default function AboutPage() {
 
           <div className="grid lg:grid-cols-2 gap-8">
             <ScrollReveal direction="left">
-              <div className="chart-card" style={{ "--chart-color": "#3b82f6" } as React.CSSProperties}>
+              <div className="chart-card" style={{ "--chart-color": "#15757b" } as React.CSSProperties}>
                 <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#111827", marginBottom: "0.25rem" }}>Client Growth</h3>
                 <p style={{ fontSize: "0.8rem", color: "#6b7280", marginBottom: "1rem" }}>Active businesses per year</p>
                 <AnimatedBarChart
@@ -203,7 +203,7 @@ export default function AboutPage() {
       </section>
 
       {/* Timeline */}
-      <section className="py-20 bg-[#0f172a] relative">
+      <section className="py-20 bg-[#0d3b3f] relative">
         <div className="absolute inset-0 dot-pattern opacity-30" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6">
           <ScrollReveal direction="up">
@@ -217,11 +217,11 @@ export default function AboutPage() {
 
           {/* Growth line chart for timeline */}
           <ScrollReveal direction="up">
-            <div className="chart-card-dark mb-12" style={{ "--chart-color": "#3b82f6" } as React.CSSProperties}>
+            <div className="chart-card-dark mb-12" style={{ "--chart-color": "#15757b" } as React.CSSProperties}>
               <AnimatedLineChart
                 data={milestones.map(m => ({ name: m.year, value: m.value }))}
                 height={180}
-                color="#3b82f6"
+                color="#15757b"
                 animationDuration={1500}
               />
             </div>
@@ -303,7 +303,7 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 bg-[#0f172a]">
+      <section className="py-16 bg-[#0d3b3f]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <ScrollReveal direction="up">
             <h2 className="text-3xl font-extrabold text-white mb-4">Ready to Work With Us?</h2>

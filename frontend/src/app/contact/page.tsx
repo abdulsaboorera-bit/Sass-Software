@@ -129,7 +129,7 @@ export default function ContactPage() {
       {/* ══════════════════════════════════════════════════
           HERO
       ══════════════════════════════════════════════════ */}
-      <section className="relative pt-24 sm:pt-28 pb-14 sm:pb-20 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-24 sm:pt-28 pb-14 sm:pb-20 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-30" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <ScrollReveal direction="up">
@@ -567,7 +567,7 @@ export default function ContactPage() {
       {/* ══════════════════════════════════════════════════
           CTA
       ══════════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 bg-[#030712] relative overflow-hidden">
+      <section className="py-14 sm:py-20 bg-[#0a2f32] relative overflow-hidden">
         <div className="absolute inset-0 grid-pattern opacity-20" />
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <ScrollReveal direction="up">

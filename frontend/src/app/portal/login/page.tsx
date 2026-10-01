@@ -35,7 +35,7 @@ export default function MemberPortalLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#fbf9f2] dark:bg-slate-950 px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2 justify-center mb-6">
           <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white">

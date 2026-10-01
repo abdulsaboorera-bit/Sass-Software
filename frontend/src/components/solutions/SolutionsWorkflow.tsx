@@ -4,11 +4,11 @@ import ScrollReveal from "@/components/animations/ScrollReveal";
 import { Phone, Code, TestTube, Cloud, GraduationCap, Headphones } from "lucide-react";
 
 const steps = [
-  { icon: Phone, n: "01", title: "Discovery Call", desc: "We map your workflows, pain points, and goals in a free 30-minute call with a domain specialist.", color: "#3b82f6" },
+  { icon: Phone, n: "01", title: "Discovery Call", desc: "We map your workflows, pain points, and goals in a free 30-minute call with a domain specialist.", color: "#15757b" },
   { icon: Code, n: "02", title: "Custom Build", desc: "Our engineers develop your system around your exact processes — nothing generic, nothing wasted.", color: "#8b5cf6" },
   { icon: TestTube, n: "03", title: "Test & Refine", desc: "Rigorous QA testing, then your team reviews and we refine until every detail is right.", color: "#10b981" },
   { icon: Cloud, n: "04", title: "Deploy to Cloud", desc: "Your system goes live on enterprise-grade infrastructure with zero downtime during migration.", color: "#f97316" },
-  { icon: GraduationCap, n: "05", title: "Team Training", desc: "Live training sessions — on-site or remote — so every staff member is confident from day one.", color: "#06b6d4" },
+  { icon: GraduationCap, n: "05", title: "Team Training", desc: "Live training sessions — on-site or remote — so every staff member is confident from day one.", color: "#4a9ea2" },
   { icon: Headphones, n: "06", title: "Ongoing Support", desc: "Monthly updates, a dedicated account manager, and 24/7 expert support included in every plan.", color: "#ef4444" },
 ];
 

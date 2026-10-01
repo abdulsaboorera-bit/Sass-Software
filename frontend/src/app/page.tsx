@@ -59,7 +59,7 @@ function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
 function DashboardMockup() {
   return (
     <div className="relative select-none">
-      <div className="absolute inset-0 rounded-2xl animate-glow-pulse" style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(37,99,235,0.2) 0%, transparent 70%)", filter: "blur(32px)", transform: "scale(1.15)" }} />
+      <div className="absolute inset-0 rounded-2xl animate-glow-pulse" style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(21,117,123,0.2) 0%, transparent 70%)", filter: "blur(32px)", transform: "scale(1.15)" }} />
 
       <div className="relative dashboard-mockup" style={{ boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)" }}>
         <div className="mockup-title-bar">
@@ -74,7 +74,7 @@ function DashboardMockup() {
           <div className="grid grid-cols-3 gap-2.5">
             {[
               { label: "Revenue",   value: "₨2.4M",  delta: "+12.5%", deltaColor: "#4ade80" },
-              { label: "Orders",    value: "1,247",   delta: "+8.3%",  deltaColor: "#60a5fa" },
+              { label: "Orders",    value: "1,247",   delta: "+8.3%",  deltaColor: "#4a9ea2" },
               { label: "Customers", value: "892",     delta: "+5.1%",  deltaColor: "#a78bfa" },
             ].map(k => (
               <div key={k.label} className="mockup-kpi">
@@ -89,7 +89,7 @@ function DashboardMockup() {
           <div className="mockup-kpi">
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: "#c9d1d9" }}>Revenue Trend</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#60a5fa" }}>+18.2% vs last week</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#4a9ea2" }}>+18.2% vs last week</span>
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 56 }}>
               {[28, 55, 38, 72, 50, 88, 65].map((h, i) => (
@@ -98,7 +98,7 @@ function DashboardMockup() {
                   className="mockup-chart-bar flex-1"
                   style={{
                     height: `${h}%`,
-                    background: i === 5 ? "linear-gradient(180deg,#3b82f6,#1d4ed8)" : "rgba(255,255,255,0.07)",
+                    background: i === 5 ? "linear-gradient(180deg,#15757b,#0f4c50)" : "rgba(255,255,255,0.07)",
                     borderRadius: "3px 3px 0 0",
                   }}
                 />
@@ -117,7 +117,7 @@ function DashboardMockup() {
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               {[
                 { icon: "🍕", msg: "Order #1089 — completed",           time: "2m ago",  dot: "#4ade80" },
-                { icon: "👤", msg: "New member registered",              time: "5m ago",  dot: "#60a5fa" },
+                { icon: "👤", msg: "New member registered",              time: "5m ago",  dot: "#4a9ea2" },
                 { icon: "⚠️", msg: "Low stock: Chicken breast (3 left)", time: "11m ago", dot: "#fbbf24" },
               ].map((a, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
@@ -151,12 +151,12 @@ function DashboardMockup() {
         style={{ animationDelay: "1.8s", background: "rgba(13,17,23,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 10, background: "rgba(37,99,235,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <TrendingUp size={14} style={{ color: "#60a5fa" }} />
+          <div style={{ width: 30, height: 30, borderRadius: 10, background: "rgba(21,117,123,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <TrendingUp size={14} style={{ color: "#4a9ea2" }} />
           </div>
           <div>
             <p style={{ fontSize: 10, fontWeight: 700, color: "#f0f6fc" }}>Revenue up 32%</p>
-            <p style={{ fontSize: 9, color: "#60a5fa" }}>Compared to last month</p>
+            <p style={{ fontSize: 9, color: "#4a9ea2" }}>Compared to last month</p>
           </div>
         </div>
       </div>
@@ -193,7 +193,7 @@ const solutions = [
   {
     icon: Stethoscope, title: "Clinic Management",
     tag: "Healthcare", tagStyle: "badge-green-light",
-    accent: "#10b981", accentEnd: "#06b6d4", accentLight: "#f0fdf4", iconBg: "#f0fdf4",
+    accent: "#10b981", accentEnd: "#4a9ea2", accentLight: "#f0fdf4", iconBg: "#f0fdf4",
     desc: "Digitise your entire clinic — from patient registration to discharge. EMR, appointments, prescriptions and billing in one connected platform.",
     features: ["Electronic Medical Records", "Online Appointment Booking", "Digital Prescriptions", "Doctor Scheduling", "Automated Billing"],
     chartData: [
@@ -215,7 +215,7 @@ const solutions = [
   {
     icon: BookOpen, title: "Book Shop Management",
     tag: "Retail", tagStyle: "badge-blue-light",
-    accent: "#3b82f6", accentEnd: "#8b5cf6", accentLight: "#eff6ff", iconBg: "#eff6ff",
+    accent: "#15757b", accentEnd: "#8b5cf6", accentLight: "#f0f9f9", iconBg: "#f0f9f9",
     desc: "End-to-end retail management for book stores and stationery shops with barcode scanning, supplier management and loyalty programs.",
     features: ["Barcode POS Checkout", "ISBN Inventory Tracking", "Supplier & Purchase Orders", "Sales Analytics", "Customer Loyalty"],
     chartData: [
@@ -281,22 +281,22 @@ const solutions = [
 ];
 
 const features = [
-  { icon: Cloud,      title: "Cloud Access",        desc: "Work from any browser, anywhere. No installation, no server costs.", color: "#3b82f6", stat: "99.9%" },
+  { icon: Cloud,      title: "Cloud Access",        desc: "Work from any browser, anywhere. No installation, no server costs.", color: "#15757b", stat: "99.9%" },
   { icon: Shield,     title: "Bank-Grade Security",  desc: "AES-256 encryption at rest, TLS in transit, and automated hourly backups.", color: "#10b981", stat: "256-bit" },
   { icon: Users,      title: "Unlimited Users",      desc: "Add your entire team with granular, role-based permissions per department.", color: "#8b5cf6", stat: "∞" },
   { icon: BarChart3,  title: "Real-Time Analytics",  desc: "Live dashboards and one-click reports exportable to Excel or PDF.", color: "#f97316", stat: "Real-time" },
-  { icon: Smartphone, title: "Mobile-Optimised",     desc: "The same great experience on phones and tablets — always responsive.", color: "#06b6d4", stat: "100%" },
+  { icon: Smartphone, title: "Mobile-Optimised",     desc: "The same great experience on phones and tablets — always responsive.", color: "#4a9ea2", stat: "100%" },
   { icon: Lock,       title: "Access Controls",      desc: "Define precisely what each role can view, create, edit or delete.", color: "#ec4899", stat: "RBAC" },
   { icon: RefreshCw,  title: "Auto Backups",         desc: "Your data is captured hourly and stored across multiple secure locations.", color: "#f59e0b", stat: "Hourly" },
   { icon: Puzzle,     title: "API & Integrations",   desc: "Connect to payment gateways, SMS services, and custom third-party APIs.", color: "#64748b", stat: "REST+" },
 ];
 
 const steps = [
-  { n: "01", icon: MessageSquare, title: "Discovery Call",     desc: "We map your workflows, pain points and goals in a free 30-minute call with a domain specialist.", color: "#3b82f6" },
+  { n: "01", icon: MessageSquare, title: "Discovery Call",     desc: "We map your workflows, pain points and goals in a free 30-minute call with a domain specialist.", color: "#15757b" },
   { n: "02", icon: LayoutDashboard,title: "Custom Build",     desc: "Our engineers develop your system around your exact processes — nothing generic, nothing wasted.", color: "#8b5cf6" },
   { n: "03", icon: Puzzle,        title: "Test & Refine",      desc: "Rigorous QA testing, then your team reviews and we refine until every detail is right.", color: "#10b981" },
   { n: "04", icon: Globe,         title: "Deploy to Cloud",    desc: "Your system goes live on enterprise-grade infrastructure with zero downtime during migration.", color: "#f97316" },
-  { n: "05", icon: GraduationCap, title: "Team Training",      desc: "Live training sessions — on-site in Lahore or remote — so every staff member is confident.", color: "#06b6d4" },
+  { n: "05", icon: GraduationCap, title: "Team Training",      desc: "Live training sessions — on-site in Lahore or remote — so every staff member is confident.", color: "#4a9ea2" },
   { n: "06", icon: HeadphonesIcon,title: "Ongoing Support",    desc: "Monthly updates, a dedicated account manager, and 24/7 expert support included in every plan.", color: "#ef4444" },
 ];
 
@@ -334,7 +334,7 @@ const testimonials = [
 ];
 
 const stats = [
-  { value: 500, suffix: "+", label: "Businesses Served",    sub: "Across Pakistan",   icon: Users,        color: "#3b82f6" },
+  { value: 500, suffix: "+", label: "Businesses Served",    sub: "Across Pakistan",   icon: Users,        color: "#15757b" },
   { value: 98,  suffix: "%", label: "Client Satisfaction",  sub: "Based on surveys",   icon: Award,        color: "#10b981" },
   { value: 5,   suffix: "",  label: "Industry Solutions",   sub: "Purpose-built each", icon: Package,      color: "#8b5cf6" },
   { value: 24,  suffix: "/7",label: "Expert Support",       sub: "Zero hold times",    icon: HeadphonesIcon,color: "#f97316" },
@@ -344,7 +344,7 @@ const industryPieData = [
   { name: "Restaurants", value: 35, color: "#f97316" },
   { name: "Clinics", value: 25, color: "#10b981" },
   { name: "Schools", value: 20, color: "#8b5cf6" },
-  { name: "Book Shops", value: 12, color: "#3b82f6" },
+  { name: "Book Shops", value: 12, color: "#15757b" },
   { name: "Gyms", value: 8, color: "#ef4444" },
 ];
 
@@ -383,16 +383,16 @@ export default function HomePage() {
       ══════════════════════════════════════════════════ */}
       <section className="hero-section flex flex-col items-center justify-center pt-24 sm:pt-28 pb-8 sm:pb-12" style={{ minHeight: "100svh" }}>
         <div className="hero-grid" />
-        <div className="hero-glow animate-glow-pulse hidden sm:block" style={{ width: 650, height: 650, left: "50%", top: "20%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 70%)" }} />
-        <div className="hero-glow animate-glow-pulse hidden md:block" style={{ width: 500, height: 500, right: "15%", bottom: "20%", background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", animationDelay: "1.5s" }} />
+        <div className="hero-glow animate-glow-pulse hidden sm:block" style={{ width: 650, height: 650, left: "50%", top: "20%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(21,117,123,0.14) 0%, transparent 70%)" }} />
+        <div className="hero-glow animate-glow-pulse hidden md:block" style={{ width: 500, height: 500, right: "15%", bottom: "20%", background: "radial-gradient(circle, rgba(74,158,162,0.08) 0%, transparent 70%)", animationDelay: "1.5s" }} />
         <HeroScene3D />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 animate-fade-up delay-0 mx-auto"
-            style={{ background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.15)", backdropFilter: "blur(8px)" }}>
+            style={{ background: "rgba(21,117,123,0.08)", border: "1px solid rgba(21,117,123,0.15)", backdropFilter: "blur(8px)" }}>
             <span className="live-dot" />
-            <span style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#60a5fa" }}>
+            <span style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#4a9ea2" }}>
               Pakistan&apos;s #1 Business Software
             </span>
           </div>
@@ -466,9 +466,9 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════════
           STATS — Dark glass cards with mini charts
       ══════════════════════════════════════════════════ */}
-      <section style={{ background: "#030712", position: "relative", overflow: "hidden" }}>
+      <section style={{ background: "#0a2f32", position: "relative", overflow: "hidden" }}>
         <div className="hero-grid" style={{ opacity: 0.5 }} />
-        <div className="hero-glow" style={{ width: 800, height: 400, left: "50%", top: "50%", transform: "translate(-50%, -50%)", background: "radial-gradient(ellipse, rgba(37,99,235,0.08) 0%, transparent 70%)" }} />
+        <div className="hero-glow" style={{ width: 800, height: 400, left: "50%", top: "50%", transform: "translate(-50%, -50%)", background: "radial-gradient(ellipse, rgba(21,117,123,0.08) 0%, transparent 70%)" }} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -497,7 +497,7 @@ export default function HomePage() {
       ══════════════════════════════════════════════════ */}
       <section className="py-12 sm:py-20 lg:py-[7rem]" style={{ background: "#0f172a", position: "relative", overflow: "hidden" }}>
         <div className="absolute inset-0 dot-pattern" style={{ opacity: 0.3 }} />
-        <div className="hero-glow" style={{ width: 600, height: 600, right: "10%", top: "20%", background: "radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%)" }} />
+        <div className="hero-glow" style={{ width: 600, height: 600, right: "10%", top: "20%", background: "radial-gradient(circle, rgba(21,117,123,0.1) 0%, transparent 70%)" }} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <ScrollReveal direction="up">
@@ -516,7 +516,7 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Revenue Growth — Large Area Chart */}
             <ScrollReveal delay={0} direction="up" className="lg:col-span-2">
-              <div className="chart-card-dark" style={{ "--chart-color": "#3b82f6" } as React.CSSProperties}>
+              <div className="chart-card-dark" style={{ "--chart-color": "#15757b" } as React.CSSProperties}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: "1.5rem" }}>
                   <div>
                     <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#f9fafb", marginBottom: "0.25rem", textAlign: "center" }}>Platform Revenue Growth</h3>
@@ -530,14 +530,14 @@ export default function HomePage() {
                 <AnimatedLineChart
                   data={revenueBarData}
                   height={280}
-                  color="#3b82f6"
+                  color="#15757b"
                   color2="#8b5cf6"
                   name2="Last Year"
                   animationDuration={1500}
                 />
                 <div className="chart-legend">
                   <div className="chart-legend-item">
-                    <div className="chart-legend-dot" style={{ background: "#3b82f6" }} />
+                    <div className="chart-legend-dot" style={{ background: "#15757b" }} />
                     <span>This Year</span>
                   </div>
                   <div className="chart-legend-item">
@@ -574,7 +574,7 @@ export default function HomePage() {
                 <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#f9fafb", marginBottom: "1.5rem" }}>Performance Metrics</h3>
                 <div style={{ display: "flex", justifyContent: "space-around" }}>
                   <div style={{ textAlign: "center" }}>
-                    <AnimatedDonutProgress value={98} color="#3b82f6" size={90} strokeWidth={8} label="98%" sublabel="Uptime" />
+                    <AnimatedDonutProgress value={98} color="#15757b" size={90} strokeWidth={8} label="98%" sublabel="Uptime" />
                   </div>
                   <div style={{ textAlign: "center" }}>
                     <AnimatedDonutProgress value={92} color="#10b981" size={90} strokeWidth={8} label="92%" sublabel="Satisfaction" />
@@ -614,7 +614,7 @@ export default function HomePage() {
                 <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "0.5rem" }}>Active users by plan</p>
                 <AnimatedPieChart
                   data={[
-                    { name: "Professional", value: 45, color: "#3b82f6" },
+                    { name: "Professional", value: 45, color: "#15757b" },
                     { name: "Enterprise", value: 30, color: "#8b5cf6" },
                     { name: "Starter", value: 25, color: "#64748b" },
                   ]}
@@ -718,7 +718,7 @@ export default function HomePage() {
             {/* CTA tile */}
             <ScrollReveal delay={5 * 80} direction="up">
               <div className="h-full" style={{
-                background: "linear-gradient(135deg, #030712 0%, #0f172a 50%, #030712 100%)",
+                background: "linear-gradient(135deg, #0a2f32 0%, #0f172a 50%, #0a2f32 100%)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 20,
                 padding: "2rem",
@@ -729,12 +729,12 @@ export default function HomePage() {
                 position: "relative",
                 overflow: "hidden",
               }}>
-                <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 30% 80%, rgba(37,99,235,0.15) 0%, transparent 60%)", pointerEvents: "none" }} />
-                <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.1) 0%, transparent 50%)", pointerEvents: "none" }} />
+                <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 30% 80%, rgba(21,117,123,0.15) 0%, transparent 60%)", pointerEvents: "none" }} />
+                <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 20%, rgba(74,158,162,0.1) 0%, transparent 50%)", pointerEvents: "none" }} />
 
                 <div style={{ position: "relative" }}>
-                  <div className="icon-box-lg" style={{ background: "rgba(37,99,235,0.15)", marginBottom: "1.5rem" }}>
-                    <Sparkles size={24} style={{ color: "#60a5fa" }} />
+                  <div className="icon-box-lg" style={{ background: "rgba(21,117,123,0.15)", marginBottom: "1.5rem" }}>
+                    <Sparkles size={24} style={{ color: "#4a9ea2" }} />
                   </div>
                   <h3 style={{ fontSize: "1.125rem", fontWeight: 700, color: "#f9fafb", marginBottom: "0.65rem" }}>
                     Need a Custom Solution?
@@ -743,7 +743,7 @@ export default function HomePage() {
                     We build bespoke software for any industry. Tell us your requirements and we&apos;ll design it from scratch.
                   </p>
                 </div>
-                <Link href="/contact" className="arrow-link" style={{ fontSize: "0.875rem", color: "#60a5fa", marginTop: "1.75rem", position: "relative" }}>
+                <Link href="/contact" className="arrow-link" style={{ fontSize: "0.875rem", color: "#4a9ea2", marginTop: "1.75rem", position: "relative" }}>
                   Discuss your project <ArrowRight size={14} />
                 </Link>
               </div>
@@ -772,10 +772,10 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Revenue Growth */}
             <ScrollReveal direction="up">
-              <div className="chart-card text-center" style={{ "--chart-color": "#3b82f6" } as React.CSSProperties}>
+              <div className="chart-card text-center" style={{ "--chart-color": "#15757b" } as React.CSSProperties}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: "1.5rem" }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <TrendingUp size={20} style={{ color: "#3b82f6" }} />
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0f9f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <TrendingUp size={20} style={{ color: "#15757b" }} />
                   </div>
                   <div>
                     <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#111827" }}>Average Revenue Growth</h3>
@@ -785,14 +785,14 @@ export default function HomePage() {
                 <AnimatedLineChart
                   data={growthLineData}
                   height={220}
-                  color="#3b82f6"
+                  color="#15757b"
                   color2="#10b981"
                   name2="Net Profit"
                   animationDuration={1400}
                 />
                 <div className="chart-legend" style={{ justifyContent: "center" }}>
                   <div className="chart-legend-item">
-                    <div className="chart-legend-dot" style={{ background: "#3b82f6" }} />
+                    <div className="chart-legend-dot" style={{ background: "#15757b" }} />
                     <span>Revenue</span>
                   </div>
                   <div className="chart-legend-item">
@@ -1008,7 +1008,7 @@ export default function HomePage() {
             {[
               { icon: Utensils,      label: "Restaurants & Cafes", c: "#f97316" },
               { icon: Stethoscope,   label: "Clinics & Hospitals",  c: "#10b981" },
-              { icon: BookOpen,      label: "Book Shops",            c: "#3b82f6" },
+              { icon: BookOpen,      label: "Book Shops",            c: "#15757b" },
               { icon: GraduationCap, label: "Schools & Academies",   c: "#8b5cf6" },
               { icon: Dumbbell,      label: "Gyms & Fitness",        c: "#ef4444" },
             ].map(ind => (
@@ -1024,12 +1024,12 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════════
           CTA — Animated mesh gradient
       ══════════════════════════════════════════════════ */}
-      <section className="py-12 sm:py-20 lg:py-[7rem]" style={{ background: "#030712", position: "relative", overflow: "hidden" }}>
+      <section className="py-12 sm:py-20 lg:py-[7rem]" style={{ background: "#0a2f32", position: "relative", overflow: "hidden" }}>
         <div className="hero-grid" style={{ opacity: 0.5 }} />
         <div className="cta-mesh" />
 
-        <div className="animate-float" style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(37,99,235,0.08)", filter: "blur(60px)", top: "10%", left: "10%", animationDelay: "0s" }} />
-        <div className="animate-float" style={{ position: "absolute", width: 160, height: 160, borderRadius: "50%", background: "rgba(139,92,246,0.06)", filter: "blur(50px)", bottom: "15%", right: "15%", animationDelay: "2s" }} />
+        <div className="animate-float" style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(21,117,123,0.08)", filter: "blur(60px)", top: "10%", left: "10%", animationDelay: "0s" }} />
+        <div className="animate-float" style={{ position: "absolute", width: 160, height: 160, borderRadius: "50%", background: "rgba(74,158,162,0.06)", filter: "blur(50px)", bottom: "15%", right: "15%", animationDelay: "2s" }} />
 
         <ScrollReveal direction="up">
           <div className="relative max-w-2xl mx-auto px-4 sm:px-6 text-center">

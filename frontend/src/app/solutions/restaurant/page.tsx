@@ -69,7 +69,7 @@ export default function RestaurantPage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative pt-24 sm:pt-28 pb-14 sm:pb-20 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-24 sm:pt-28 pb-14 sm:pb-20 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-30" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col lg:flex-row items-center gap-12">
@@ -165,7 +165,7 @@ export default function RestaurantPage() {
       </section>
 
       {/* Modules */}
-      <section className="py-14 sm:py-20 lg:py-24 bg-[#0f172a] relative">
+      <section className="py-14 sm:py-20 lg:py-24 bg-[#0d3b3f] relative">
         <div className="absolute inset-0 grid-pattern opacity-25" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
@@ -217,7 +217,7 @@ export default function RestaurantPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-14 sm:py-20 bg-[#030712] relative overflow-hidden">
+      <section className="py-14 sm:py-20 bg-[#0a2f32] relative overflow-hidden">
         <div className="absolute inset-0 grid-pattern opacity-20" />
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-blue-400 text-sm font-semibold tracking-wide uppercase mb-4">Get Started Today</p>

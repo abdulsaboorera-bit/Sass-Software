@@ -30,7 +30,7 @@ export default function DemoPage() {
 
   return (
     <>
-      <section className="relative pt-28 pb-10 bg-[#0f172a] overflow-hidden">
+      <section className="relative pt-28 pb-10 bg-[#0d3b3f] overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-40" />
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-blue-500/8 rounded-full blur-3xl" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">

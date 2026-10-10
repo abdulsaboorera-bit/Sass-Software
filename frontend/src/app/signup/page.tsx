@@ -13,6 +13,7 @@ const industries = [
   { value: "BOOKSHOP", label: "Book Shop" },
   { value: "CAR_RENTAL", label: "Car Rental / Showroom" },
   { value: "REAL_ESTATE", label: "Real Estate Management" },
+  { value: "SALON", label: "Salon / Beauty Studio" },
 ];
 
 export default function SignupPage() {

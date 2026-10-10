@@ -46,7 +46,7 @@ const listRoles = asyncHandler(async (req, res) => {
 const createTenantSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2),
-  industry: z.enum(["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP", "CAR_RENTAL", "REAL_ESTATE"]),
+  industry: z.enum(["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP", "CAR_RENTAL", "REAL_ESTATE", "SALON"]),
   plan: z.enum(["TRIAL", "STARTER", "PROFESSIONAL", "ENTERPRISE"]).optional(),
 });
 
@@ -54,7 +54,7 @@ const updateTenantSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(2).optional(),
   slug: z.string().min(2).optional(),
-  industry: z.enum(["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP", "CAR_RENTAL", "REAL_ESTATE"]).optional(),
+  industry: z.enum(["SCHOOL", "CLINIC", "RESTAURANT", "GYM", "BOOKSHOP", "CAR_RENTAL", "REAL_ESTATE", "SALON"]).optional(),
   plan: z.enum(["TRIAL", "STARTER", "PROFESSIONAL", "ENTERPRISE"]).optional(),
   status: z.enum(["ACTIVE", "TRIAL", "SUSPENDED", "CANCELLED"]).optional(),
   trialEndsAt: z.string().optional(),

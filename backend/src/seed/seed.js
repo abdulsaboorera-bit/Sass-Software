@@ -13,6 +13,9 @@ const {
   MembershipPlan, Trainer, Member, Session, CheckIn, GymInvoice, GymPayment,
   GymInventoryItem, StockMovement, Expense, ClassBooking, GymSettings, TrainerSchedule,
   Staff,
+  SalonCustomer, SalonServiceCategory, SalonService, SalonStaff, SalonAppointment,
+  SalonProduct, SalonStockMovement, SalonInvoice, SalonPayment, SalonExpense,
+  SalonSalary, SalonAttendance, SalonSettings,
 } = require("../models");
 const { hashPassword } = require("../utils/password");
 const { SYSTEM_ROLES } = require("./roles");
@@ -30,6 +33,7 @@ const INDUSTRIES = [
   { slug: "flame-grill-house", name: "Flame & Grill House", industry: "RESTAURANT" },
   { slug: "iron-pulse-gym", name: "Iron Pulse Gym", industry: "GYM" },
   { slug: "chapter-one-books", name: "Chapter One Books", industry: "BOOKSHOP" },
+  { slug: "glow-beauty-lounge", name: "Glow Beauty Lounge", industry: "SALON" },
 ];
 
 async function upsertUser({ email, name, passwordHash, tenantId }) {
@@ -240,6 +244,166 @@ async function seedGym(tenant, ownerUser) {
   console.log("  seeded inventory, expenses, settings, schedules, class bookings");
 }
 
+async function seedSalon(tenant, ownerUser) {
+  if (await SalonCustomer.countDocuments({ tenantId: tenant._id })) {
+    console.log("  salon demo data already present, skipping");
+    return;
+  }
+
+  const now = new Date();
+
+  const cats = await SalonServiceCategory.create([
+    { tenantId: tenant._id, name: "Hair", sortOrder: 1 },
+    { tenantId: tenant._id, name: "Skin & Facial", sortOrder: 2 },
+    { tenantId: tenant._id, name: "Nails", sortOrder: 3 },
+    { tenantId: tenant._id, name: "Bridal & Makeup", sortOrder: 4 },
+  ]);
+  const cat = Object.fromEntries(cats.map((c) => [c.name, c._id]));
+
+  const services = await SalonService.create([
+    { tenantId: tenant._id, categoryId: cat["Hair"], name: "Haircut & Styling", duration: 30, price: 1500, costPrice: 200, commissionRate: 15 },
+    { tenantId: tenant._id, categoryId: cat["Hair"], name: "Hair Color", duration: 90, price: 6000, costPrice: 1800, commissionRate: 20 },
+    { tenantId: tenant._id, categoryId: cat["Hair"], name: "Keratin Treatment", duration: 120, price: 12000, costPrice: 3500, commissionRate: 20 },
+    { tenantId: tenant._id, categoryId: cat["Skin & Facial"], name: "Classic Facial", duration: 60, price: 3500, costPrice: 800, commissionRate: 15 },
+    { tenantId: tenant._id, categoryId: cat["Skin & Facial"], name: "Hydra Facial", duration: 75, price: 7000, costPrice: 1500, commissionRate: 18 },
+    { tenantId: tenant._id, categoryId: cat["Nails"], name: "Manicure & Pedicure", duration: 60, price: 3000, costPrice: 600, commissionRate: 15 },
+    { tenantId: tenant._id, categoryId: cat["Bridal & Makeup"], name: "Bridal Makeup", duration: 150, price: 25000, costPrice: 4000, commissionRate: 25 },
+    { tenantId: tenant._id, categoryId: cat["Bridal & Makeup"], name: "Party Makeup", duration: 60, price: 6000, costPrice: 1000, commissionRate: 20 },
+  ]);
+
+  const staff = await SalonStaff.create([
+    { tenantId: tenant._id, name: "Ayesha Malik", phone: "03001110001", role: "Senior Stylist", specialization: "Hair & Color", salary: 60000, commissionRate: 20, joinDate: addDays(now, -400) },
+    { tenantId: tenant._id, name: "Hina Shah", phone: "03001110002", role: "Beautician", specialization: "Skin & Facial", salary: 50000, commissionRate: 18, joinDate: addDays(now, -300) },
+    { tenantId: tenant._id, name: "Sara Ahmed", phone: "03001110003", role: "Nail Technician", specialization: "Nails", salary: 40000, commissionRate: 15, joinDate: addDays(now, -200) },
+    { tenantId: tenant._id, name: "Bilal Khan", phone: "03001110004", role: "Salon Manager", specialization: "Operations", salary: 75000, commissionRate: 0, joinDate: addDays(now, -500) },
+    { tenantId: tenant._id, name: "Nadia Iqbal", phone: "03001110005", role: "Receptionist", specialization: "Front Desk", salary: 35000, commissionRate: 0, joinDate: addDays(now, -120) },
+  ]);
+  const ayesha = staff[0];
+  const hina = staff[1];
+
+  const customers = await SalonCustomer.create([
+    { tenantId: tenant._id, customerNo: "C-0001", name: "Maryam Javed", phone: "03211234501", gender: "FEMALE", loyaltyPoints: 120 },
+    { tenantId: tenant._id, customerNo: "C-0002", name: "Areeba Khan", phone: "03211234502", gender: "FEMALE", loyaltyPoints: 60 },
+    { tenantId: tenant._id, customerNo: "C-0003", name: "Sana Tariq", phone: "03211234503", gender: "FEMALE" },
+    { tenantId: tenant._id, customerNo: "C-0004", name: "Hira Noor", phone: "03211234504", gender: "FEMALE" },
+    { tenantId: tenant._id, customerNo: "C-0005", name: "Usman Sheikh", phone: "03211234505", gender: "MALE" },
+  ]);
+
+  const svc = (name) => services.find((s) => s.name === name);
+  const buildAppt = (customer, member, names, date, startTime, status) => {
+    const chosen = names.map(svc);
+    const amount = chosen.reduce((sum, s) => sum + s.price, 0);
+    const duration = chosen.reduce((sum, s) => sum + s.duration, 0);
+    return {
+      tenantId: tenant._id,
+      customerId: customer._id,
+      staffId: member ? member._id : null,
+      serviceIds: chosen.map((c) => c._id),
+      date,
+      startTime,
+      duration,
+      amount,
+      discount: 0,
+      total: amount,
+      status,
+    };
+  };
+
+  const past1 = addDays(now, -6);
+  past1.setHours(11, 0, 0, 0);
+  const past2 = addDays(now, -2);
+  past2.setHours(15, 0, 0, 0);
+  const today = new Date(now);
+  today.setHours(14, 0, 0, 0);
+  const tomorrow = addDays(now, 1);
+  tomorrow.setHours(12, 0, 0, 0);
+
+  await SalonAppointment.create([
+    buildAppt(customers[0], ayesha, ["Haircut & Styling", "Hair Color"], past1, "11:00", "COMPLETED"),
+    buildAppt(customers[1], hina, ["Hydra Facial"], past2, "15:00", "COMPLETED"),
+    buildAppt(customers[2], ayesha, ["Keratin Treatment"], today, "14:00", "SCHEDULED"),
+    buildAppt(customers[3], hina, ["Classic Facial", "Manicure & Pedicure"], tomorrow, "12:00", "CONFIRMED"),
+  ]);
+
+  // Billing: one settled invoice, one open invoice.
+  const inv1 = await SalonInvoice.create({
+    tenantId: tenant._id, customerId: customers[0]._id, invoiceRef: invoiceRef("SAL"), type: "SERVICE",
+    amount: 7500, paidAmount: 7500, status: "PAID", dueDate: past1, paidAt: past1,
+  });
+  await SalonPayment.create({ tenantId: tenant._id, customerId: customers[0]._id, invoiceId: inv1._id, amount: 7500, method: "CARD", type: "SERVICE", paidAt: past1 });
+  await SalonInvoice.create({
+    tenantId: tenant._id, customerId: customers[1]._id, invoiceRef: invoiceRef("SAL"), type: "SERVICE",
+    amount: 7000, paidAmount: 0, status: "PENDING", dueDate: addDays(now, 7),
+  });
+
+  // Retail products + stock movements.
+  const products = await SalonProduct.create([
+    { tenantId: tenant._id, name: "Argan Hair Serum", sku: "HC-001", category: "HAIRCARE", quantity: 30, unit: "pcs", costPrice: 900, sellPrice: 1500, minStock: 8, supplierName: "Beauty Depot" },
+    { tenantId: tenant._id, name: "Vitamin C Face Serum", sku: "SK-001", category: "SKINCARE", quantity: 20, unit: "pcs", costPrice: 1200, sellPrice: 2200, minStock: 6, supplierName: "GlowSupply" },
+    { tenantId: tenant._id, name: "Matte Lipstick", sku: "CS-001", category: "COSMETICS", quantity: 4, unit: "pcs", costPrice: 400, sellPrice: 850, minStock: 10, supplierName: "GlowSupply" },
+    { tenantId: tenant._id, name: "Nail Polish Set", sku: "CS-002", category: "COSMETICS", quantity: 15, unit: "sets", costPrice: 700, sellPrice: 1300, minStock: 5, supplierName: "Beauty Depot" },
+    { tenantId: tenant._id, name: "Disposable Towels", sku: "CN-001", category: "CONSUMABLE", quantity: 200, unit: "pcs", costPrice: 20, sellPrice: 0, minStock: 50, supplierName: "CleanPro" },
+  ]);
+  await SalonStockMovement.create([
+    { tenantId: tenant._id, itemId: products[0]._id, type: "PURCHASE", quantity: 40, unitPrice: 900, totalCost: 36000, reference: "PO-001", createdBy: ownerUser._id },
+    { tenantId: tenant._id, itemId: products[0]._id, type: "SALE", quantity: 10, unitPrice: 1500, totalCost: 15000 },
+    { tenantId: tenant._id, itemId: products[2]._id, type: "PURCHASE", quantity: 12, unitPrice: 400, totalCost: 4800, reference: "PO-002" },
+  ]);
+
+  // Operating expenses.
+  const lastMonth = new Date(now);
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  await SalonExpense.create([
+    { tenantId: tenant._id, category: "RENT", amount: 120000, date: now, description: "Salon monthly rent", paymentMethod: "BANK_TRANSFER" },
+    { tenantId: tenant._id, category: "UTILITIES", amount: 22000, date: now, description: "Electricity & water", paymentMethod: "CASH" },
+    { tenantId: tenant._id, category: "SUPPLIES", amount: 35000, date: now, description: "Hair & skin products restock", paymentMethod: "CARD" },
+    { tenantId: tenant._id, category: "MARKETING", amount: 15000, date: now, description: "Instagram ads", paymentMethod: "ONLINE" },
+    { tenantId: tenant._id, category: "RENT", amount: 120000, date: lastMonth, description: "Salon monthly rent", paymentMethod: "BANK_TRANSFER" },
+  ]);
+
+  // Current-month payroll.
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  for (const member of staff) {
+    await SalonSalary.create({ tenantId: tenant._id, staffId: member._id, month, baseSalary: member.salary, commission: 0, netPay: member.salary, status: "PENDING" });
+  }
+
+  // Today's staff attendance.
+  const dk = dayKey(now);
+  await SalonAttendance.create(
+    staff.map((member) => ({ tenantId: tenant._id, staffId: member._id, date: now, dayKey: dk, status: "PRESENT", checkIn: "09:00" }))
+  );
+
+  // Salon settings (singleton).
+  await SalonSettings.findOneAndUpdate(
+    { tenantId: tenant._id },
+    {
+      tenantId: tenant._id,
+      salonName: "Glow Beauty Lounge",
+      tagline: "Where beauty meets luxury",
+      address: "45 Gulberg Main Boulevard, Lahore",
+      phone: "04211234567",
+      email: "hello@glowbeauty.com",
+      timezone: "Asia/Karachi",
+      currency: "PKR",
+      defaultCommissionRate: 15,
+      defaultAppointmentDuration: 30,
+      operatingHours: [
+        { day: 1, open: "10:00", close: "21:00", isClosed: false },
+        { day: 2, open: "10:00", close: "21:00", isClosed: false },
+        { day: 3, open: "10:00", close: "21:00", isClosed: false },
+        { day: 4, open: "10:00", close: "21:00", isClosed: false },
+        { day: 5, open: "10:00", close: "22:00", isClosed: false },
+        { day: 6, open: "10:00", close: "22:00", isClosed: false },
+        { day: 0, open: "12:00", close: "20:00", isClosed: false },
+      ],
+    },
+    { upsert: true, new: true }
+  );
+
+  console.log("  seeded service catalogue, 5 staff, 5 customers, appointments, invoices");
+  console.log("  seeded products, expenses, payroll, staff attendance, settings");
+}
+
 async function main() {
   await connectDB();
   console.log("Seeding NexusSoft (MongoDB)...");
@@ -272,6 +436,7 @@ async function main() {
     console.log(`  owner login: ${ind.industry.toLowerCase()}@demo.com / ${env.demoPassword}`);
 
     if (ind.industry === "GYM") await seedGym(tenant, ownerUser);
+    if (ind.industry === "SALON") await seedSalon(tenant, ownerUser);
   }
 
   console.log("\nSeeding complete.");

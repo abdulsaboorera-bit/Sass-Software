@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar, DollarSign,
   Settings, ChevronLeft, ChevronRight, Zap, Bell, LogOut,
   GraduationCap, Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact,
-  Building2, Home, FileText, Wrench
+  Building2, Home, FileText, Wrench, Scissors
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
 import SessionKeepAlive from "@/components/auth/SessionKeepAlive";
@@ -103,6 +103,19 @@ const industryNav: Record<string, NavLink[]> = {
     { label: "Tasks", href: "/dashboard/real-estate/tasks", icon: ClipboardList, permission: "tasks.view" },
     { label: "Reports", href: "/dashboard/real-estate/reports", icon: BarChart3, permission: "analytics.view" },
     { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
+  ],
+  SALON: [
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Customers", href: "/dashboard/salon/customers", icon: Users, permission: "customers.view" },
+    { label: "Appointments", href: "/dashboard/salon/appointments", icon: Calendar, permission: "appointments.view" },
+    { label: "Services", href: "/dashboard/salon/services", icon: Scissors, permission: "services.view" },
+    { label: "Staff", href: "/dashboard/salon/staff", icon: Contact, permission: "staff.view" },
+    { label: "Salaries", href: "/dashboard/salon/salaries", icon: DollarSign, permission: "salaries.view" },
+    { label: "Products", href: "/dashboard/salon/products", icon: Package, permission: "inventory.view" },
+    { label: "Expenses", href: "/dashboard/salon/expenses", icon: CreditCard, permission: "expenses.view" },
+    { label: "Billing", href: "/dashboard/salon/billing", icon: FileText, permission: "billing.view" },
+    { label: "Reports", href: "/dashboard/salon/reports", icon: BarChart3, permission: "analytics.view" },
+    { label: "Settings", href: "/dashboard/salon/settings", icon: Settings, permission: "settings.view" },
   ],
 };
 

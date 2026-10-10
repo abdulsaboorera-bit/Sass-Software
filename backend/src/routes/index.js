@@ -14,6 +14,7 @@ const restaurantRoutes = require("./restaurant");
 const bookshopRoutes = require("./bookshop");
 const carRentalRoutes = require("./carRental.routes");
 const realEstateRoutes = require("./realEstate.routes");
+const salonRoutes = require("./salon");
 
 const router = express.Router();
 
@@ -31,5 +32,6 @@ router.use("/restaurant", restaurantRoutes);
 router.use("/bookshop", bookshopRoutes);
 router.use("/car-rental", carRentalRoutes);
 router.use("/real-estate", realEstateRoutes);
+router.use("/salon", salonRoutes);
 
 module.exports = router;

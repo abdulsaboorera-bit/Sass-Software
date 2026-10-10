@@ -7,7 +7,7 @@ import {
   Stethoscope, Dumbbell, UtensilsCrossed, BookMarked, Clock, AlertCircle,
   CheckCircle, XCircle, ChevronRight, Activity, UserPlus, CreditCard,
   BarChart3, PieChart, RefreshCw, UserX, Snowflake, Package,
-  Building2, Home, Wrench, FileText
+  Building2, Home, Wrench, FileText, Contact
 } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, PieChart as RePieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -50,8 +50,15 @@ interface GymData {
   pending?: { count?: number };
 }
 
-const CHART_COLORS = ["#15757b", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+interface SalonTopService { serviceId: string; name?: string; price?: number; bookings: number }
+interface SalonTopStaff { staffId: string; name?: string; role?: string; services: number; revenue: number }
+interface SalonData {
+  revenue?: { series?: RevenuePoint[] };
+  topServices?: SalonTopService[];
+  topStaff?: SalonTopStaff[];
+}
 
+const CHART_COLORS = ["#15757b", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const industryConfig: Record<string, {
@@ -223,12 +230,39 @@ const industryConfig: Record<string, {
       { title: "Track operations", desc: "Record expenses, maintenance, and collect rent on time." },
     ],
   },
+  SALON: {
+    title: "Salon Dashboard",
+    subtitle: "Appointments, services, staff, and revenue at a glance.",
+    stats: (d) => [
+      { label: "Customers", value: d.customers ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/salon/customers" },
+      { label: "Today's Appointments", value: d.todayAppointments ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/salon/appointments" },
+      { label: "Revenue This Month", value: d.monthlyRevenue ? `PKR ${Number(d.monthlyRevenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/salon/billing" },
+      { label: "Pending Payments", value: d.pendingPayments ?? "—", icon: CreditCard, color: "bg-red-50 text-red-600", href: "/dashboard/salon/billing" },
+      { label: "Staff", value: d.staff ?? "—", icon: Contact, color: "bg-purple-50 text-purple-600", href: "/dashboard/salon/staff" },
+      { label: "Low Stock Items", value: d.lowStock ?? "—", icon: AlertCircle, color: "bg-orange-50 text-orange-600", href: "/dashboard/salon/products" },
+    ],
+    actions: [
+      { label: "New Appointment", href: "/dashboard/salon/appointments", icon: Calendar, color: "bg-blue-600" },
+      { label: "Add Customer", href: "/dashboard/salon/customers", icon: Users, color: "bg-emerald-600" },
+      { label: "Billing", href: "/dashboard/salon/billing", icon: DollarSign, color: "bg-amber-600" },
+      { label: "Staff", href: "/dashboard/salon/staff", icon: Contact, color: "bg-purple-600" },
+      { label: "Expenses", href: "/dashboard/salon/expenses", icon: CreditCard, color: "bg-rose-600" },
+      { label: "Reports", href: "/dashboard/salon/reports", icon: BarChart3, color: "bg-cyan-600" },
+    ],
+    gettingStarted: [
+      { title: "Add your services", desc: "Build a service catalogue with prices and durations." },
+      { title: "Register your team", desc: "Add stylists and staff with salaries and commissions." },
+      { title: "Book appointments", desc: "Schedule customers across your staff and services." },
+      { title: "Track billing & payroll", desc: "Record payments, expenses, and monthly salaries." },
+    ],
+  },
 };
 
 export default function DashboardPage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [stats, setStats] = useState<Record<string, number>>({});
   const [gymData, setGymData] = useState<GymData | null>(null);
+  const [salonData, setSalonData] = useState<SalonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [renderNow] = useState(() => Date.now());
 
@@ -328,6 +362,19 @@ export default function DashboardPage() {
           upcomingExpirations: data.upcomingExpirations || 0,
           openMaintenance: data.openMaintenance || 0,
         });
+      } else if (industry === "SALON") {
+        const response = await fetch("/api/salon/analytics/dashboard", { credentials: "include" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Unable to load salon dashboard");
+        setSalonData(data);
+        setStats({
+          customers: data.customers?.total || 0,
+          todayAppointments: data.appointments?.today || 0,
+          monthlyRevenue: data.revenue?.currentMonth || 0,
+          pendingPayments: data.pendingPayments?.count || 0,
+          staff: data.staffCount || 0,
+          lowStock: data.inventory?.lowStockCount || 0,
+        });
       } else if (industry === "RESTAURANT") {
         const [ordersRes, tablesRes, menuRes] = await Promise.all([
           fetch("/api/restaurant/orders?limit=1&status=OPEN"),
@@ -395,14 +442,22 @@ export default function DashboardPage() {
     ].filter(d => d.value > 0);
   }, [gymData]);
 
+  const salonRevenueChartData = useMemo(() => {
+    if (!salonData?.revenue?.series) return [];
+    return salonData.revenue.series.map((s: RevenuePoint) => ({
+      name: MONTH_NAMES[s.month - 1] || `${s.month}`,
+      revenue: s.total,
+    }));
+  }, [salonData]);
+
   if (loading) {
     return <div className="flex items-center justify-center py-20 text-slate-400 text-sm">Loading...</div>;
   }
-
   const industry = userData?.tenant?.industry || "SCHOOL";
   const config = industryConfig[industry] || industryConfig.SCHOOL;
   const statCards = config.stats(stats);
   const isGym = industry === "GYM";
+  const isSalon = industry === "SALON";
   const expiringSoonMembers = gymData?.dashboard?.expiringSoonMembers ?? [];
 
   return (
@@ -506,9 +561,51 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Salon Charts Row */}
+      {isSalon && salonData && (
+        <div className="grid lg:grid-cols-3 gap-4 mb-8">
+          {salonRevenueChartData.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-900 text-sm">Revenue Trend</h3>
+                <span className="text-xs text-slate-400">Last 6 months</span>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={salonRevenueChartData}>
+                  <defs>
+                    <linearGradient id="salonRevGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#15757b" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#15757b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                  <Tooltip formatter={(v: unknown) => [`PKR ${Number(v ?? 0).toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                  <Area type="monotone" dataKey="revenue" stroke="#15757b" fill="url(#salonRevGrad)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {(salonData.topServices?.length || 0) > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5">
+              <h3 className="font-bold text-slate-900 text-sm mb-4">Top Services (month)</h3>
+              <div className="space-y-3">
+                {salonData.topServices!.slice(0, 5).map((s) => (
+                  <div key={s.serviceId} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600 truncate">{s.name || "Service"}</span>
+                    <span className="font-semibold text-slate-900">{s.bookings} booked</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Quick Actions */}
-      <div className={`grid gap-4 mb-8 ${isGym ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
-        {config.actions.map((action) => (
+      <div className={`grid gap-4 mb-8 ${isGym ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>        {config.actions.map((action) => (
           <Link
             key={action.label}
             href={action.href}

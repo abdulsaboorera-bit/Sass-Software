@@ -25,6 +25,16 @@ const REAL_ESTATE_MANAGER = [
   "documents.view", "documents.create", "documents.edit", "tasks.view", "tasks.create", "tasks.edit",
   "analytics.view",
 ];
+const SALON_MANAGER = [
+  "customers.*", "services.*", "appointments.*", "staff.*", "staff-attendance.*",
+  "salaries.*", "inventory.*", "expenses.*", "billing.*", "analytics.view", "settings.*",
+];
+const SALON_RECEPTIONIST = [
+  "customers.view", "customers.create", "customers.edit",
+  "services.view", "appointments.view", "appointments.create", "appointments.edit",
+  "staff.view", "staff-attendance.view", "staff-attendance.create",
+  "inventory.view", "billing.view", "billing.create", "analytics.view",
+];
 
 const SYSTEM_ROLES = [
   { name: "Owner", slug: "owner", permissions: OWNER, isSystem: true },
@@ -34,6 +44,8 @@ const SYSTEM_ROLES = [
   { name: "Inventory Manager", slug: "inventory-manager", permissions: INVENTORY_MANAGER, isSystem: true },
   { name: "Car Rental Manager", slug: "car-rental-manager", permissions: CAR_RENTAL_MANAGER, isSystem: true },
   { name: "Real Estate Manager", slug: "real-estate-manager", permissions: REAL_ESTATE_MANAGER, isSystem: true },
+  { name: "Salon Manager", slug: "salon-manager", permissions: SALON_MANAGER, isSystem: true },
+  { name: "Salon Receptionist", slug: "salon-receptionist", permissions: SALON_RECEPTIONIST, isSystem: true },
 ];
 
-module.exports = { SYSTEM_ROLES, OWNER, RECEPTIONIST, TRAINER, ACCOUNTANT, INVENTORY_MANAGER, CAR_RENTAL_MANAGER, REAL_ESTATE_MANAGER };
+module.exports = { SYSTEM_ROLES, OWNER, RECEPTIONIST, TRAINER, ACCOUNTANT, INVENTORY_MANAGER, CAR_RENTAL_MANAGER, REAL_ESTATE_MANAGER, SALON_MANAGER, SALON_RECEPTIONIST };

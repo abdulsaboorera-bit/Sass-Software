@@ -35,6 +35,19 @@ const SALON_RECEPTIONIST = [
   "staff.view", "staff-attendance.view", "staff-attendance.create",
   "inventory.view", "billing.view", "billing.create", "analytics.view",
 ];
+const RESTAURANT_MANAGER = [
+  "customers.*", "staff.*", "tables.*", "orders.*", "menu.*", "reservations.*",
+  "inventory.*", "expenses.*", "salaries.*", "billing.*", "staff-attendance.*",
+  "analytics.view", "settings.*",
+];
+const RESTAURANT_STAFF = [
+  "customers.view", "customers.create",
+  "tables.view", "menu.view",
+  "orders.view", "orders.create", "orders.edit",
+  "reservations.view", "reservations.create",
+  "staff.view", "staff-attendance.view", "staff-attendance.create",
+  "inventory.view", "billing.view", "analytics.view",
+];
 
 const SYSTEM_ROLES = [
   { name: "Owner", slug: "owner", permissions: OWNER, isSystem: true },
@@ -46,6 +59,8 @@ const SYSTEM_ROLES = [
   { name: "Real Estate Manager", slug: "real-estate-manager", permissions: REAL_ESTATE_MANAGER, isSystem: true },
   { name: "Salon Manager", slug: "salon-manager", permissions: SALON_MANAGER, isSystem: true },
   { name: "Salon Receptionist", slug: "salon-receptionist", permissions: SALON_RECEPTIONIST, isSystem: true },
+  { name: "Restaurant Manager", slug: "restaurant-manager", permissions: RESTAURANT_MANAGER, isSystem: true },
+  { name: "Restaurant Staff", slug: "restaurant-staff", permissions: RESTAURANT_STAFF, isSystem: true },
 ];
 
-module.exports = { SYSTEM_ROLES, OWNER, RECEPTIONIST, TRAINER, ACCOUNTANT, INVENTORY_MANAGER, CAR_RENTAL_MANAGER, REAL_ESTATE_MANAGER, SALON_MANAGER, SALON_RECEPTIONIST };
+module.exports = { SYSTEM_ROLES, OWNER, RECEPTIONIST, TRAINER, ACCOUNTANT, INVENTORY_MANAGER, CAR_RENTAL_MANAGER, REAL_ESTATE_MANAGER, SALON_MANAGER, SALON_RECEPTIONIST, RESTAURANT_MANAGER, RESTAURANT_STAFF };

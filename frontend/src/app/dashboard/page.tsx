@@ -376,20 +376,16 @@ export default function DashboardPage() {
           lowStock: data.inventory?.lowStockCount || 0,
         });
       } else if (industry === "RESTAURANT") {
-        const [ordersRes, tablesRes, menuRes] = await Promise.all([
-          fetch("/api/restaurant/orders?limit=1&status=OPEN"),
-          fetch("/api/restaurant/tables"),
-          fetch("/api/restaurant/menu"),
-        ]);
-        const [orders, tables, menu] = await Promise.all([
-          ordersRes.json(), tablesRes.json(), menuRes.json(),
-        ]);
-        const availTables = tables.tables?.filter((t: { status: string }) => t.status === "AVAILABLE").length || 0;
-        const totalItems = menu.categories?.reduce((sum: number, c: { menuItems: { length: number } }) => sum + (c.menuItems?.length || 0), 0) || 0;
+        const dashboard = await fetch("/api/restaurant/analytics/dashboard").then((r) => r.json());
+        const data = dashboard.data || {};
         setStats({
-          openOrders: orders.pagination?.total || 0,
-          tables: availTables,
-          menuItems: totalItems,
+          openOrders: data.orders?.open || 0,
+          tables: data.tables?.available || 0,
+          menuItems: data.menuCount || 0,
+          monthlyRevenue: data.revenue?.currentMonth || 0,
+          lowStock: data.inventory?.lowStockCount || 0,
+          customers: data.customers?.total || 0,
+          staff: data.staffCount || 0,
         });
       } else if (industry === "BOOKSHOP") {
         const [booksRes, salesRes, customersRes] = await Promise.all([

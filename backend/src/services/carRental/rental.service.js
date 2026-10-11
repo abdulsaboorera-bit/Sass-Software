@@ -108,9 +108,11 @@ async function createRental({ tenantId, data }) {
 }
 
 async function getRental({ tenantId, id }) {
-  const rental = await Rental.findOne({ _id: id, tenantId }).populate("carId").populate("customerId").lean({ virtuals: true });
+  const [rental, payments] = await Promise.all([
+    Rental.findOne({ _id: id, tenantId }).populate("carId").populate("customerId").lean({ virtuals: true }),
+    RentalPayment.find({ tenantId, rentalId: id }).sort({ paidAt: -1 }).lean(),
+  ]);
   if (!rental) throw ApiError.notFound("Rental not found");
-  const payments = await RentalPayment.find({ tenantId, rentalId: id }).sort({ paidAt: -1 }).lean();
   return { ...rental, payments };
 }
 

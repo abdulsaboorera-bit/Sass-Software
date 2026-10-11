@@ -75,17 +75,20 @@ async function orderStats({ tenantId, timezone }) {
 async function revenue({ tenantId, months = 6 }) {
   const now = new Date();
   const from = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
-  const rows = await RestaurantPayment.aggregate([
-    { $match: { tenantId: oid(tenantId), paidAt: { $gte: from } } },
-    { $group: { _id: { year: { $year: "$paidAt" }, month: { $month: "$paidAt" } }, total: { $sum: "$amount" }, count: { $sum: 1 } } },
-    { $sort: { "_id.year": 1, "_id.month": 1 } },
-    { $project: { _id: 0, year: "$_id.year", month: "$_id.month", total: 1, count: 1 } },
-  ]);
   const { start, end } = monthRange(now.getFullYear(), now.getMonth() + 1);
-  const [thisMonth] = await RestaurantPayment.aggregate([
-    { $match: { tenantId: oid(tenantId), paidAt: { $gte: start, $lte: end } } },
-    { $group: { _id: null, total: { $sum: "$amount" } } },
+  const [rows, monthRows] = await Promise.all([
+    RestaurantPayment.aggregate([
+      { $match: { tenantId: oid(tenantId), paidAt: { $gte: from } } },
+      { $group: { _id: { year: { $year: "$paidAt" }, month: { $month: "$paidAt" } }, total: { $sum: "$amount" }, count: { $sum: 1 } } },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+      { $project: { _id: 0, year: "$_id.year", month: "$_id.month", total: 1, count: 1 } },
+    ]),
+    RestaurantPayment.aggregate([
+      { $match: { tenantId: oid(tenantId), paidAt: { $gte: start, $lte: end } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
   ]);
+  const thisMonth = monthRows[0];
   return { series: rows, currentMonth: thisMonth ? thisMonth.total : 0 };
 }
 

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
 import SessionKeepAlive from "@/components/auth/SessionKeepAlive";
+import "@/lib/apiCache";
 import { clearCurrentUserCache, getCurrentUser } from "@/lib/currentUser";
 
 interface UserData {

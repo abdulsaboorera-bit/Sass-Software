@@ -1,3 +1,5 @@
+import "./apiCache";
+
 export interface CurrentUserResponse {
   user?: {
     user: { id: string; name: string; email: string; role: string };

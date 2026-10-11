@@ -6,6 +6,16 @@ const BACKEND_URL = process.env.BACKEND_URL || (process.env.VERCEL ? "https://sa
 
 const nextConfig: NextConfig = {
   turbopack: { root: process.cwd() },
+  compress: true,
+  poweredByHeader: false,
+  // Tree-shake icon/chart barrels so a page only ships the modules it imports.
+  experimental: {
+    optimizePackageImports: ["lucide-react", "recharts"],
+  },
+  // Drop console noise from the production bundle (keep errors/warnings).
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+  },
   async rewrites() {
     return [{
       source: "/api/:path*",

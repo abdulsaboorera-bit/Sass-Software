@@ -29,7 +29,14 @@ const me = asyncHandler(async (req, res) => {
   let permissions = [];
 
   if (u.tenantId) {
-    const t = await Tenant.findById(u.tenantId).lean();
+    // Tenant doc and membership are both keyed off u.tenantId — fetch in parallel.
+    const [t, membership] = await Promise.all([
+      Tenant.findById(u.tenantId).lean(),
+      TenantUser.findOne({ tenantId: u.tenantId, userId: u._id, isActive: true })
+        .populate("role")
+        .populate("branchId", "name")
+        .lean(),
+    ]);
     if (t) {
       tenant = {
         id: String(t._id),
@@ -43,10 +50,6 @@ const me = asyncHandler(async (req, res) => {
         currency: t.currency,
       };
     }
-    const membership = await TenantUser.findOne({ tenantId: u.tenantId, userId: u._id, isActive: true })
-      .populate("role")
-      .populate("branchId", "name")
-      .lean();
     if (membership && membership.role) {
       tenantRole = { name: membership.role.name, slug: membership.role.slug, branch: membership.branchId || null };
       permissions = membership.role.permissions || [];

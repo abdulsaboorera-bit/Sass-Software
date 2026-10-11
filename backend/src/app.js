@@ -3,6 +3,7 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const compression = require("compression");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
@@ -17,6 +18,9 @@ const app = express();
 
 app.set("trust proxy", 1);
 app.use(helmet());
+// Gzip/Brotli the JSON payloads — list and analytics responses shrink by ~70-85%,
+// which is the single biggest win for time-to-first-paint on slow connections.
+app.use(compression());
 app.use(
   cors({
     origin(origin, cb) {

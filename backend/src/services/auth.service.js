@@ -43,10 +43,11 @@ async function login({ email, password, userAgent, ipAddress }) {
   if (tenant && !ACTIVE_TENANT_STATUSES.includes(tenant.status))
     throw ApiError.forbidden("Your organization's account has been suspended.");
 
-  user.lastLoginAt = new Date();
-  await user.save();
-
-  const tokens = await issueTokens(user, tenant, { userAgent, ipAddress });
+  // Stamp the login and mint tokens concurrently — they don't depend on each other.
+  const [, tokens] = await Promise.all([
+    User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } }),
+    issueTokens(user, tenant, { userAgent, ipAddress }),
+  ]);
 
   return {
     tokens,
@@ -121,9 +122,11 @@ async function signup({ email, password, name, phone, businessName, industry, us
   const existing = await User.findOne({ email: normalizedEmail });
   if (existing) throw ApiError.conflict("An account with this email already exists");
 
-  const passwordHash = await hashPassword(password);
+  // Hashing (the expensive bit) and slug allocation are independent — run together.
+  const [passwordHash, slug] = await Promise.all([hashPassword(password), uniqueTenantSlug(businessName)]);
+
   const tenant = await Tenant.create({
-    slug: await uniqueTenantSlug(businessName),
+    slug,
     name: businessName,
     industry,
     plan: "TRIAL",
@@ -134,8 +137,11 @@ async function signup({ email, password, name, phone, businessName, industry, us
   let user;
   try {
     const owner = SYSTEM_ROLES.find((item) => item.slug === "owner");
-    role = await TenantRole.create({ tenantId: tenant._id, ...owner });
-    user = await User.create({ email: normalizedEmail, passwordHash, name, phone, role: "SUPER_ADMIN", status: "ACTIVE", tenantId: tenant._id });
+    // Role and user are independent of each other; only the membership needs both.
+    [role, user] = await Promise.all([
+      TenantRole.create({ tenantId: tenant._id, ...owner }),
+      User.create({ email: normalizedEmail, passwordHash, name, phone, role: "SUPER_ADMIN", status: "ACTIVE", tenantId: tenant._id }),
+    ]);
     await TenantUser.create({ tenantId: tenant._id, userId: user._id, roleId: role._id });
   } catch (error) {
     if (user) await User.deleteOne({ _id: user._id });

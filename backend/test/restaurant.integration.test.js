@@ -12,20 +12,16 @@ const {
   RestaurantTable,
   MenuCategory,
   MenuItem,
-  Order,
-  OrderItem,
   RestaurantInventoryItem,
-  RestaurantStockMovement,
   RestaurantInvoice,
   RestaurantPayment,
-  RestaurantExpense,
-  Reservation,
+  RestaurantSalary,
 } = require("../src/models");
 const orderService = require("../src/services/restaurant/order.service");
-const inventory = require("../src/services/restaurant/inventory.service");
 const payroll = require("../src/services/restaurant/payroll.service");
 const analytics = require("../src/services/restaurant/analytics.service");
 const billing = require("../src/services/restaurant/billing.service");
+const reservationCtrl = require("../src/controllers/restaurant/reservation.controller");
 
 const TEST_URI = "mongodb://127.0.0.1:27017/nexus_saas_restaurant_test";
 let databaseAvailable = false;
@@ -36,6 +32,22 @@ let waiter;
 let table;
 let item;
 let ingredient;
+
+/** Minimal Express response stub that records the JSON payload. */
+function mockRes() {
+  return {
+    statusCode: 200,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    },
+  };
+}
 
 before(async () => {
   try {
@@ -54,8 +66,8 @@ before(async () => {
       name: "Chicken Fillet",
       quantity: 50,
       unit: "pcs",
-      costPrice: 150,
-      lowStockThreshold: 10,
+      costPerUnit: 150,
+      minStock: 10,
     });
 
     const cat = await MenuCategory.create({ tenantId: tenant._id, name: "Main" });
@@ -81,7 +93,7 @@ after(async () => {
 
 test("order creation, stock deduction and checkout frees table and records payment", async (t) => {
   if (!databaseAvailable) return t.skip("MongoDB is unavailable");
-  const order = await orderService.create({
+  const { order } = await orderService.create({
     tenantId: tenant._id,
     data: {
       tableId: table._id,
@@ -94,17 +106,17 @@ test("order creation, stock deduction and checkout frees table and records payme
   assert.equal(order.orderNumber, 1);
   assert.equal(order.total, 2000);
 
-  // Stock deducted on checkout path? Let us check: our service deducts inventory
-  // during checkout when recipe exists; ensure it did.
+  // Checkout settles payment and deducts recipe ingredients from inventory.
+  const checkout = await orderService.checkout({ tenantId: tenant._id, id: order.id, data: { method: "CASH" } });
+  assert.equal(checkout.order.paymentStatus, "PAID");
+  assert.equal(checkout.order.status, "COMPLETED");
+
   const ing = await RestaurantInventoryItem.findById(ingredient._id);
   assert.equal(ing.quantity, 50 - 2);
 
-  const checkout = await orderService.checkout({ tenantId: tenant._id, id: order._id, data: { method: "CASH" } });
-  assert.equal(checkout.order.paymentStatus, "PAID");
-  assert.equal(checkout.order.status, "COMPLETED");
   const t2 = await RestaurantTable.findById(table._id);
   assert.equal(t2.status, "AVAILABLE");
-  assert.ok((await RestaurantPayment.countDocuments({ tenantId: tenant._id, orderId: order._id })) >= 1);
+  assert.ok((await RestaurantPayment.countDocuments({ tenantId: tenant._id, orderId: order.id })) >= 1);
   if (customer) {
     const c = await RestaurantCustomer.findById(customer._id);
     assert.ok(c.visits >= 1);
@@ -119,7 +131,7 @@ test("insufficient stock blocks order checkout", async (t) => {
     name: "Beef",
     quantity: 1,
     unit: "pcs",
-    costPrice: 200,
+    costPerUnit: 200,
   });
   const cat = await MenuCategory.create({ tenantId: tenant._id, name: "Grill" });
   const beefItem = await MenuItem.create({
@@ -131,12 +143,12 @@ test("insufficient stock blocks order checkout", async (t) => {
     recipe: [{ inventoryItemId: ingredient2._id, quantity: 5 }],
   });
   const table2 = await RestaurantTable.create({ tenantId: tenant._id, number: 2, capacity: 2, status: "AVAILABLE" });
-  const order = await orderService.create({
+  const { order } = await orderService.create({
     tenantId: tenant._id,
     data: { tableId: table2._id, type: "DINE_IN", items: [{ menuItemId: beefItem._id, quantity: 1 }] },
   });
   await assert.rejects(
-    orderService.checkout({ tenantId: tenant._id, id: order._id, data: { method: "CASH" } }),
+    orderService.checkout({ tenantId: tenant._id, id: order.id, data: { method: "CASH" } }),
     /Insufficient stock/
   );
   const ing2 = await RestaurantInventoryItem.findById(ingredient2._id);
@@ -147,8 +159,8 @@ test("payroll computes commission for waiter on completed paid orders", async (t
   if (!databaseAvailable) return t.skip("MongoDB is unavailable");
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const res = await payroll.generate({ tenantId: tenant._id, month, overwrite: true });
-  const salary = res.results.find((r) => String(r.staffId) === String(waiter._id));
+  await payroll.generate({ tenantId: tenant._id, month, overwrite: true });
+  const salary = await RestaurantSalary.findOne({ tenantId: tenant._id, staffId: waiter._id, month });
   assert.ok(salary);
   assert.ok(salary.commission > 0);
   assert.equal(salary.baseSalary, waiter.salary);
@@ -157,25 +169,31 @@ test("payroll computes commission for waiter on completed paid orders", async (t
 test("analytics dashboard returns scoped metrics", async (t) => {
   if (!databaseAvailable) return t.skip("MongoDB is unavailable");
   const dash = await analytics.dashboard({ tenantId: tenant._id });
-  assert.ok(dash.orders.total >= 1);
-  assert.ok(dash.revenue.total >= 2000);
+  assert.ok(dash.orders.month.count >= 1);
+  assert.ok(dash.revenue.currentMonth >= 2000);
   assert.ok(Array.isArray(dash.topItems));
 });
 
 test("billing creates invoice and reconciles payments with conflict detection", async (t) => {
   if (!databaseAvailable) return t.skip("MongoDB is unavailable");
-  const invoice = await billing.createInvoice({ tenantId: tenant._id, customerId: customer._id, amount: 1500, type: "OTHER" });
+  const invoice = await billing.createInvoice({
+    tenantId: tenant._id,
+    customerId: customer._id,
+    amount: 1500,
+    type: "OTHER",
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  });
   assert.equal(invoice.status, "PENDING");
-  const partial = await billing.recordPayment({ tenantId: tenant._id, invoiceId: invoice._id, amount: 500, method: "CASH" });
+  const partial = await billing.recordPayment({ tenantId: tenant._id, invoiceId: invoice.id, amount: 500, method: "CASH" });
   assert.equal(partial.invoice.status, "PARTIAL");
   await assert.rejects(
-    billing.recordPayment({ tenantId: tenant._id, invoiceId: invoice._id, amount: 1100, method: "CASH" }),
+    billing.recordPayment({ tenantId: tenant._id, invoiceId: invoice.id, amount: 1100, method: "CASH" }),
     /outstanding/
   );
-  const paid = await billing.recordPayment({ tenantId: tenant._id, invoiceId: invoice._id, amount: 1000, method: "CARD" });
+  const paid = await billing.recordPayment({ tenantId: tenant._id, invoiceId: invoice.id, amount: 1000, method: "CARD" });
   assert.equal(paid.invoice.status, "PAID");
-  await billing.deletePayment({ tenantId: tenant._id, id: paid.payment._id || paid.payment.id });
-  const reopened = await RestaurantInvoice.findById(invoice._id).lean();
+  await billing.deletePayment({ tenantId: tenant._id, id: paid.payment.id });
+  const reopened = await RestaurantInvoice.findById(invoice.id).lean();
   assert.equal(reopened.status, "PARTIAL");
   assert.equal(reopened.paidAmount, 500);
 });
@@ -183,8 +201,33 @@ test("billing creates invoice and reconciles payments with conflict detection", 
 test("reservation status transitions manage table occupancy", async (t) => {
   if (!databaseAvailable) return t.skip("MongoDB is unavailable");
   const t3 = await RestaurantTable.create({ tenantId: tenant._id, number: 3, capacity: 6, status: "AVAILABLE" });
-  const res = await Reservation.create({ tenantId: tenant._id, name: "Guest", phone: "03009999999", date: new Date(), time: "19:30", guests: 4, tableId: t3._id, status: "PENDING" });
-  await Reservation.findByIdAndUpdate(res._id, { status: "CONFIRMED" });
+
+  const createRes = mockRes();
+  await reservationCtrl.create(
+    {
+      tenantId: tenant._id,
+      body: {
+        name: "Guest",
+        phone: "03009999999",
+        date: new Date().toISOString().slice(0, 10),
+        time: "19:30",
+        guests: 4,
+        tableId: String(t3._id),
+      },
+    },
+    createRes,
+    (err) => { throw err; }
+  );
+  const reservation = createRes.body.reservation;
+  assert.equal(reservation.status, "PENDING");
+  assert.equal(reservation.tableId, String(t3._id));
+
+  const updateRes = mockRes();
+  await reservationCtrl.update(
+    { tenantId: tenant._id, params: { id: reservation.id }, body: { status: "CONFIRMED" } },
+    updateRes,
+    (err) => { throw err; }
+  );
   const updated = await RestaurantTable.findById(t3._id);
   assert.equal(updated.status, "RESERVED");
 });

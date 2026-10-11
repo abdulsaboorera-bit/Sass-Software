@@ -6,8 +6,8 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, BookOpen, Calendar, DollarSign,
   Settings, ChevronLeft, ChevronRight, Zap, Bell, LogOut,
-  GraduationCap, Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact,
-  Building2, Home, FileText, Wrench, Scissors
+  Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact,  Building2, Home, FileText, Wrench, Scissors,
+  Stethoscope, Pill, Microscope
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
 import SessionKeepAlive from "@/components/auth/SessionKeepAlive";
@@ -43,11 +43,17 @@ const industryNav: Record<string, NavLink[]> = {
   ],
   CLINIC: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Patients", href: "/dashboard/patients", icon: Users },
-    { label: "Appointments", href: "/dashboard/appointments", icon: Calendar },
-    { label: "Doctors", href: "/dashboard/doctors", icon: GraduationCap },
-    { label: "Billing", href: "/dashboard/billing", icon: DollarSign },
-    { label: "Settings", href: "/dashboard/settings", icon: Settings },
+    { label: "Patients", href: "/dashboard/clinic/patients", icon: Users, permission: "patients.view" },
+    { label: "Doctors", href: "/dashboard/clinic/doctors", icon: Stethoscope, permission: "doctors.view" },
+    { label: "Appointments", href: "/dashboard/clinic/appointments", icon: Calendar, permission: "appointments.view" },
+    { label: "Prescriptions", href: "/dashboard/clinic/prescriptions", icon: ClipboardList, permission: "prescriptions.view" },
+    { label: "Laboratory", href: "/dashboard/clinic/lab", icon: Microscope, permission: "lab.view" },
+    { label: "Pharmacy", href: "/dashboard/clinic/pharmacy", icon: Pill, permission: "pharmacy.view" },
+    { label: "Billing", href: "/dashboard/clinic/billing", icon: FileText, permission: "billing.view" },
+    { label: "Expenses", href: "/dashboard/clinic/expenses", icon: CreditCard, permission: "expenses.view" },
+    { label: "Salaries", href: "/dashboard/clinic/salaries", icon: DollarSign, permission: "salaries.view" },
+    { label: "Reports", href: "/dashboard/clinic/reports", icon: BarChart3, permission: "analytics.view" },
+    { label: "Settings", href: "/dashboard/clinic/settings", icon: Settings, permission: "settings.view" },
   ],
   RESTAURANT: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },

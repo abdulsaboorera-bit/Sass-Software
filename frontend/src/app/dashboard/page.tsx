@@ -58,6 +58,12 @@ interface SalonData {
   topStaff?: SalonTopStaff[];
 }
 
+interface ClinicTopDoctor { doctorId: string; name?: string; specialization?: string; appointments: number; revenue: number }
+interface ClinicData {
+  revenue?: { series?: RevenuePoint[] };
+  topDoctors?: ClinicTopDoctor[];
+}
+
 const CHART_COLORS = ["#15757b", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -92,24 +98,28 @@ const industryConfig: Record<string, {
   },
   CLINIC: {
     title: "Clinic Dashboard",
-    subtitle: "Overview of your clinic management system.",
+    subtitle: "Patients, appointments, pharmacy, and revenue at a glance.",
     stats: (d) => [
-      { label: "Total Patients", value: d.patients ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/patients" },
-      { label: "Today's Appointments", value: d.appointments ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/appointments" },
-      { label: "Active Doctors", value: d.doctors ?? "—", icon: Stethoscope, color: "bg-purple-50 text-purple-600", href: "/dashboard/doctors" },
-      { label: "Revenue This Month", value: d.revenue ? `PKR ${Number(d.revenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/billing" },
+      { label: "Total Patients", value: d.patients ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/clinic/patients" },
+      { label: "Today's Appointments", value: d.todayAppointments ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/clinic/appointments" },
+      { label: "Doctors", value: d.doctors ?? "—", icon: Stethoscope, color: "bg-purple-50 text-purple-600", href: "/dashboard/clinic/doctors" },
+      { label: "Revenue This Month", value: d.monthlyRevenue ? `PKR ${Number(d.monthlyRevenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/clinic/billing" },
+      { label: "Pending Invoices", value: d.pendingPayments ?? "—", icon: AlertCircle, color: "bg-red-50 text-red-600", href: "/dashboard/clinic/billing" },
+      { label: "Low Stock Medicines", value: d.lowStock ?? "—", icon: Package, color: "bg-orange-50 text-orange-600", href: "/dashboard/clinic/pharmacy" },
     ],
     actions: [
-      { label: "Add Patient", href: "/dashboard/patients", icon: Users, color: "bg-blue-600" },
-      { label: "Book Appointment", href: "/dashboard/appointments", icon: Calendar, color: "bg-emerald-600" },
-      { label: "View Doctors", href: "/dashboard/doctors", icon: Stethoscope, color: "bg-purple-600" },
-      { label: "Billing", href: "/dashboard/billing", icon: DollarSign, color: "bg-amber-600" },
+      { label: "Register Patient", href: "/dashboard/clinic/patients", icon: Users, color: "bg-blue-600" },
+      { label: "Book Appointment", href: "/dashboard/clinic/appointments", icon: Calendar, color: "bg-emerald-600" },
+      { label: "Pharmacy", href: "/dashboard/clinic/pharmacy", icon: Package, color: "bg-purple-600" },
+      { label: "Billing", href: "/dashboard/clinic/billing", icon: DollarSign, color: "bg-amber-600" },
+      { label: "Laboratory", href: "/dashboard/clinic/lab", icon: Activity, color: "bg-cyan-600" },
+      { label: "Reports", href: "/dashboard/clinic/reports", icon: BarChart3, color: "bg-slate-600" },
     ],
     gettingStarted: [
-      { title: "Add doctors", desc: "Register doctors and their specialties." },
-      { title: "Register patients", desc: "Add patient records with contact info." },
-      { title: "Schedule appointments", desc: "Book appointments and manage the calendar." },
-      { title: "Generate invoices", desc: "Create bills and track payments." },
+      { title: "Add doctors & departments", desc: "Register doctors with specialties, fees, and schedules." },
+      { title: "Register patients", desc: "Add patient records with contact and medical details." },
+      { title: "Schedule appointments", desc: "Book appointments and manage the daily calendar." },
+      { title: "Dispense & bill", desc: "Dispense pharmacy medicines, run lab tests, and generate invoices." },
     ],
   },
   GYM: {
@@ -263,6 +273,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Record<string, number>>({});
   const [gymData, setGymData] = useState<GymData | null>(null);
   const [salonData, setSalonData] = useState<SalonData | null>(null);
+  const [clinicData, setClinicData] = useState<ClinicData | null>(null);
   const [loading, setLoading] = useState(true);
   const [renderNow] = useState(() => Date.now());
 
@@ -293,20 +304,20 @@ export default function DashboardPage() {
           fees: fees.summary?.totalPaid || 0,
         });
       } else if (industry === "CLINIC") {
-        const [patientsRes, appointmentsRes, doctorsRes] = await Promise.all([
-          fetch("/api/clinic/patients?limit=1"),
-          fetch("/api/clinic/appointments?limit=50"),
-          fetch("/api/clinic/doctors"),
+        const [dashRes, revenueRes, doctorsRes] = await Promise.all([
+          fetch("/api/clinic/analytics/dashboard", { credentials: "include" }).then(r => r.json()).catch(() => null),
+          fetch("/api/clinic/analytics/revenue?months=6", { credentials: "include" }).then(r => r.json()).catch(() => null),
+          fetch("/api/clinic/analytics/top-doctors?limit=5", { credentials: "include" }).then(r => r.json()).catch(() => null),
         ]);
-        const [patients, appointments, doctors] = await Promise.all([
-          patientsRes.json(), appointmentsRes.json(), doctorsRes.json(),
-        ]);
-        const today = new Date().toISOString().split("T")[0];
-        const todayAppts = appointments.appointments?.filter((a: { date: string }) => a.date?.startsWith(today)) || [];
+        const dash = dashRes || {};
+        setClinicData({ revenue: revenueRes || undefined, topDoctors: doctorsRes?.topDoctors || [] });
         setStats({
-          patients: patients.pagination?.total || 0,
-          appointments: todayAppts.length,
-          doctors: doctors.doctors?.length || 0,
+          patients: dash.patients?.total || 0,
+          todayAppointments: dash.appointments?.today || 0,
+          doctors: dash.doctorsCount || 0,
+          monthlyRevenue: dash.revenue?.currentMonth || 0,
+          pendingPayments: dash.pendingInvoices?.count || 0,
+          lowStock: dash.inventory?.lowStockCount || 0,
         });
       } else if (industry === "GYM") {
         const [dashRes, revenueRes, attendanceRes, pendingRes] = await Promise.all([
@@ -446,6 +457,14 @@ export default function DashboardPage() {
     }));
   }, [salonData]);
 
+  const clinicRevenueChartData = useMemo(() => {
+    if (!clinicData?.revenue?.series) return [];
+    return clinicData.revenue.series.map((s: RevenuePoint) => ({
+      name: MONTH_NAMES[s.month - 1] || `${s.month}`,
+      revenue: s.total,
+    }));
+  }, [clinicData]);
+
   if (loading) {
     return <div className="flex items-center justify-center py-20 text-slate-400 text-sm">Loading...</div>;
   }
@@ -454,6 +473,7 @@ export default function DashboardPage() {
   const statCards = config.stats(stats);
   const isGym = industry === "GYM";
   const isSalon = industry === "SALON";
+  const isClinic = industry === "CLINIC";
   const expiringSoonMembers = gymData?.dashboard?.expiringSoonMembers ?? [];
 
   return (
@@ -600,9 +620,51 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Clinic Charts Row */}
+      {isClinic && clinicData && (
+        <div className="grid lg:grid-cols-3 gap-4 mb-8">
+          {clinicRevenueChartData.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-900 text-sm">Revenue Trend</h3>
+                <span className="text-xs text-slate-400">Last 6 months</span>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={clinicRevenueChartData}>
+                  <defs>
+                    <linearGradient id="clinicRevGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#15757b" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#15757b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                  <Tooltip formatter={(v: unknown) => [`PKR ${Number(v ?? 0).toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                  <Area type="monotone" dataKey="revenue" stroke="#15757b" fill="url(#clinicRevGrad)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {(clinicData.topDoctors?.length || 0) > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5">
+              <h3 className="font-bold text-slate-900 text-sm mb-4">Top Doctors (month)</h3>
+              <div className="space-y-3">
+                {clinicData.topDoctors!.slice(0, 5).map((d) => (
+                  <div key={d.doctorId} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600 truncate">{d.name || "Doctor"}</span>
+                    <span className="font-semibold text-slate-900">{d.appointments} appts</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Quick Actions */}
-      <div className={`grid gap-4 mb-8 ${isGym ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>        {config.actions.map((action) => (
-          <Link
+      <div className={`grid gap-4 mb-8 ${isGym ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>        {config.actions.map((action) => (          <Link
             key={action.label}
             href={action.href}
             className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-md transition-all group no-underline"

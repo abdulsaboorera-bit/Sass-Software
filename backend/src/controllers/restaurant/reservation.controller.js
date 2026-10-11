@@ -90,11 +90,11 @@ const update = asyncHandler(async (req, res) => {
     if (!VALID_STATUS.includes(nextStatus)) throw ApiError.badRequest("Invalid reservation status");
     const tableId = existing.tableId;
     if (nextStatus === "CONFIRMED" && tableId) {
-      await RestaurantTable.updateOne({ _id: tableId, tenantId }, { $set: { status: "RESERVED" } });
+      await RestaurantTable.updateOne({ _id: tableId, tenantId: req.tenantId }, { $set: { status: "RESERVED" } });
     } else if (nextStatus === "SEATED" && tableId) {
-      await RestaurantTable.updateOne({ _id: tableId, tenantId, status: { $in: ["AVAILABLE", "RESERVED"] } }, { $set: { status: "OCCUPIED" } });
+      await RestaurantTable.updateOne({ _id: tableId, tenantId: req.tenantId, status: { $in: ["AVAILABLE", "RESERVED"] } }, { $set: { status: "OCCUPIED" } });
     } else if (["CANCELLED", "NO_SHOW", "COMPLETED"].includes(nextStatus)) {
-      await releaseTable(tenantId, tableId, ["RESERVED", "OCCUPIED"]);
+      await releaseTable(req.tenantId, tableId, ["RESERVED", "OCCUPIED"]);
     }
   }
 
@@ -109,7 +109,7 @@ const update = asyncHandler(async (req, res) => {
   if (updates.tableId && String(updates.tableId) !== String(existing.tableId) && existing.status === "CONFIRMED") {
     // Table swapped — release the old table, hold the new one.
     await releaseTable(req.tenantId, existing.tableId, ["RESERVED"]);
-    await RestaurantTable.updateOne({ _id: updates.tableId, tenantId }, { $set: { status: "RESERVED" } });
+    await RestaurantTable.updateOne({ _id: updates.tableId, tenantId: req.tenantId }, { $set: { status: "RESERVED" } });
   }
 
   const reservation = await Reservation.findOneAndUpdate({ _id: id, tenantId: req.tenantId }, updates, { new: true, runValidators: true });

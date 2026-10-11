@@ -16,6 +16,10 @@ const {
   SalonCustomer, SalonServiceCategory, SalonService, SalonStaff, SalonAppointment,
   SalonProduct, SalonStockMovement, SalonInvoice, SalonPayment, SalonExpense,
   SalonSalary, SalonAttendance, SalonSettings,
+  Department, Doctor, Patient, Appointment, Prescription, MedicalRecord,
+  LabTest, LabResult, ClinicInvoice, ClinicPayment, MedicineCategory, Medicine,
+  PharmacySupplier, PharmacyStockMovement, PharmacySale,
+  ClinicExpense, ClinicSalary, ClinicAttendance, ClinicSettings,
 } = require("../models");
 const { hashPassword } = require("../utils/password");
 const { SYSTEM_ROLES } = require("./roles");
@@ -404,6 +408,198 @@ async function seedSalon(tenant, ownerUser) {
   console.log("  seeded products, expenses, payroll, staff attendance, settings");
 }
 
+async function seedClinic(tenant, ownerUser) {
+  // Drop legacy indexes that are no longer part of the clinic schemas
+  // (e.g. ClinicInvoice.invoiceNo from an earlier model revision).
+  for (const Model of [
+    Department, Doctor, Patient, Appointment, Prescription, MedicalRecord,
+    LabTest, LabResult, ClinicInvoice, ClinicPayment, MedicineCategory, Medicine,
+    PharmacySupplier, PharmacyStockMovement, PharmacySale, ClinicExpense,
+    ClinicSalary, ClinicAttendance, ClinicSettings,
+  ]) {
+    try { await Model.syncIndexes(); } catch (err) { console.warn(`  index sync failed for ${Model.modelName}: ${err.message}`); }
+  }
+
+  if (await Patient.countDocuments({ tenantId: tenant._id })) {
+    console.log("  clinic demo data already present, skipping");
+    return;
+  }
+
+  const now = new Date();
+
+  const departments = await Department.create([
+    { tenantId: tenant._id, name: "General Medicine", description: "Primary care and general consultation", location: "Ground Floor" },
+    { tenantId: tenant._id, name: "Cardiology", description: "Heart and cardiovascular care", location: "First Floor" },
+    { tenantId: tenant._id, name: "Pediatrics", description: "Child and infant care", location: "Ground Floor" },
+    { tenantId: tenant._id, name: "Dermatology", description: "Skin, hair and nails", location: "Second Floor" },
+  ]);
+  const dep = Object.fromEntries(departments.map((d) => [d.name, d._id]));
+
+  const doctors = await Doctor.create([
+    { tenantId: tenant._id, name: "Dr. Imran Ahmed", specialization: "General Physician", phone: "03001230001", qualification: "MBBS, FCPS", experience: 12, fee: 1500, salary: 120000, commissionRate: 20, departmentId: dep["General Medicine"], availableDays: ["Mon", "Tue", "Wed", "Thu", "Fri"], availableTime: "09:00-14:00", joinDate: addDays(now, -800) },
+    { tenantId: tenant._id, name: "Dr. Saima Riaz", specialization: "Cardiologist", phone: "03001230002", qualification: "MBBS, FCPS (Cardiology)", experience: 15, fee: 3000, salary: 200000, commissionRate: 25, departmentId: dep["Cardiology"], availableDays: ["Mon", "Wed", "Fri"], availableTime: "10:00-16:00", joinDate: addDays(now, -600) },
+    { tenantId: tenant._id, name: "Dr. Bilal Hussain", specialization: "Pediatrician", phone: "03001230003", qualification: "MBBS, DCH", experience: 8, fee: 2000, salary: 150000, commissionRate: 20, departmentId: dep["Pediatrics"], availableDays: ["Tue", "Thu", "Sat"], availableTime: "11:00-17:00", joinDate: addDays(now, -400) },
+    { tenantId: tenant._id, name: "Dr. Hina Qureshi", specialization: "Dermatologist", phone: "03001230004", qualification: "MBBS, MCPS", experience: 6, fee: 2500, salary: 130000, commissionRate: 22, departmentId: dep["Dermatology"], availableDays: ["Mon", "Tue", "Thu"], availableTime: "12:00-18:00", joinDate: addDays(now, -200) },
+  ]);
+  const [imran, saima, bilal, hina] = doctors;
+
+  const patients = await Patient.create([
+    { tenantId: tenant._id, patientNo: "P-0001", name: "Adeel Khan", phone: "03211234501", gender: "MALE", dateOfBirth: new Date(1988, 4, 12), bloodGroup: "B+", address: "Model Town, Lahore" },
+    { tenantId: tenant._id, patientNo: "P-0002", name: "Nadia Fatima", phone: "03211234502", gender: "FEMALE", dateOfBirth: new Date(1995, 8, 3), bloodGroup: "O+", allergies: "Penicillin" },
+    { tenantId: tenant._id, patientNo: "P-0003", name: "Hassan Ali", phone: "03211234503", gender: "MALE", dateOfBirth: new Date(2018, 1, 20), bloodGroup: "A+" },
+    { tenantId: tenant._id, patientNo: "P-0004", name: "Sadia Malik", phone: "03211234504", gender: "FEMALE", dateOfBirth: new Date(1979, 11, 30), bloodGroup: "AB+" },
+    { tenantId: tenant._id, patientNo: "P-0005", name: "Usman Tariq", phone: "03211234505", gender: "MALE", dateOfBirth: new Date(2000, 6, 15), bloodGroup: "B-" },
+  ]);
+
+  const todayAt = (h) => { const d = new Date(now); d.setHours(h, 0, 0, 0); return d; };
+  await Appointment.create([
+    { tenantId: tenant._id, patientId: patients[0]._id, doctorId: imran._id, date: todayAt(9), time: "09:30", duration: 30, reason: "Fever and flu symptoms", fee: imran.fee, status: "COMPLETED", paymentStatus: "PAID" },
+    { tenantId: tenant._id, patientId: patients[1]._id, doctorId: saima._id, date: todayAt(11), time: "11:00", duration: 30, reason: "Chest pain follow-up", fee: saima.fee, status: "CONFIRMED" },
+    { tenantId: tenant._id, patientId: patients[2]._id, doctorId: bilal._id, date: addDays(now, 1), time: "11:30", duration: 20, reason: "Vaccination", fee: bilal.fee, status: "SCHEDULED" },
+    { tenantId: tenant._id, patientId: patients[3]._id, doctorId: hina._id, date: addDays(now, -3), time: "15:00", duration: 30, reason: "Skin rash", fee: hina.fee, status: "COMPLETED", paymentStatus: "PAID" },
+  ]);
+
+  await Prescription.create([
+    {
+      tenantId: tenant._id, patientId: patients[0]._id, doctorId: imran._id, diagnosis: "Acute viral illness",
+      medications: [
+        { name: "Paracetamol 500mg", dosage: "1 tablet", frequency: "3x daily", duration: "5 days" },
+        { name: "Cetirizine 10mg", dosage: "1 tablet", frequency: "At night", duration: "5 days" },
+      ],
+      advice: "Plenty of fluids and rest", status: "ISSUED",
+    },
+    {
+      tenantId: tenant._id, patientId: patients[3]._id, doctorId: hina._id, diagnosis: "Contact dermatitis",
+      medications: [{ name: "Hydrocortisone Cream", dosage: "Apply thin layer", frequency: "2x daily", duration: "7 days" }],
+      status: "DISPENSED",
+    },
+  ]);
+
+  await MedicalRecord.create([
+    { tenantId: tenant._id, patientId: patients[0]._id, type: "CONSULTATION", title: "General check-up", description: "Vitals stable, advised rest." },
+    { tenantId: tenant._id, patientId: patients[1]._id, type: "LAB", title: "Lipid profile", description: "Borderline cholesterol." },
+  ]);
+
+  const labTests = await LabTest.create([
+    { tenantId: tenant._id, name: "Complete Blood Count (CBC)", code: "CBC", category: "Hematology", price: 1200, referenceRange: "See report" },
+    { tenantId: tenant._id, name: "Blood Sugar (Fasting)", code: "FBS", category: "Biochemistry", price: 500, unit: "mg/dL", referenceRange: "70-100" },
+    { tenantId: tenant._id, name: "Lipid Profile", code: "LIPID", category: "Biochemistry", price: 1800, referenceRange: "See report" },
+    { tenantId: tenant._id, name: "Urine Complete", code: "URINE", category: "Pathology", price: 700, referenceRange: "See report" },
+  ]);
+  await LabResult.create([
+    { tenantId: tenant._id, patientId: patients[1]._id, testId: labTests[2]._id, doctorId: saima._id, testName: "Lipid Profile", date: addDays(now, -2), result: "Total cholesterol 210 mg/dL (borderline high)", status: "COMPLETED" },
+    { tenantId: tenant._id, patientId: patients[0]._id, testId: labTests[0]._id, doctorId: imran._id, testName: "Complete Blood Count (CBC)", date: addDays(now, -1), result: "Within normal limits", status: "COMPLETED" },
+    { tenantId: tenant._id, patientId: patients[4]._id, testId: labTests[1]._id, doctorId: imran._id, testName: "Blood Sugar (Fasting)", date: now, status: "PENDING" },
+  ]);
+
+  // Pharmacy catalogue.
+  const medCats = await MedicineCategory.create([
+    { tenantId: tenant._id, name: "Analgesics", description: "Pain relief" },
+    { tenantId: tenant._id, name: "Antibiotics", description: "Bacterial infections" },
+    { tenantId: tenant._id, name: "Vitamins & Supplements" },
+    { tenantId: tenant._id, name: "Cardiac Care" },
+    { tenantId: tenant._id, name: "Dermatology" },
+  ]);
+  const mc = Object.fromEntries(medCats.map((c) => [c.name, c._id]));
+  const supplier = await PharmacySupplier.create([
+    { tenantId: tenant._id, name: "MediSupply Distributors", phone: "04211234567", email: "sales@medisupply.pk", contactPerson: "Kamran Sheikh" },
+    { tenantId: tenant._id, name: "PharmaLink", phone: "04211234599", contactPerson: "Rabia Anwar" },
+  ]);
+
+  const medicines = await Medicine.create([
+    { tenantId: tenant._id, categoryId: mc["Analgesics"], name: "Panadol 500mg", genericName: "Paracetamol", brand: "GSK", strength: "500mg", form: "TABLET", sku: "MED-001", quantity: 400, unit: "tablets", minStock: 50, costPrice: 2, sellPrice: 5, supplierId: supplier[0]._id, supplierName: "MediSupply Distributors", expiryDate: addDays(now, 540) },
+    { tenantId: tenant._id, categoryId: mc["Antibiotics"], name: "Amoxil 500mg", genericName: "Amoxicillin", brand: "GSK", strength: "500mg", form: "CAPSULE", sku: "MED-002", quantity: 120, unit: "capsules", minStock: 30, costPrice: 12, sellPrice: 25, supplierId: supplier[0]._id, supplierName: "MediSupply Distributors", expiryDate: addDays(now, 300) },
+    { tenantId: tenant._id, categoryId: mc["Vitamins & Supplements"], name: "Vitamin D3 5000IU", strength: "5000IU", form: "CAPSULE", sku: "MED-003", quantity: 8, unit: "capsules", minStock: 20, costPrice: 18, sellPrice: 35, supplierId: supplier[1]._id, supplierName: "PharmaLink", expiryDate: addDays(now, 400) },
+    { tenantId: tenant._id, categoryId: mc["Cardiac Care"], name: "Concor 5mg", genericName: "Bisoprolol", strength: "5mg", form: "TABLET", sku: "MED-004", quantity: 90, unit: "tablets", minStock: 20, costPrice: 15, sellPrice: 30, supplierName: "PharmaLink", expiryDate: addDays(now, 60) },
+    { tenantId: tenant._id, categoryId: mc["Dermatology"], name: "Hydrocortisone Cream 1%", strength: "1%", form: "CREAM", sku: "MED-005", quantity: 25, unit: "tubes", minStock: 10, costPrice: 60, sellPrice: 120, supplierName: "MediSupply Distributors", expiryDate: addDays(now, -10) },
+  ]);
+  await PharmacyStockMovement.create([
+    { tenantId: tenant._id, medicineId: medicines[0]._id, type: "PURCHASE", quantity: 500, unitPrice: 2, totalCost: 1000, reference: "PO-001", createdBy: ownerUser._id },
+    { tenantId: tenant._id, medicineId: medicines[0]._id, type: "SALE", quantity: 100, unitPrice: 5, totalCost: 500, reference: "PHM-SEED" },
+    { tenantId: tenant._id, medicineId: medicines[1]._id, type: "PURCHASE", quantity: 150, unitPrice: 12, totalCost: 1800, reference: "PO-002" },
+  ]);
+
+  // A settled pharmacy sale + one pending.
+  const sale1 = await PharmacySale.create({
+    tenantId: tenant._id, saleRef: invoiceRef("PHM"), patientId: patients[0]._id,
+    items: [
+      { medicineId: medicines[0]._id, name: medicines[0].name, quantity: 10, unitPrice: 5, costPrice: 2, total: 50 },
+      { medicineId: medicines[1]._id, name: medicines[1].name, quantity: 6, unitPrice: 25, costPrice: 12, total: 150 },
+    ],
+    subtotal: 200, discount: 0, tax: 0, total: 200, paidAmount: 200, status: "PAID", paymentMethod: "CASH",
+  });
+  await PharmacySale.create({
+    tenantId: tenant._id, saleRef: invoiceRef("PHM"), customerName: "Walk-in customer",
+    items: [{ medicineId: medicines[3]._id, name: medicines[3].name, quantity: 3, unitPrice: 30, costPrice: 15, total: 90 }],
+    subtotal: 90, discount: 0, tax: 0, total: 90, paidAmount: 0, status: "PENDING",
+  });
+
+  // Billing: one settled, one open.
+  const inv1 = await ClinicInvoice.create({
+    tenantId: tenant._id, patientId: patients[0]._id, invoiceRef: invoiceRef("CLN"), type: "CONSULTATION",
+    amount: 1500, paidAmount: 1500, status: "PAID", dueDate: addDays(now, -3), paidAt: addDays(now, -3),
+  });
+  await ClinicPayment.create({ tenantId: tenant._id, patientId: patients[0]._id, invoiceId: inv1._id, amount: 1500, method: "CASH", type: "CONSULTATION", paidAt: addDays(now, -3) });
+  await ClinicInvoice.create({
+    tenantId: tenant._id, patientId: patients[1]._id, invoiceRef: invoiceRef("CLN"), type: "LAB",
+    amount: 1800, paidAmount: 0, status: "PENDING", dueDate: addDays(now, 7),
+  });
+
+  // Operating expenses.
+  const lastMonth = new Date(now);
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  await ClinicExpense.create([
+    { tenantId: tenant._id, category: "RENT", amount: 150000, date: now, description: "Clinic monthly rent", paymentMethod: "BANK_TRANSFER" },
+    { tenantId: tenant._id, category: "UTILITIES", amount: 28000, date: now, description: "Electricity & water", paymentMethod: "CASH" },
+    { tenantId: tenant._id, category: "MEDICINES", amount: 85000, date: now, description: "Pharmacy stock purchase", paymentMethod: "BANK_TRANSFER" },
+    { tenantId: tenant._id, category: "RENT", amount: 150000, date: lastMonth, description: "Clinic monthly rent", paymentMethod: "BANK_TRANSFER" },
+  ]);
+
+  // Current-month payroll.
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  for (const doctor of doctors) {
+    await ClinicSalary.create({ tenantId: tenant._id, doctorId: doctor._id, month, baseSalary: doctor.salary, commission: 0, netPay: doctor.salary, status: "PENDING" });
+  }
+
+  // Today's doctor attendance.
+  const dk = dayKey(now);
+  await ClinicAttendance.create(
+    doctors.map((doctor) => ({ tenantId: tenant._id, doctorId: doctor._id, date: now, dayKey: dk, status: "PRESENT", checkIn: "09:00" }))
+  );
+
+  // Clinic settings (singleton).
+  await ClinicSettings.findOneAndUpdate(
+    { tenantId: tenant._id },
+    {
+      tenantId: tenant._id,
+      clinicName: "CarePlus Clinic",
+      tagline: "Your health, our priority",
+      address: "12 Main Boulevard, Gulberg, Lahore",
+      phone: "04211234567",
+      email: "info@careplusclinic.com",
+      timezone: "Asia/Karachi",
+      currency: "PKR",
+      registrationNo: "PMC-2024-00921",
+      defaultConsultationFee: 1500,
+      defaultCommissionRate: 20,
+      defaultAppointmentDuration: 30,
+      operatingHours: [
+        { day: 1, open: "09:00", close: "21:00", isClosed: false },
+        { day: 2, open: "09:00", close: "21:00", isClosed: false },
+        { day: 3, open: "09:00", close: "21:00", isClosed: false },
+        { day: 4, open: "09:00", close: "21:00", isClosed: false },
+        { day: 5, open: "09:00", close: "21:00", isClosed: false },
+        { day: 6, open: "10:00", close: "18:00", isClosed: false },
+        { day: 0, open: "10:00", close: "14:00", isClosed: false },
+      ],
+    },
+    { upsert: true, new: true }
+  );
+
+  console.log("  seeded 4 departments, 4 doctors, 5 patients, appointments, prescriptions, lab");
+  console.log("  seeded pharmacy (categories, medicines, suppliers, sales), billing, expenses, payroll, settings");
+}
+
 async function main() {
   await connectDB();
   console.log("Seeding NexusSoft (MongoDB)...");
@@ -437,6 +633,7 @@ async function main() {
 
     if (ind.industry === "GYM") await seedGym(tenant, ownerUser);
     if (ind.industry === "SALON") await seedSalon(tenant, ownerUser);
+    if (ind.industry === "CLINIC") await seedClinic(tenant, ownerUser);
   }
 
   console.log("\nSeeding complete.");

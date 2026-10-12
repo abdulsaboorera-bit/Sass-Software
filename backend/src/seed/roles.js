@@ -61,6 +61,21 @@ const CLINIC_STAFF = [
   "pharmacy.view", "pharmacy.edit",
   "doctors.view", "billing.view", "billing.create", "analytics.view",
 ];
+const SCHOOL_MANAGER = [
+  "students.*", "classes.*", "teachers.*", "subjects.*", "timetable.*", "attendance.*",
+  "exams.*", "assignments.*", "admissions.*", "fees.*", "expenses.*", "salaries.*",
+  "library.*", "transport.*", "hostel.*", "notices.*", "events.*", "staff-attendance.*",
+  "analytics.view", "settings.*",
+];
+const SCHOOL_TEACHER = [
+  "students.view", "classes.view", "subjects.view", "timetable.view",
+  "attendance.view", "attendance.mark", "exams.view", "exams.marks",
+  "assignments.view", "assignments.create", "assignments.edit",
+  "notices.view", "events.view", "admissions.view", "library.view", "analytics.view",
+];
+const SCHOOL_ACCOUNTANT = [
+  "students.view", "classes.view", "fees.*", "expenses.*", "salaries.*", "analytics.view",
+];
 
 const SYSTEM_ROLES = [
   { name: "Owner", slug: "owner", permissions: OWNER, isSystem: true },
@@ -76,6 +91,9 @@ const SYSTEM_ROLES = [
   { name: "Restaurant Staff", slug: "restaurant-staff", permissions: RESTAURANT_STAFF, isSystem: true },
   { name: "Clinic Manager", slug: "clinic-manager", permissions: CLINIC_MANAGER, isSystem: true },
   { name: "Clinic Staff", slug: "clinic-staff", permissions: CLINIC_STAFF, isSystem: true },
+  { name: "School Manager", slug: "school-manager", permissions: SCHOOL_MANAGER, isSystem: true },
+  { name: "School Teacher", slug: "school-teacher", permissions: SCHOOL_TEACHER, isSystem: true },
+  { name: "School Accountant", slug: "school-accountant", permissions: SCHOOL_ACCOUNTANT, isSystem: true },
 ];
 
-module.exports = { SYSTEM_ROLES, OWNER, RECEPTIONIST, TRAINER, ACCOUNTANT, INVENTORY_MANAGER, CAR_RENTAL_MANAGER, REAL_ESTATE_MANAGER, SALON_MANAGER, SALON_RECEPTIONIST, RESTAURANT_MANAGER, RESTAURANT_STAFF, CLINIC_MANAGER, CLINIC_STAFF };
+module.exports = { SYSTEM_ROLES, OWNER, RECEPTIONIST, TRAINER, ACCOUNTANT, INVENTORY_MANAGER, CAR_RENTAL_MANAGER, REAL_ESTATE_MANAGER, SALON_MANAGER, SALON_RECEPTIONIST, RESTAURANT_MANAGER, RESTAURANT_STAFF, CLINIC_MANAGER, CLINIC_STAFF, SCHOOL_MANAGER, SCHOOL_TEACHER, SCHOOL_ACCOUNTANT };

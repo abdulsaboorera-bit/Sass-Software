@@ -1,16 +1,21 @@
 "use strict";
 
-const { Attendance } = require("../../models");
+const { Attendance, Student } = require("../../models");
 const { apiSuccess, ApiError } = require("../../utils/apiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
-const { startOfDay, endOfDay } = require("../../utils/dates");
+const { startOfDay, endOfDay, dayKey } = require("../../utils/dates");
 
 /** GET /api/school/attendance?classId&date&studentId -> { attendance } */
 const list = asyncHandler(async (req, res) => {
   const filter = { tenantId: req.tenantId };
   if (req.query.studentId) filter.studentId = req.query.studentId;
+  if (req.query.classId) {
+    const students = await Student.find({ tenantId: req.tenantId, classId: req.query.classId }).select("_id").lean();
+    filter.studentId = { $in: students.map((s) => s._id) };
+  }
   if (req.query.date) {
-    filter.date = { $gte: startOfDay(new Date(req.query.date)), $lte: endOfDay(new Date(req.query.date)) };
+    const day = startOfDay(new Date(req.query.date));
+    filter.date = { $gte: day, $lte: endOfDay(day) };
   }
   const rows = await Attendance.find(filter).populate("student", "name admissionNo classId").sort({ date: -1 }).lean();
   return apiSuccess(res, { attendance: rows });
@@ -24,13 +29,16 @@ const mark = asyncHandler(async (req, res) => {
   const { date, records } = req.body;
   if (!date || !Array.isArray(records)) throw ApiError.badRequest("date and records[] are required");
   const day = startOfDay(new Date(date));
+  const key = dayKey(day);
 
   const ops = records
     .filter((r) => r.studentId && r.status)
     .map((r) => ({
       updateOne: {
         filter: { tenantId: req.tenantId, studentId: r.studentId, date: day },
-        update: { $set: { status: r.status, remarks: r.remarks, tenantId: req.tenantId, studentId: r.studentId, date: day } },
+        update: {
+          $set: { status: r.status, remarks: r.remarks, tenantId: req.tenantId, studentId: r.studentId, date: day, dayKey: key },
+        },
         upsert: true,
       },
     }));

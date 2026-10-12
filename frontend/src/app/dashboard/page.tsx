@@ -68,6 +68,13 @@ interface ClinicData {
   topDoctors?: ClinicTopDoctor[];
 }
 
+interface SchoolLowAttendanceRow { studentId: string; name?: string; admissionNo?: string; percent: number }
+interface SchoolData {
+  revenue?: { series?: RevenuePoint[] };
+  attendance?: { trend?: AttendancePoint[] };
+  lowAttendance?: { threshold?: number; rows?: SchoolLowAttendanceRow[] };
+}
+
 const industryConfig: Record<string, {
   title: string;
   subtitle: string;
@@ -275,6 +282,7 @@ export default function DashboardPage() {
   const [gymData, setGymData] = useState<GymData | null>(null);
   const [salonData, setSalonData] = useState<SalonData | null>(null);
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
+  const [schoolData, setSchoolData] = useState<SchoolData | null>(null);
   const [loading, setLoading] = useState(true);
   const [renderNow] = useState(() => Date.now());
 
@@ -291,18 +299,22 @@ export default function DashboardPage() {
   const fetchDashboardStats = async (industry: string) => {
     try {
       if (industry === "SCHOOL") {
-        const [studentsRes, classesRes, feesRes] = await Promise.all([
-          fetch("/api/school/students?limit=1"),
-          fetch("/api/school/classes"),
-          fetch("/api/school/fees?limit=1"),
+        const [dashRes, revenueRes, attendanceRes] = await Promise.all([
+          fetch("/api/school/analytics/dashboard", { credentials: "include" }).then((r) => r.json()).catch(() => null),
+          fetch("/api/school/analytics/revenue?months=6", { credentials: "include" }).then((r) => r.json()).catch(() => null),
+          fetch("/api/school/analytics/attendance-trend?days=30", { credentials: "include" }).then((r) => r.json()).catch(() => null),
         ]);
-        const [students, classes, fees] = await Promise.all([
-          studentsRes.json(), classesRes.json(), feesRes.json(),
-        ]);
+        const dash = dashRes || {};
+        setSchoolData({
+          revenue: revenueRes || dash.revenue || undefined,
+          attendance: attendanceRes || undefined,
+          lowAttendance: dash.lowAttendance || undefined,
+        });
         setStats({
-          students: students.pagination?.total || 0,
-          classes: classes.classes?.length || 0,
-          fees: fees.summary?.totalPaid || 0,
+          students: dash.students?.total || 0,
+          classes: dash.classes || 0,
+          attendance: dash.attendanceToday?.marked || 0,
+          fees: dash.fees?.collected || 0,
         });
       } else if (industry === "CLINIC") {
         const [dashRes, revenueRes, doctorsRes] = await Promise.all([
@@ -459,7 +471,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <DashboardCharts industry={industry} gymData={gymData} salonData={salonData} clinicData={clinicData} />
+      <DashboardCharts industry={industry} gymData={gymData} salonData={salonData} clinicData={clinicData} schoolData={schoolData} />
 
       {/* Quick Actions */}
       <div className={`grid gap-4 mb-8 ${isGym ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>        {config.actions.map((action) => (          <Link

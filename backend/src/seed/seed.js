@@ -20,6 +20,11 @@ const {
   LabTest, LabResult, ClinicInvoice, ClinicPayment, MedicineCategory, Medicine,
   PharmacySupplier, PharmacyStockMovement, PharmacySale,
   ClinicExpense, ClinicSalary, ClinicAttendance, ClinicSettings,
+  Teacher, SchoolClass, Subject, Student, Attendance, TeacherAttendance, Timetable,
+  Exam, ExamSubject, ExamResult, Assignment, AssignmentSubmission,
+  FeeStructure, FeePayment, SchoolExpense, SchoolSalary,
+  LibraryBook, LibraryIssue, TransportRoute, TransportAssignment,
+  Hostel, HostelRoom, HostelAllocation, Notice, SchoolEvent, Admission, SchoolSettings,
 } = require("../models");
 const { hashPassword } = require("../utils/password");
 const { SYSTEM_ROLES } = require("./roles");
@@ -600,6 +605,243 @@ async function seedClinic(tenant, ownerUser) {
   console.log("  seeded pharmacy (categories, medicines, suppliers, sales), billing, expenses, payroll, settings");
 }
 
+async function seedSchool(tenant, ownerUser) {
+  for (const Model of [
+    SchoolSettings, Teacher, SchoolClass, Subject, Student, Attendance, TeacherAttendance, Timetable,
+    Exam, ExamSubject, ExamResult, Assignment, AssignmentSubmission, FeeStructure, FeePayment,
+    SchoolExpense, SchoolSalary, LibraryBook, LibraryIssue, TransportRoute, TransportAssignment,
+    Hostel, HostelRoom, HostelAllocation, Notice, SchoolEvent, Admission,
+  ]) {
+    try { await Model.syncIndexes(); } catch (err) { console.warn(`  index sync failed for ${Model.modelName}: ${err.message}`); }
+  }
+
+  if (await Student.countDocuments({ tenantId: tenant._id })) {
+    console.log("  school demo data already present, skipping");
+    return;
+  }
+
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const teachers = await Teacher.create([
+    { tenantId: tenant._id, employeeNo: "EMP-0001", name: "Sir Ahmed Raza", gender: "MALE", phone: "03001234501", email: "ahmed.raza@greenfield.edu", designation: "Head Teacher", specialization: "Mathematics", qualification: "M.Sc Mathematics, B.Ed", salary: 120000, joinDate: addDays(now, -900) },
+    { tenantId: tenant._id, employeeNo: "EMP-0002", name: "Ms. Fatima Noor", gender: "FEMALE", phone: "03001234502", email: "fatima.noor@greenfield.edu", designation: "Teacher", specialization: "English", qualification: "M.A English", salary: 85000, joinDate: addDays(now, -700) },
+    { tenantId: tenant._id, employeeNo: "EMP-0003", name: "Sir Bilal Akram", gender: "MALE", phone: "03001234503", email: "bilal.akram@greenfield.edu", designation: "Teacher", specialization: "Science", qualification: "B.S Physics", salary: 90000, joinDate: addDays(now, -500) },
+    { tenantId: tenant._id, employeeNo: "EMP-0004", name: "Ms. Sana Iqbal", gender: "FEMALE", phone: "03001234504", email: "sana.iqbal@greenfield.edu", designation: "Teacher", specialization: "Computer Science", qualification: "B.S Computer Science", salary: 95000, joinDate: addDays(now, -300) },
+    { tenantId: tenant._id, employeeNo: "EMP-0005", name: "Mr. Usman Sheikh", gender: "MALE", phone: "03001234505", email: "usman.sheikh@greenfield.edu", designation: "Accountant", specialization: "Finance", qualification: "MBA Finance", salary: 80000, joinDate: addDays(now, -400) },
+  ]);
+  const [ahmed, fatima, bilal, sana, usman] = teachers;
+
+  const classes = await SchoolClass.create([
+    { tenantId: tenant._id, name: "Grade 5", section: "A", teacherId: ahmed._id, roomNo: "R-101", capacity: 40, feeAmount: 8000 },
+    { tenantId: tenant._id, name: "Grade 5", section: "B", teacherId: fatima._id, roomNo: "R-102", capacity: 40, feeAmount: 8000 },
+    { tenantId: tenant._id, name: "Grade 6", section: "A", teacherId: bilal._id, roomNo: "R-201", capacity: 40, feeAmount: 9000 },
+    { tenantId: tenant._id, name: "Grade 7", section: "A", teacherId: sana._id, roomNo: "R-202", capacity: 35, feeAmount: 10000 },
+  ]);
+  const [g5a, g5b, g6a, g7a] = classes;
+
+  const subjects = await Subject.create([
+    { tenantId: tenant._id, classId: g5a._id, name: "Mathematics", code: "MATH5", teacherId: ahmed._id, totalMarks: 100, passingMarks: 40 },
+    { tenantId: tenant._id, classId: g5a._id, name: "English", code: "ENG5", teacherId: fatima._id, totalMarks: 100, passingMarks: 40 },
+    { tenantId: tenant._id, classId: g5a._id, name: "Science", code: "SCI5", teacherId: bilal._id, totalMarks: 100, passingMarks: 40 },
+    { tenantId: tenant._id, classId: g6a._id, name: "Mathematics", code: "MATH6", teacherId: ahmed._id, totalMarks: 100, passingMarks: 40 },
+    { tenantId: tenant._id, classId: g7a._id, name: "Computer Science", code: "CS7", teacherId: sana._id, totalMarks: 100, passingMarks: 40 },
+  ]);
+
+  const students = await Student.create([
+    { tenantId: tenant._id, admissionNo: "ADM-0001", rollNo: "5A-01", name: "Ali Hassan", gender: "MALE", dateOfBirth: new Date(2014, 3, 10), bloodGroup: "B+", fatherName: "Hassan Mahmood", fatherPhone: "03211234501", motherName: "Ayesha Hassan", address: "Model Town, Lahore", city: "Lahore", classId: g5a._id, section: "A", admissionDate: addDays(now, -400) },
+    { tenantId: tenant._id, admissionNo: "ADM-0002", rollNo: "5A-02", name: "Hina Aslam", gender: "FEMALE", dateOfBirth: new Date(2014, 6, 22), bloodGroup: "O+", fatherName: "Aslam Khan", fatherPhone: "03211234502", address: "Johar Town, Lahore", city: "Lahore", classId: g5a._id, section: "A", admissionDate: addDays(now, -380) },
+    { tenantId: tenant._id, admissionNo: "ADM-0003", rollNo: "5A-03", name: "Bilal Ahmed", gender: "MALE", dateOfBirth: new Date(2014, 1, 5), bloodGroup: "A+", fatherName: "Ahmed Saeed", fatherPhone: "03211234503", city: "Lahore", classId: g5a._id, section: "A", admissionDate: addDays(now, -350) },
+    { tenantId: tenant._id, admissionNo: "ADM-0004", rollNo: "5B-01", name: "Sara Malik", gender: "FEMALE", dateOfBirth: new Date(2014, 8, 14), bloodGroup: "AB+", fatherName: "Malik Tariq", fatherPhone: "03211234504", city: "Lahore", classId: g5b._id, section: "B", admissionDate: addDays(now, -200) },
+    { tenantId: tenant._id, admissionNo: "ADM-0005", rollNo: "5B-02", name: "Zain Ali", gender: "MALE", dateOfBirth: new Date(2014, 5, 30), bloodGroup: "B-", fatherName: "Ali Raza", fatherPhone: "03211234505", city: "Lahore", classId: g5b._id, section: "B", admissionDate: addDays(now, -180) },
+    { tenantId: tenant._id, admissionNo: "ADM-0006", rollNo: "6A-01", name: "Maryam Nawaz", gender: "FEMALE", dateOfBirth: new Date(2013, 2, 18), bloodGroup: "O-", fatherName: "Nawaz Sharif", fatherPhone: "03211234506", city: "Lahore", classId: g6a._id, section: "A", admissionDate: addDays(now, -120) },
+    { tenantId: tenant._id, admissionNo: "ADM-0007", rollNo: "6A-02", name: "Hamza Yousaf", gender: "MALE", dateOfBirth: new Date(2013, 10, 9), bloodGroup: "A-", fatherName: "Yousaf Khan", fatherPhone: "03211234507", city: "Lahore", classId: g6a._id, section: "A", admissionDate: addDays(now, -90) },
+    { tenantId: tenant._id, admissionNo: "ADM-0008", rollNo: "7A-01", name: "Areeba Fatima", gender: "FEMALE", dateOfBirth: new Date(2012, 7, 12), bloodGroup: "B+", fatherName: "Rashid Mehmood", fatherPhone: "03211234508", city: "Lahore", classId: g7a._id, section: "A", admissionDate: addDays(now, -60) },
+  ]);
+
+  // Today's student attendance.
+  const dk = dayKey(now);
+  await Attendance.create(
+    students.map((s, i) => ({ tenantId: tenant._id, studentId: s._id, date: now, dayKey: dk, status: i === 4 ? "ABSENT" : i === 2 ? "LATE" : "PRESENT" }))
+  );
+  // A few prior days so trends/reports have data.
+  for (let d = 1; d <= 5; d += 1) {
+    const day = addDays(now, -d);
+    await Attendance.create(
+      students.map((s, i) => ({ tenantId: tenant._id, studentId: s._id, date: day, dayKey: dayKey(day), status: (i + d) % 7 === 0 ? "ABSENT" : "PRESENT" }))
+    );
+  }
+
+  // Today's teacher attendance.
+  await TeacherAttendance.create(
+    teachers.map((t) => ({ tenantId: tenant._id, teacherId: t._id, date: now, dayKey: dk, status: "PRESENT", checkIn: "08:15" }))
+  );
+
+  // Timetable for Grade 5-A (Mon–Fri).
+  await Timetable.create(
+    [1, 2, 3, 4, 5].map((dayOfWeek) => ({
+      tenantId: tenant._id,
+      classId: g5a._id,
+      dayOfWeek,
+      periods: [
+        { period: 1, subjectId: subjects[0]._id, teacherId: ahmed._id, startTime: "08:30", endTime: "09:15", room: "R-101" },
+        { period: 2, subjectId: subjects[1]._id, teacherId: fatima._id, startTime: "09:15", endTime: "10:00", room: "R-101" },
+        { period: 3, subjectId: subjects[2]._id, teacherId: bilal._id, startTime: "10:15", endTime: "11:00", room: "R-101" },
+      ],
+    }))
+  );
+
+  // An exam + schedule + marks for Grade 5-A.
+  const exam = await Exam.create({
+    tenantId: tenant._id, name: "First Term Examination", term: "TERM_1", classId: g5a._id,
+    startDate: addDays(now, -20), endDate: addDays(now, -12), status: "COMPLETED",
+  });
+  await ExamSubject.create([
+    { tenantId: tenant._id, examId: exam._id, subjectId: subjects[0]._id, date: addDays(now, -20), totalMarks: 100, passingMarks: 40 },
+    { tenantId: tenant._id, examId: exam._id, subjectId: subjects[1]._id, date: addDays(now, -18), totalMarks: 100, passingMarks: 40 },
+    { tenantId: tenant._id, examId: exam._id, subjectId: subjects[2]._id, date: addDays(now, -16), totalMarks: 100, passingMarks: 40 },
+  ]);
+  const gradeFor = (m) => (m >= 90 ? "A+" : m >= 80 ? "A" : m >= 70 ? "B" : m >= 60 ? "C" : m >= 50 ? "D" : m >= 40 ? "E" : "F");
+  const classA = [students[0], students[1], students[2]];
+  const marks = [
+    { s: 0, m: [92, 85, 88] },
+    { s: 1, m: [78, 90, 81] },
+    { s: 2, m: [65, 72, 70] },
+  ];
+  const resultRows = [];
+  for (const row of marks) {
+    const student = classA[row.s];
+    [subjects[0], subjects[1], subjects[2]].forEach((sub, idx) => {
+      resultRows.push({
+        tenantId: tenant._id, examId: exam._id, studentId: student._id, subjectId: sub._id,
+        examName: exam.name, subject: sub.name, marks: row.m[idx], totalMarks: 100,
+        grade: gradeFor(row.m[idx]), examDate: addDays(now, -20 + idx * 2),
+      });
+    });
+  }
+  await ExamResult.create(resultRows);
+
+  // Homework + one submission.
+  const assignment = await Assignment.create({
+    tenantId: tenant._id, classId: g5a._id, subjectId: subjects[0]._id, teacherId: ahmed._id,
+    title: "Multiplication tables 1–12", description: "Write and memorise tables 1 to 12.", dueDate: addDays(now, 3), maxMarks: 10,
+  });
+  await AssignmentSubmission.create({
+    tenantId: tenant._id, assignmentId: assignment._id, studentId: students[0]._id, content: "Completed all tables.", status: "SUBMITTED",
+  });
+
+  // Fee structures + this month's vouchers.
+  await FeeStructure.create([
+    { tenantId: tenant._id, classId: g5a._id, name: "Monthly Fee", frequency: "MONTHLY", amount: 8000, items: [{ name: "Tuition", amount: 7000 }, { name: "Fees", amount: 1000 }] },
+    { tenantId: tenant._id, classId: g6a._id, name: "Monthly Fee", frequency: "MONTHLY", amount: 9000 },
+    { tenantId: tenant._id, classId: g7a._id, name: "Monthly Fee", frequency: "MONTHLY", amount: 10000 },
+  ]);
+  const dueDate = new Date(now.getFullYear(), now.getMonth(), 10);
+  const feeRows = [];
+  for (const [i, student] of students.entries()) {
+    const amount = student.classId.equals(g5a._id) || student.classId.equals(g5b._id) ? 8000 : student.classId.equals(g6a._id) ? 9000 : 10000;
+    const paid = i % 2 === 0;
+    feeRows.push({
+      tenantId: tenant._id, studentId: student._id, amount, discount: 0, fine: 0, netAmount: amount,
+      month, year: now.getFullYear(), dueDate, status: paid ? "PAID" : "PENDING",
+      paidAt: paid ? addDays(now, -2) : null, method: paid ? "CASH" : undefined,
+      receiptNo: paid ? invoiceRef("RCP") : undefined,
+    });
+  }
+  await FeePayment.create(feeRows);
+
+  // Expenses.
+  const lastMonth = new Date(now);
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  await SchoolExpense.create([
+    { tenantId: tenant._id, category: "RENT", amount: 250000, date: now, description: "School building rent", paymentMethod: "BANK_TRANSFER" },
+    { tenantId: tenant._id, category: "UTILITIES", amount: 65000, date: now, description: "Electricity & water", paymentMethod: "CASH" },
+    { tenantId: tenant._id, category: "SUPPLIES", amount: 40000, date: now, description: "Stationery & lab supplies", paymentMethod: "CASH" },
+    { tenantId: tenant._id, category: "TRANSPORT", amount: 55000, date: now, description: "School van fuel", paymentMethod: "CASH" },
+    { tenantId: tenant._id, category: "RENT", amount: 250000, date: lastMonth, description: "School building rent", paymentMethod: "BANK_TRANSFER" },
+  ]);
+
+  // Current-month payroll.
+  for (const teacher of teachers) {
+    await SchoolSalary.create({ tenantId: tenant._id, teacherId: teacher._id, month, baseSalary: teacher.salary, bonuses: 0, deductions: 0, netPay: teacher.salary, status: "PENDING" });
+  }
+
+  // Library.
+  const books = await LibraryBook.create([
+    { tenantId: tenant._id, title: "Oxford Primary Mathematics 5", author: "Oxford University Press", isbn: "9780190700011", category: "Textbook", publisher: "OUP", totalCopies: 30, availableCopies: 27, price: 1200, shelf: "S-1" },
+    { tenantId: tenant._id, title: "The Adventures of Tom Sawyer", author: "Mark Twain", isbn: "9780141321115", category: "Fiction", publisher: "Penguin", totalCopies: 10, availableCopies: 9, price: 800, shelf: "S-2" },
+    { tenantId: tenant._id, title: "New Oxford Secondary Science", author: "N. Reynolds", category: "Textbook", publisher: "OUP", totalCopies: 25, availableCopies: 25, price: 1100, shelf: "S-3" },
+  ]);
+  await LibraryIssue.create([
+    { tenantId: tenant._id, bookId: books[0]._id, studentId: students[0]._id, issuedAt: addDays(now, -10), dueDate: addDays(now, 4), status: "ISSUED" },
+    { tenantId: tenant._id, bookId: books[1]._id, studentId: students[1]._id, issuedAt: addDays(now, -20), dueDate: addDays(now, -6), status: "ISSUED" },
+  ]);
+
+  // Transport.
+  const route = await TransportRoute.create({
+    tenantId: tenant._id, name: "Route A — Model Town", vehicleNo: "LEB-1234", driverName: "Akram Ali", driverPhone: "03011234567", conductorName: "Nadeem", capacity: 30, fare: 2500,
+    stops: [{ name: "Model Town", time: "06:50", fare: 2500 }, { name: "Garden Town", time: "07:10", fare: 2000 }, { name: "Canal Road", time: "07:30", fare: 1800 }],
+  });
+  await TransportAssignment.create([
+    { tenantId: tenant._id, studentId: students[0]._id, routeId: route._id, stopName: "Model Town", fare: 2500, status: "ACTIVE" },
+    { tenantId: tenant._id, studentId: students[1]._id, routeId: route._id, stopName: "Garden Town", fare: 2000, status: "ACTIVE" },
+  ]);
+
+  // Hostel.
+  const hostel = await Hostel.create({ tenantId: tenant._id, name: "Boys Hostel A", type: "BOYS", wardenName: "Mr. Saleem", wardenPhone: "03001239999", capacity: 60 });
+  const rooms = await HostelRoom.create([
+    { tenantId: tenant._id, hostelId: hostel._id, roomNo: "101", floor: "Ground", capacity: 4, occupied: 1, fee: 15000 },
+    { tenantId: tenant._id, hostelId: hostel._id, roomNo: "102", floor: "Ground", capacity: 4, occupied: 0, fee: 15000 },
+  ]);
+  await HostelAllocation.create({ tenantId: tenant._id, studentId: students[5]._id, roomId: rooms[0]._id, status: "ACTIVE" });
+
+  // Notices & events.
+  await Notice.create([
+    { tenantId: tenant._id, title: "Parent–Teacher Meeting", body: "PTM for all classes will be held this Saturday from 9:00 AM to 1:00 PM.", audience: "ALL", isPinned: true, createdBy: ownerUser._id },
+    { tenantId: tenant._id, title: "First Term Result Announced", body: "First term results are now available. Please collect report cards from the class teacher.", audience: "STUDENTS", createdBy: ownerUser._id },
+    { tenantId: tenant._id, title: "Staff Meeting", body: "All teaching staff must attend the curriculum meeting on Friday at 2:00 PM.", audience: "TEACHERS", createdBy: ownerUser._id },
+  ]);
+  await SchoolEvent.create([
+    { tenantId: tenant._id, title: "Annual Sports Day", description: "Inter-house sports competition.", type: "SPORTS", location: "School Ground", startDate: addDays(now, 14) },
+    { tenantId: tenant._id, title: "Independence Day Assembly", description: "Special assembly and cultural program.", type: "CULTURAL", location: "Auditorium", startDate: addDays(now, 30) },
+    { tenantId: tenant._id, title: "Mid-Term Break", description: "School closed for mid-term break.", type: "HOLIDAY", startDate: addDays(now, 45), endDate: addDays(now, 49), isHoliday: true },
+  ]);
+
+  // Admissions pipeline.
+  await Admission.create([
+    { tenantId: tenant._id, applicantName: "Ahmad Subhan", gender: "MALE", guardianName: "Subhan Ali", guardianPhone: "03219990001", classAppliedId: g5a._id, status: "NEW", source: "Walk-in" },
+    { tenantId: tenant._id, applicantName: "Eman Fatima", gender: "FEMALE", guardianName: "Faisal Mehmood", guardianPhone: "03219990002", classAppliedId: g6a._id, status: "INTERVIEW", source: "Website", followUpDate: addDays(now, 5) },
+    { tenantId: tenant._id, applicantName: "Hassan Raza", gender: "MALE", guardianName: "Raza Ahmed", guardianPhone: "03219990003", classAppliedId: g7a._id, status: "APPROVED", source: "Referral" },
+  ]);
+
+  // School settings (singleton).
+  await SchoolSettings.findOneAndUpdate(
+    { tenantId: tenant._id },
+    {
+      tenantId: tenant._id,
+      schoolName: "Greenfield Academy",
+      tagline: "Empowering young minds",
+      phone: "04211234567",
+      email: "info@greenfield.edu.pk",
+      address: "45 Education Street, Gulberg, Lahore",
+      website: "https://greenfield.edu.pk",
+      principalName: "Dr. Kamran Yousuf",
+      registrationNo: "PBC-2023-00456",
+      timezone: "Asia/Karachi",
+      currency: "PKR",
+      academicYear: "2025-2026",
+      currentTerm: "TERM_1",
+      passingPercent: 40,
+      lowAttendanceThreshold: 75,
+      feeDueDay: 10,
+    },
+    { upsert: true, new: true }
+  );
+
+  console.log("  seeded 5 teachers, 4 classes, 5 subjects, 8 students, attendance, timetable, exam + results");
+  console.log("  seeded fee structures + vouchers, expenses, payroll, library, transport, hostel, notices, events, admissions, settings");
+}
+
 async function main() {
   await connectDB();
   console.log("Seeding NexusSoft (MongoDB)...");
@@ -634,6 +876,7 @@ async function main() {
     if (ind.industry === "GYM") await seedGym(tenant, ownerUser);
     if (ind.industry === "SALON") await seedSalon(tenant, ownerUser);
     if (ind.industry === "CLINIC") await seedClinic(tenant, ownerUser);
+    if (ind.industry === "SCHOOL") await seedSchool(tenant, ownerUser);
   }
 
   console.log("\nSeeding complete.");

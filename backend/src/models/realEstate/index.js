@@ -11,4 +11,5 @@ module.exports = {
   Vendor: require("./Vendor"),
   PropertyDocument: require("./Document"),
   PropertyTask: require("./Task"),
+  RealEstateSettings: require("./Settings"),
 };

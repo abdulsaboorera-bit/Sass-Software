@@ -102,6 +102,25 @@ const purchaseOrderSchema = new Schema(
 );
 purchaseOrderSchema.index({ tenantId: 1, orderNo: 1 }, { unique: true });
 
+// ── Settings (tenant singleton) ──────────────────────────
+const bookshopSettingsSchema = new Schema(
+  {
+    tenantId: { ...ref("Tenant"), required: true, unique: true, index: true },
+    businessName: { type: String, trim: true },
+    tagline: { type: String },
+    phone: { type: String },
+    email: { type: String },
+    address: { type: String },
+    website: { type: String },
+    logo: { type: String },
+    timezone: { type: String, default: "Asia/Karachi" },
+    currency: { type: String, default: "PKR" },
+    taxRate: { type: Number, default: 0, min: 0, max: 100 },
+    lowStockThreshold: { type: Number, default: 5 },
+  },
+  baseOptions
+);
+
 // Relation aliases the frontend reads (sale.customer, sale.saleItems, saleItem.book).
 saleSchema.virtual("customer", { ref: "BookCustomer", localField: "customerId", foreignField: "_id", justOne: true });
 saleSchema.virtual("saleItems", { ref: "SaleItem", localField: "_id", foreignField: "saleId" });
@@ -115,4 +134,5 @@ module.exports = {
   SaleItem: mongoose.models.SaleItem || mongoose.model("SaleItem", saleItemSchema),
   LoyaltyPoint: mongoose.models.LoyaltyPoint || mongoose.model("LoyaltyPoint", loyaltyPointSchema),
   PurchaseOrder: mongoose.models.PurchaseOrder || mongoose.model("PurchaseOrder", purchaseOrderSchema),
+  BookshopSettings: mongoose.models.BookshopSettings || mongoose.model("BookshopSettings", bookshopSettingsSchema),
 };

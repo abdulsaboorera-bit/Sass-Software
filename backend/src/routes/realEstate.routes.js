@@ -4,6 +4,10 @@ const express = require("express");
 const ctrl = require("../controllers/realEstate.controller");
 const { requireAuth, requireTenant, requireIndustry } = require("../middleware/auth");
 const { requirePermission } = require("../middleware/rbac");
+const { sanitize } = require("../utils/crud");
+const { apiSuccess } = require("../utils/apiResponse");
+const asyncHandler = require("../utils/asyncHandler");
+const { RealEstateSettings } = require("../models");
 
 const router = express.Router();
 router.use(requireAuth, requireTenant, requireIndustry("REAL_ESTATE"));
@@ -65,5 +69,24 @@ router.get("/tasks", requirePermission("tasks.view"), ctrl.listTasks);
 router.post("/tasks", requirePermission("tasks.create"), ctrl.createTask);
 router.patch("/tasks", requirePermission("tasks.edit"), ctrl.updateTask);
 router.patch("/tasks/:id", requirePermission("tasks.edit"), ctrl.updateTask);
+
+// ── Settings (tenant singleton) ──────────────────────────
+const getSettings = asyncHandler(async (req, res) => {
+  const settings = await RealEstateSettings.findOne({ tenantId: req.tenantId }).lean({ virtuals: true });
+  return apiSuccess(res, { settings: settings || { tenantId: req.tenantId } });
+});
+
+const updateSettings = asyncHandler(async (req, res) => {
+  const updates = sanitize(req.body);
+  const settings = await RealEstateSettings.findOneAndUpdate(
+    { tenantId: req.tenantId },
+    { $set: updates, $setOnInsert: { tenantId: req.tenantId } },
+    { new: true, upsert: true, runValidators: true }
+  ).lean({ virtuals: true });
+  return apiSuccess(res, { settings });
+});
+
+router.get("/settings", requirePermission("settings.view"), getSettings);
+router.patch("/settings", requirePermission("settings.edit"), updateSettings);
 
 module.exports = router;

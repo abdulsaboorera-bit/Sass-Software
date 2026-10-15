@@ -55,7 +55,7 @@ const industryNav: Record<string, NavLink[]> = {
     { label: "Notices", href: "/dashboard/school/notices", icon: Bell },
     { label: "Events", href: "/dashboard/school/events", icon: Calendar },
     { label: "Reports", href: "/dashboard/school/reports", icon: BarChart3 },
-    { label: "Settings", href: "/dashboard/settings", icon: Settings },
+    { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
   CLINIC: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -86,7 +86,7 @@ const industryNav: Record<string, NavLink[]> = {
     { label: "Expenses", href: "/dashboard/restaurant/expenses", icon: DollarSign },
     { label: "Billing", href: "/dashboard/restaurant/billing", icon: DollarSign },
     { label: "Reports", href: "/dashboard/restaurant/reports", icon: BarChart3 },
-    { label: "Settings", href: "/dashboard/restaurant/settings", icon: Settings },
+    { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
   GYM: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -109,7 +109,7 @@ const industryNav: Record<string, NavLink[]> = {
     { label: "Sales", href: "/dashboard/sales", icon: DollarSign },
     { label: "Customers", href: "/dashboard/customers", icon: Users },
     { label: "Inventory", href: "/dashboard/inventory", icon: Calendar },
-    { label: "Settings", href: "/dashboard/settings", icon: Settings },
+    { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
   CAR_RENTAL: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },

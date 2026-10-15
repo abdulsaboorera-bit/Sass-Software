@@ -5,4 +5,5 @@ module.exports = {
   RentalCustomer: require("./RentalCustomer"),
   Rental: require("./Rental"),
   RentalPayment: require("./RentalPayment"),
+  CarRentalSettings: require("./Settings"),
 };

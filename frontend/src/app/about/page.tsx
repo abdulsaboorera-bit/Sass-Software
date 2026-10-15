@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { Target, Eye, Heart, Users, Award, Zap, ArrowRight, CheckCircle, Globe, TrendingUp } from "lucide-react";
 import ScrollReveal from "@/components/animations/ScrollReveal";
-import AnimatedBarChart from "@/components/charts/AnimatedBarChart";
-import AnimatedLineChart from "@/components/charts/AnimatedLineChart";
-import AnimatedDonutProgress from "@/components/charts/AnimatedDonutProgress";
-import AnimatedPieChart from "@/components/charts/AnimatedPieChart";
+import { AnimatedBarChart, AnimatedLineChart, AnimatedDonutProgress, AnimatedPieChart } from "@/components/charts/LightCharts";
 
 const values = [
   { icon: Target, title: "Mission-Driven", desc: "We exist to make enterprise-grade software accessible and affordable for every business in Pakistan, regardless of size.", color: "#15757b", bg: "#f0f9f9" },

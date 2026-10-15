@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, TrendingUp, Star, Utensils, Stethoscope, GraduationCap, BookOpen } from "lucide-react";
 import ScrollReveal from "@/components/animations/ScrollReveal";
-import AnimatedBarChart from "@/components/charts/AnimatedBarChart";
-import AnimatedLineChart from "@/components/charts/AnimatedLineChart";
-import AnimatedDonutProgress from "@/components/charts/AnimatedDonutProgress";
+import { AnimatedBarChart, AnimatedLineChart, AnimatedDonutProgress } from "@/components/charts/LightCharts";
 
 const caseStudies = [
   {

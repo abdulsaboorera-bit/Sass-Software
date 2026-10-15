@@ -53,8 +53,6 @@
   ::-webkit-scrollbar-track    { background: #f1f5f9; }
   ::-webkit-scrollbar-thumb    { background: #cbd5e1; border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #15757b; }
-
-  main { animation: page-enter 0.3s ease both; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -707,8 +705,6 @@
       radial-gradient(ellipse at 20% 50%, rgba(21,117,123,0.15) 0%, transparent 50%),
       radial-gradient(ellipse at 80% 20%, rgba(74,158,162,0.1) 0%, transparent 50%),
       radial-gradient(ellipse at 50% 80%, rgba(74,158,162,0.1) 0%, transparent 50%);
-    animation: gradient-shift 8s ease infinite;
-    background-size: 200% 200%;
     pointer-events: none;
   }
 

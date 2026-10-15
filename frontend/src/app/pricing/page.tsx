@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { CheckCircle, X, ArrowRight, Zap, Star, MessageSquare } from "lucide-react";
 import ScrollReveal from "@/components/animations/ScrollReveal";
-import AnimatedBarChart from "@/components/charts/AnimatedBarChart";
-import AnimatedDonutProgress from "@/components/charts/AnimatedDonutProgress";
-import AnimatedPieChart from "@/components/charts/AnimatedPieChart";
+import { AnimatedDonutProgress, AnimatedPieChart } from "@/components/charts/LightCharts";
 
 const plans = [
   {

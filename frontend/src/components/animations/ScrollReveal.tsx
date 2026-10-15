@@ -58,7 +58,7 @@ export default function ScrollReveal({
     opacity: visible ? 1 : 0,
     transform: visible ? "translateY(0) translateX(0) scale(1)" : translateMap[direction],
     transition: `opacity ${duration}ms cubic-bezier(0.16,1,0.3,1), transform ${duration}ms cubic-bezier(0.16,1,0.3,1)`,
-    willChange: "opacity, transform",
+    willChange: visible ? "auto" : "opacity, transform",
   };
 
   return (

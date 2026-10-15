@@ -1,56 +1,25 @@
-"use client";
-
 import Link from "next/link";
-import dynamic from "next/dynamic";
-import { useState, useEffect, useRef } from "react";
-import ScrollReveal from "@/components/animations/ScrollReveal";
-const HeroScene3D = dynamic(() => import("@/components/animations/HeroScene3D"), { ssr: false, loading: () => null });
-const AnimatedPieChart = dynamic(() => import("@/components/charts/AnimatedPieChart"), { ssr: false, loading: () => <div className="h-48" /> });
-const AnimatedBarChart = dynamic(() => import("@/components/charts/AnimatedBarChart"), { ssr: false, loading: () => <div className="h-48" /> });
-const AnimatedLineChart = dynamic(() => import("@/components/charts/AnimatedLineChart"), { ssr: false, loading: () => <div className="h-48" /> });
-import AnimatedDonutProgress from "@/components/charts/AnimatedDonutProgress";
-import AnimatedProgressBars from "@/components/ui/AnimatedProgressBars";
+import {
+  AnimatedBarChart,
+  AnimatedLineChart,
+  AnimatedPieChart,
+  AnimatedDonutProgress,
+} from "@/components/charts/LightCharts";
 import {
   ArrowRight, CheckCircle, Star, Utensils, Stethoscope,
   BookOpen, GraduationCap, Cloud, Shield, Users, BarChart3,
   Smartphone, Lock, RefreshCw, Puzzle, TrendingUp,
   Zap, Award, HeadphonesIcon, MessageSquare, LayoutDashboard,
   Globe, ChevronDown, Phone, Dumbbell, Play,
-  ChevronRight, Clock, Package, Sparkles, Activity,
-  PieChart as PieChartIcon, LineChart as LineChartIcon,
-  Target, Rocket, Database, Cpu
+  Clock, Package, Sparkles, Activity,
+  Target
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────
-   Animated Counter
+   Stat value — static, no runtime animation loop
 ───────────────────────────────────────────────────────── */
 function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
-  const [val, setVal] = useState(0);
-  const started = useRef(false);
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && !started.current) {
-        started.current = true;
-        const duration = 1400;
-        const start = performance.now();
-        const tick = (now: number) => {
-          const p = Math.min((now - start) / duration, 1);
-          const ease = 1 - Math.pow(1 - p, 3);
-          setVal(Math.round(ease * to));
-          if (p < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      }
-    }, { threshold: 0.5 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [to]);
-
-  return <span ref={ref}>{val.toLocaleString()}{suffix}</span>;
+  return <span>{to.toLocaleString()}{suffix}</span>;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -59,8 +28,6 @@ function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
 function DashboardMockup() {
   return (
     <div className="relative select-none">
-      <div className="absolute inset-0 rounded-2xl animate-glow-pulse" style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(21,117,123,0.2) 0%, transparent 70%)", filter: "blur(32px)", transform: "scale(1.15)" }} />
-
       <div className="relative dashboard-mockup" style={{ boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)" }}>
         <div className="mockup-title-bar">
           <span className="mockup-dot-r" />
@@ -133,8 +100,8 @@ function DashboardMockup() {
 
       {/* Floating pill — System Status */}
       <div
-        className="absolute -top-4 -right-3 animate-float"
-        style={{ animationDelay: "0.8s", background: "rgba(13,17,23,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}
+        className="absolute -top-4 -right-3"
+        style={{ background: "rgba(13,17,23,0.98)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span className="live-dot" />
@@ -147,8 +114,8 @@ function DashboardMockup() {
 
       {/* Floating pill — Revenue */}
       <div
-        className="absolute -bottom-4 -left-3 animate-float"
-        style={{ animationDelay: "1.8s", background: "rgba(13,17,23,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}
+        className="absolute -bottom-4 -left-3"
+        style={{ background: "rgba(13,17,23,0.98)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "10px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 30, height: 30, borderRadius: 10, background: "rgba(21,117,123,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -340,6 +307,14 @@ const stats = [
   { value: 24,  suffix: "/7",label: "Expert Support",       sub: "Zero hold times",    icon: HeadphonesIcon,color: "#f97316" },
 ];
 
+const progressBars = [
+  { label: "Client Satisfaction", value: 98, color: "#15757b" },
+  { label: "System Uptime", value: 99.9, color: "#10b981" },
+  { label: "Support Resolution", value: 94, color: "#8b5cf6" },
+  { label: "Feature Adoption", value: 87, color: "#f97316" },
+  { label: "On-time Delivery", value: 96, color: "#4a9ea2" },
+];
+
 const industryPieData = [
   { name: "Restaurants", value: 35, color: "#f97316" },
   { name: "Clinics", value: 25, color: "#10b981" },
@@ -383,14 +358,13 @@ export default function HomePage() {
       ══════════════════════════════════════════════════ */}
       <section className="hero-section flex flex-col items-center justify-center pt-24 sm:pt-28 pb-8 sm:pb-12" style={{ minHeight: "100svh" }}>
         <div className="hero-grid" />
-        <div className="hero-glow animate-glow-pulse hidden sm:block" style={{ width: 650, height: 650, left: "50%", top: "20%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(21,117,123,0.14) 0%, transparent 70%)" }} />
-        <div className="hero-glow animate-glow-pulse hidden md:block" style={{ width: 500, height: 500, right: "15%", bottom: "20%", background: "radial-gradient(circle, rgba(74,158,162,0.08) 0%, transparent 70%)", animationDelay: "1.5s" }} />
-        <HeroScene3D />
+        <div className="hero-glow hidden sm:block" style={{ width: 650, height: 650, left: "50%", top: "20%", transform: "translateX(-50%)", background: "radial-gradient(circle, rgba(21,117,123,0.14) 0%, transparent 70%)" }} />
+        <div className="hero-glow hidden md:block" style={{ width: 500, height: 500, right: "15%", bottom: "20%", background: "radial-gradient(circle, rgba(74,158,162,0.08) 0%, transparent 70%)" }} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 animate-fade-up delay-0 mx-auto"
-            style={{ background: "rgba(21,117,123,0.08)", border: "1px solid rgba(21,117,123,0.15)", backdropFilter: "blur(8px)" }}>
+            style={{ background: "rgba(21,117,123,0.08)", border: "1px solid rgba(21,117,123,0.15)" }}>
             <span className="live-dot" />
             <span style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#4a9ea2" }}>
               Pakistan&apos;s #1 Business Software
@@ -456,7 +430,7 @@ export default function HomePage() {
           </div>
 
           {/* Scroll cue */}
-          <div className="flex flex-col items-center gap-1.5 mt-10 animate-bounce" style={{ color: "#374151" }}>
+          <div className="flex flex-col items-center gap-1.5 mt-10" style={{ color: "#374151" }}>
             <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>Scroll</span>
             <ChevronDown size={14} />
           </div>
@@ -472,8 +446,8 @@ export default function HomePage() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {stats.map((s, i) => (
-              <ScrollReveal key={s.label} delay={i * 100} direction="up">
+            {stats.map((s) => (
+              <div key={s.label}>
                 <div className="metric-card-dark text-center" style={{ "--metric-color": s.color } as React.CSSProperties}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: "1rem" }}>
                     <div style={{ width: 44, height: 44, borderRadius: 12, background: `${s.color}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -486,7 +460,7 @@ export default function HomePage() {
                   <p className="text-sm font-semibold" style={{ color: "#e2e8f0", marginBottom: "0.2rem" }}>{s.label}</p>
                   <p className="text-xs" style={{ color: "#64748b" }}>{s.sub}</p>
                 </div>
-              </ScrollReveal>
+              </div>
             ))}
           </div>
         </div>
@@ -500,22 +474,20 @@ export default function HomePage() {
         <div className="hero-glow" style={{ width: 600, height: 600, right: "10%", top: "20%", background: "radial-gradient(circle, rgba(21,117,123,0.1) 0%, transparent 70%)" }} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
-          <ScrollReveal direction="up">
-            <div className="section-intro">
-              <p className="section-label-dark">Platform Analytics</p>
-              <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#f9fafb", marginBottom: "1rem" }}>
-                Real-Time Insights Across Every Industry
-              </h2>
-              <p style={{ fontSize: "1rem", color: "#94a3b8", lineHeight: 1.7 }}>
-                Live dashboards with actionable analytics — see exactly how your business performs at a glance.
-              </p>
-            </div>
-          </ScrollReveal>
+          <div className="section-intro">
+            <p className="section-label-dark">Platform Analytics</p>
+            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#f9fafb", marginBottom: "1rem" }}>
+              Real-Time Insights Across Every Industry
+            </h2>
+            <p style={{ fontSize: "1rem", color: "#94a3b8", lineHeight: 1.7 }}>
+              Live dashboards with actionable analytics — see exactly how your business performs at a glance.
+            </p>
+          </div>
 
           {/* Main analytics grid */}
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Revenue Growth — Large Area Chart */}
-            <ScrollReveal delay={0} direction="up" className="lg:col-span-2">
+            <div className="lg:col-span-2">
               <div className="chart-card-dark" style={{ "--chart-color": "#15757b" } as React.CSSProperties}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: "1.5rem" }}>
                   <div>
@@ -533,7 +505,6 @@ export default function HomePage() {
                   color="#15757b"
                   color2="#8b5cf6"
                   name2="Last Year"
-                  animationDuration={1500}
                 />
                 <div className="chart-legend">
                   <div className="chart-legend-item">
@@ -546,14 +517,14 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </ScrollReveal>
+            </div>
 
             {/* Industry Distribution — Pie Chart */}
-            <ScrollReveal delay={100} direction="up">
+            <div>
               <div className="chart-card-dark text-center" style={{ "--chart-color": "#8b5cf6" } as React.CSSProperties}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#f9fafb", marginBottom: "0.25rem" }}>Industry Distribution</h3>
                 <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "1rem" }}>Client breakdown by sector</p>
-                <AnimatedPieChart data={industryPieData} height={200} innerRadius={55} outerRadius={85} animationDuration={1200} />
+                <AnimatedPieChart data={industryPieData} height={200} innerRadius={55} outerRadius={85} />
                 <div className="chart-legend" style={{ justifyContent: "center" }}>
                   {industryPieData.map(d => (
                     <div key={d.name} className="chart-legend-item">
@@ -563,13 +534,13 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
-            </ScrollReveal>
+            </div>
           </div>
 
           {/* Second row — Progress rings and bar chart */}
           <div className="grid md:grid-cols-3 gap-6 mt-6">
             {/* KPI Donut Rings */}
-            <ScrollReveal delay={0} direction="up">
+            <div>
               <div className="chart-card-dark text-center" style={{ "--chart-color": "#10b981" } as React.CSSProperties}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#f9fafb", marginBottom: "1.5rem" }}>Performance Metrics</h3>
                 <div style={{ display: "flex", justifyContent: "space-around" }}>
@@ -584,10 +555,10 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </ScrollReveal>
+            </div>
 
             {/* Client Satisfaction — Bar Chart */}
-            <ScrollReveal delay={100} direction="up">
+            <div>
               <div className="chart-card-dark text-center" style={{ "--chart-color": "#f97316" } as React.CSSProperties}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#f9fafb", marginBottom: "0.25rem" }}>Client Satisfaction</h3>
                 <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "0.5rem" }}>Monthly NPS scores</p>
@@ -602,13 +573,12 @@ export default function HomePage() {
                   ]}
                   height={180}
                   barSize={24}
-                  animationDuration={1200}
                 />
               </div>
-            </ScrollReveal>
+            </div>
 
             {/* User Activity — Donut */}
-            <ScrollReveal delay={200} direction="up">
+            <div>
               <div className="chart-card-dark text-center" style={{ "--chart-color": "#ec4899" } as React.CSSProperties}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#f9fafb", marginBottom: "0.25rem" }}>User Activity</h3>
                 <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "0.5rem" }}>Active users by plan</p>
@@ -621,10 +591,9 @@ export default function HomePage() {
                   height={180}
                   innerRadius={45}
                   outerRadius={70}
-                  animationDuration={1000}
                 />
               </div>
-            </ScrollReveal>
+            </div>
           </div>
         </div>
       </section>
@@ -634,21 +603,19 @@ export default function HomePage() {
       ══════════════════════════════════════════════════ */}
       <section className="py-12 sm:py-20 lg:py-[7rem]" style={{ background: "#ffffff" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <ScrollReveal direction="up">
-            <div className="section-intro">
-              <p className="section-label">Our Solutions</p>
-              <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.625rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
-                Purpose-Built for Five Industries
-              </h2>
-              <p style={{ fontSize: "1.0625rem", color: "#6b7280", lineHeight: 1.7 }}>
-                Not generic software adapted to fit — each product is engineered around how your industry actually operates.
-              </p>
-            </div>
-          </ScrollReveal>
+          <div className="section-intro">
+            <p className="section-label">Our Solutions</p>
+            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.625rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
+              Purpose-Built for Five Industries
+            </h2>
+            <p style={{ fontSize: "1.0625rem", color: "#6b7280", lineHeight: 1.7 }}>
+              Not generic software adapted to fit — each product is engineered around how your industry actually operates.
+            </p>
+          </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {solutions.map((sol, i) => (
-              <ScrollReveal key={sol.title} delay={i * 80} direction="up">
+            {solutions.map((sol) => (
+              <div key={sol.title}>
                 <div
                   className="solution-card-v2 h-full flex flex-col"
                   style={{ "--sol-color": sol.accent, "--sol-color-end": sol.accentEnd } as React.CSSProperties}
@@ -677,7 +644,6 @@ export default function HomePage() {
                       barSize={16}
                       showGrid={false}
                       showAxis={false}
-                      animationDuration={1000}
                       gradient={false}
                       colors={[sol.accent, sol.accentEnd || sol.accent]}
                     />
@@ -712,11 +678,11 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-              </ScrollReveal>
+              </div>
             ))}
 
             {/* CTA tile */}
-            <ScrollReveal delay={5 * 80} direction="up">
+            <div>
               <div className="h-full" style={{
                 background: "linear-gradient(135deg, #0a2f32 0%, #0f172a 50%, #0a2f32 100%)",
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -747,7 +713,7 @@ export default function HomePage() {
                   Discuss your project <ArrowRight size={14} />
                 </Link>
               </div>
-            </ScrollReveal>
+            </div>
           </div>
         </div>
       </section>
@@ -757,21 +723,19 @@ export default function HomePage() {
       ══════════════════════════════════════════════════ */}
       <section className="py-12 sm:py-20 lg:py-[7rem]" style={{ background: "#f8fafc", borderTop: "1px solid #e5e7eb" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <ScrollReveal direction="up">
-            <div className="section-intro">
-              <p className="section-label">Client Growth</p>
-              <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
-                Businesses Scale Faster With Orbitrix ERP
-              </h2>
-              <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.7 }}>
-                Average client growth trajectory after adopting our platform.
-              </p>
-            </div>
-          </ScrollReveal>
+          <div className="section-intro">
+            <p className="section-label">Client Growth</p>
+            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
+              Businesses Scale Faster With Orbitrix ERP
+            </h2>
+            <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.7 }}>
+              Average client growth trajectory after adopting our platform.
+            </p>
+          </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Revenue Growth */}
-            <ScrollReveal direction="up">
+            <div>
               <div className="chart-card text-center" style={{ "--chart-color": "#15757b" } as React.CSSProperties}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: "1.5rem" }}>
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0f9f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -788,7 +752,6 @@ export default function HomePage() {
                   color="#15757b"
                   color2="#10b981"
                   name2="Net Profit"
-                  animationDuration={1400}
                 />
                 <div className="chart-legend" style={{ justifyContent: "center" }}>
                   <div className="chart-legend-item">
@@ -801,10 +764,10 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </ScrollReveal>
+            </div>
 
             {/* Client Satisfaction Progress */}
-            <ScrollReveal direction="up">
+            <div>
               <div className="chart-card text-center" style={{ "--chart-color": "#10b981" } as React.CSSProperties}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: "1.5rem" }}>
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -817,9 +780,21 @@ export default function HomePage() {
                 </div>
 
                 {/* Progress bars */}
-                <AnimatedProgressBars />
+                <div style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: "1.5rem" }}>
+                  {progressBars.map(item => (
+                    <div key={item.label}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                        <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151" }}>{item.label}</span>
+                        <span style={{ fontSize: "0.85rem", fontWeight: 700, color: item.color }}>{item.value}%</span>
+                      </div>
+                      <div className="progress-bar-light">
+                        <div className="progress-fill" style={{ "--progress-color": item.color, width: `${item.value}%` } as React.CSSProperties} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </ScrollReveal>
+            </div>
           </div>
         </div>
       </section>
@@ -829,21 +804,19 @@ export default function HomePage() {
       ══════════════════════════════════════════════════ */}
       <section className="py-12 sm:py-20 lg:py-[7rem]" style={{ background: "#ffffff", borderTop: "1px solid #e5e7eb" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <ScrollReveal direction="up">
-            <div className="section-intro">
-              <p className="section-label">How It Works</p>
-              <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
-                From Consultation to Go-Live in 2 Weeks
-              </h2>
-              <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.7 }}>
-                A proven delivery process that gets you live fast, trained well, and supported always.
-              </p>
-            </div>
-          </ScrollReveal>
+          <div className="section-intro">
+            <p className="section-label">How It Works</p>
+            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
+              From Consultation to Go-Live in 2 Weeks
+            </h2>
+            <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.7 }}>
+              A proven delivery process that gets you live fast, trained well, and supported always.
+            </p>
+          </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ alignItems: "stretch" }}>
-            {steps.map((s, i) => (
-              <ScrollReveal key={s.n} delay={i * 70} direction="up" className="h-full">
+            {steps.map((s) => (
+              <div key={s.n} className="h-full">
                 <div
                   className="pro-card-v2 card-shine text-center h-full"
                   style={{ "--card-accent": s.color, padding: "2rem", display: "flex", flexDirection: "column", alignItems: "center" } as React.CSSProperties}
@@ -866,7 +839,7 @@ export default function HomePage() {
                   </h3>
                   <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7 }}>{s.desc}</p>
                 </div>
-              </ScrollReveal>
+              </div>
             ))}
           </div>
         </div>
@@ -879,21 +852,19 @@ export default function HomePage() {
         <div className="dot-pattern" style={{ position: "absolute", inset: 0, opacity: 0.3, pointerEvents: "none" }} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
-          <ScrollReveal direction="up">
-            <div className="section-intro">
-              <p className="section-label">Platform Features</p>
-              <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
-                Enterprise Infrastructure.<br />Zero Complexity.
-              </h2>
-              <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.7 }}>
-                Every plan includes the full platform — not a feature-gated tier system.
-              </p>
-            </div>
-          </ScrollReveal>
+          <div className="section-intro">
+            <p className="section-label">Platform Features</p>
+            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
+              Enterprise Infrastructure.<br />Zero Complexity.
+            </h2>
+            <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.7 }}>
+              Every plan includes the full platform — not a feature-gated tier system.
+            </p>
+          </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {features.map((f, i) => (
-              <ScrollReveal key={f.title} delay={i * 60} direction="up">
+            {features.map((f) => (
+              <div key={f.title}>
                 <div className="pro-card-v2 card-shine group text-center" style={{ "--card-accent": f.color, "--card-glow": `${f.color}15`, padding: "1.75rem", position: "relative", overflow: "hidden" } as React.CSSProperties}>
                   <div className="icon-box mb-5 mx-auto" style={{ background: "#f8fafc" }}>
                     <f.icon size={21} style={{ color: f.color, transition: "transform 0.3s ease" }} />
@@ -905,7 +876,7 @@ export default function HomePage() {
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, color: f.color }}>{f.stat}</span>
                   </div>
                 </div>
-              </ScrollReveal>
+              </div>
             ))}
           </div>
         </div>
@@ -916,21 +887,19 @@ export default function HomePage() {
       ══════════════════════════════════════════════════ */}
       <section className="py-12 sm:py-20 lg:py-[7rem]" style={{ background: "#ffffff", borderTop: "1px solid #e5e7eb" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <ScrollReveal direction="up">
-            <div className="section-intro">
-              <p className="section-label">Client Results</p>
-              <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
-                Businesses That Grew With Us
-              </h2>
-              <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.7 }}>
-                Concrete outcomes from real clients, not marketing copy.
-              </p>
-            </div>
-          </ScrollReveal>
+          <div className="section-intro">
+            <p className="section-label">Client Results</p>
+            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
+              Businesses That Grew With Us
+            </h2>
+            <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.7 }}>
+              Concrete outcomes from real clients, not marketing copy.
+            </p>
+          </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <ScrollReveal key={t.name} delay={i * 100} direction="up" className="h-full">
+            {testimonials.map((t) => (
+              <div key={t.name} className="h-full">
                 <div className="pro-card-v2 card-shine testimonial-card flex flex-col text-center h-full" style={{ padding: "2rem" }}>
                   <span className="quote-decoration" style={{ position: "relative", top: "auto", right: "auto", display: "block", marginBottom: "0.5rem" }}>&ldquo;</span>
 
@@ -950,7 +919,6 @@ export default function HomePage() {
                       color={t.accentText}
                       showGrid={false}
                       showAxis={false}
-                      animationDuration={1200}
                       strokeWidth={2}
                     />
                   </div>
@@ -992,7 +960,7 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-              </ScrollReveal>
+              </div>
             ))}
           </div>
         </div>
@@ -1002,65 +970,61 @@ export default function HomePage() {
           INDUSTRIES STRIP — Animated pills
       ══════════════════════════════════════════════════ */}
       <section style={{ background: "#f8fafc", padding: "3rem 0", borderTop: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb" }}>
-        <ScrollReveal direction="up">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-3">
-            <span style={{ fontSize: "0.8rem", color: "#9ca3af", fontWeight: 600, marginRight: 8, letterSpacing: "0.05em", textTransform: "uppercase" }}>Industries covered:</span>
-            {[
-              { icon: Utensils,      label: "Restaurants & Cafes", c: "#f97316" },
-              { icon: Stethoscope,   label: "Clinics & Hospitals",  c: "#10b981" },
-              { icon: BookOpen,      label: "Book Shops",            c: "#15757b" },
-              { icon: GraduationCap, label: "Schools & Academies",   c: "#8b5cf6" },
-              { icon: Dumbbell,      label: "Gyms & Fitness",        c: "#ef4444" },
-            ].map(ind => (
-              <div key={ind.label} className="industry-pill">
-                <ind.icon size={15} className="industry-pill-icon" style={{ color: ind.c }} />
-                {ind.label}
-              </div>
-            ))}
-          </div>
-        </ScrollReveal>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-3">
+          <span style={{ fontSize: "0.8rem", color: "#9ca3af", fontWeight: 600, marginRight: 8, letterSpacing: "0.05em", textTransform: "uppercase" }}>Industries covered:</span>
+          {[
+            { icon: Utensils,      label: "Restaurants & Cafes", c: "#f97316" },
+            { icon: Stethoscope,   label: "Clinics & Hospitals",  c: "#10b981" },
+            { icon: BookOpen,      label: "Book Shops",            c: "#15757b" },
+            { icon: GraduationCap, label: "Schools & Academies",   c: "#8b5cf6" },
+            { icon: Dumbbell,      label: "Gyms & Fitness",        c: "#ef4444" },
+          ].map(ind => (
+            <div key={ind.label} className="industry-pill">
+              <ind.icon size={15} className="industry-pill-icon" style={{ color: ind.c }} />
+              {ind.label}
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════
-          CTA — Animated mesh gradient
+          CTA — Static gradient (no animated mesh)
       ══════════════════════════════════════════════════ */}
       <section className="py-12 sm:py-20 lg:py-[7rem]" style={{ background: "#0a2f32", position: "relative", overflow: "hidden" }}>
         <div className="hero-grid" style={{ opacity: 0.5 }} />
         <div className="cta-mesh" />
 
-        <div className="animate-float" style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(21,117,123,0.08)", filter: "blur(60px)", top: "10%", left: "10%", animationDelay: "0s" }} />
-        <div className="animate-float" style={{ position: "absolute", width: 160, height: 160, borderRadius: "50%", background: "rgba(74,158,162,0.06)", filter: "blur(50px)", bottom: "15%", right: "15%", animationDelay: "2s" }} />
+        <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(21,117,123,0.08)", filter: "blur(60px)", top: "10%", left: "10%" }} />
+        <div style={{ position: "absolute", width: 160, height: 160, borderRadius: "50%", background: "rgba(74,158,162,0.06)", filter: "blur(50px)", bottom: "15%", right: "15%" }} />
 
-        <ScrollReveal direction="up">
-          <div className="relative max-w-2xl mx-auto px-4 sm:px-6 text-center">
-            <p className="section-label-dark flex items-center justify-center gap-2">
-              <Zap size={12} /> Get Started Today
-            </p>
-            <h2 style={{ fontSize: "clamp(2rem,4vw,3rem)", fontWeight: 800, letterSpacing: "-0.035em", color: "#f9fafb", marginBottom: "1.25rem", lineHeight: 1.1 }}>
-              Ready to Modernise<br />Your Business?
-            </h2>
-            <p style={{ fontSize: "1.0625rem", color: "#94a3b8", marginBottom: "2.5rem", lineHeight: 1.75 }}>
-              Book a free live demo tailored to your industry. See your exact workflows running in our system before committing.
-            </p>
+        <div className="relative max-w-2xl mx-auto px-4 sm:px-6 text-center">
+          <p className="section-label-dark flex items-center justify-center gap-2">
+            <Zap size={12} /> Get Started Today
+          </p>
+          <h2 style={{ fontSize: "clamp(2rem,4vw,3rem)", fontWeight: 800, letterSpacing: "-0.035em", color: "#f9fafb", marginBottom: "1.25rem", lineHeight: 1.1 }}>
+            Ready to Modernise<br />Your Business?
+          </h2>
+          <p style={{ fontSize: "1.0625rem", color: "#94a3b8", marginBottom: "2.5rem", lineHeight: 1.75 }}>
+            Book a free live demo tailored to your industry. See your exact workflows running in our system before committing.
+          </p>
 
-            <div className="flex flex-wrap justify-center gap-3.5 mb-8">
-              <Link href="/demo" className="btn-primary" style={{ fontSize: "0.9375rem", padding: "14px 32px" }}>
-                <Play size={14} fill="white" /> Request Free Demo
-              </Link>
-              <Link href="/contact" className="btn-secondary" style={{ fontSize: "0.9375rem", padding: "13px 32px" }}>
-                <Phone size={14} /> Talk to an Expert
-              </Link>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-6" style={{ color: "#64748b", fontSize: "0.85rem" }}>
-              {["Free setup","No contracts","Cancel anytime","24/7 support"].map(p => (
-                <span key={p} className="flex items-center gap-1.5">
-                  <CheckCircle size={13} style={{ color: "#22c55e" }} /> {p}
-                </span>
-              ))}
-            </div>
+          <div className="flex flex-wrap justify-center gap-3.5 mb-8">
+            <Link href="/demo" className="btn-primary" style={{ fontSize: "0.9375rem", padding: "14px 32px" }}>
+              <Play size={14} fill="white" /> Request Free Demo
+            </Link>
+            <Link href="/contact" className="btn-secondary" style={{ fontSize: "0.9375rem", padding: "13px 32px" }}>
+              <Phone size={14} /> Talk to an Expert
+            </Link>
           </div>
-        </ScrollReveal>
+
+          <div className="flex flex-wrap justify-center gap-6" style={{ color: "#64748b", fontSize: "0.85rem" }}>
+            {["Free setup","No contracts","Cancel anytime","24/7 support"].map(p => (
+              <span key={p} className="flex items-center gap-1.5">
+                <CheckCircle size={13} style={{ color: "#22c55e" }} /> {p}
+              </span>
+            ))}
+          </div>
+        </div>
       </section>
     </>
   );

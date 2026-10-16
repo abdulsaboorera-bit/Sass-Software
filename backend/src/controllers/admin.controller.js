@@ -1,12 +1,12 @@
 "use strict";
 
 const { z } = require("zod");
-const { Tenant, User, TenantUser, TenantRole } = require("../models");
+const { Tenant, User, TenantUser, TenantRole, PlatformSubscription } = require("../models");
 const { apiSuccess, ApiError } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const { paginate } = require("../utils/query");
 const { hashPassword } = require("../utils/password");
-const { SYSTEM_ROLES } = require("../seed/roles");
+const { rolesForIndustry } = require("../seed/roles");
 
 // ── Tenants ──────────────────────────────────────────────
 const listTenants = asyncHandler(async (req, res) => {
@@ -69,8 +69,8 @@ const createTenant = asyncHandler(async (req, res) => {
   if (exists) throw ApiError.conflict("A tenant with this slug already exists");
 
   const tenant = await Tenant.create({ ...data, plan: data.plan || "TRIAL", status: "ACTIVE" });
-  // Seed the three system roles so the tenant is immediately usable.
-  await TenantRole.insertMany(SYSTEM_ROLES.map((r) => ({ tenantId: tenant._id, ...r })));
+  // Seed the industry's system roles so the tenant is immediately usable.
+  await TenantRole.insertMany(rolesForIndustry(data.industry).map((r) => ({ tenantId: tenant._id, ...r })));
   return apiSuccess(res, { tenant }, 201);
 });
 
@@ -210,4 +210,82 @@ const deleteUser = asyncHandler(async (req, res) => {
   return apiSuccess(res, { success: true });
 });
 
-module.exports = { listTenants, listRoles, createTenant, updateTenant, listUsers, createUser, updateUser, deleteUser };
+// ── Tenant drill-down ────────────────────────────────────
+/** Full detail for one tenant: profile, members + roles, subscription. */
+const getTenant = asyncHandler(async (req, res) => {
+  const tenant = await Tenant.findById(req.params.id).lean();
+  if (!tenant) throw ApiError.notFound("Tenant not found");
+
+  const [memberships, roles, subscription] = await Promise.all([
+    TenantUser.find({ tenantId: tenant._id })
+      .populate("userId", "name email phone status lastLoginAt createdAt")
+      .populate("role", "name slug")
+      .sort({ createdAt: 1 })
+      .lean(),
+    TenantRole.find({ tenantId: tenant._id }).sort({ name: 1 }).lean(),
+    PlatformSubscription.findOne({ tenantId: tenant._id }).sort({ periodEnd: -1 }).lean(),
+  ]);
+
+  const members = memberships
+    .filter((m) => m.userId)
+    .map((m) => ({
+      id: String(m._id),
+      userId: String(m.userId._id),
+      name: m.userId.name,
+      email: m.userId.email,
+      phone: m.userId.phone || null,
+      status: m.userId.status,
+      lastLoginAt: m.userId.lastLoginAt || null,
+      joinedAt: m.createdAt,
+      isActive: m.isActive,
+      role: m.role ? { id: String(m.role._id), name: m.role.name, slug: m.role.slug } : null,
+    }));
+
+  const subscriptionStatus = subscription
+    ? {
+        package: subscription.package,
+        amount: subscription.amount,
+        periodStart: subscription.periodStart,
+        periodEnd: subscription.periodEnd,
+        paidAt: subscription.paidAt,
+        current: new Date(subscription.periodEnd) >= new Date(),
+      }
+    : null;
+
+  return apiSuccess(res, {
+    tenant: { ...tenant, _count: { users: members.length, roles: roles.length } },
+    members,
+    roles: roles.map((r) => ({
+      id: String(r._id),
+      name: r.name,
+      slug: r.slug,
+      isSystem: r.isSystem,
+      permissionCount: (r.permissions || []).length,
+    })),
+    subscription: subscriptionStatus,
+  });
+});
+
+// ── Global search (tenants + users) ──────────────────────
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const search = asyncHandler(async (req, res) => {
+  const q = String(req.query.q || "").trim();
+  if (!q) return apiSuccess(res, { tenants: [], users: [] });
+  const rx = { $regex: escapeRegex(q), $options: "i" };
+
+  const [tenants, users] = await Promise.all([
+    Tenant.find({ $or: [{ name: rx }, { slug: rx }] }).limit(8).lean(),
+    User.find({ $or: [{ name: rx }, { email: rx }] })
+      .select("name email role status tenantId")
+      .populate("tenantId", "name slug industry")
+      .limit(8)
+      .lean(),
+  ]);
+
+  return apiSuccess(res, {
+    tenants,
+    users: users.map(({ tenantId, ...u }) => ({ ...u, tenant: tenantId || null })),
+  });
+});
+
+module.exports = { listTenants, listRoles, createTenant, updateTenant, getTenant, search, listUsers, createUser, updateUser, deleteUser };

@@ -40,25 +40,25 @@ type NavLink = { label: string; href: string; icon: typeof LayoutDashboard; perm
 const industryNav: Record<string, NavLink[]> = {
   SCHOOL: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Students", href: "/dashboard/students", icon: Users },
-    { label: "Classes", href: "/dashboard/classes", icon: BookOpen },
-    { label: "Attendance", href: "/dashboard/attendance", icon: Calendar },
-    { label: "Teachers", href: "/dashboard/school/teachers", icon: Contact },
-    { label: "Subjects", href: "/dashboard/school/subjects", icon: BookOpen },
-    { label: "Timetable", href: "/dashboard/school/timetable", icon: Calendar },
-    { label: "Exams", href: "/dashboard/school/exams", icon: Trophy },
-    { label: "Assignments", href: "/dashboard/school/assignments", icon: ClipboardList },
-    { label: "Admissions", href: "/dashboard/school/admissions", icon: FileText },
-    { label: "Fees", href: "/dashboard/fees", icon: DollarSign },
-    { label: "Fee Structures", href: "/dashboard/school/fee-structures", icon: CreditCard },
-    { label: "Payroll", href: "/dashboard/school/salaries", icon: CreditCard },
-    { label: "Expenses", href: "/dashboard/school/expenses", icon: DollarSign },
-    { label: "Library", href: "/dashboard/school/library", icon: BookOpen },
-    { label: "Transport", href: "/dashboard/school/transport", icon: Package },
-    { label: "Hostel", href: "/dashboard/school/hostel", icon: Building2 },
-    { label: "Notices", href: "/dashboard/school/notices", icon: Bell },
-    { label: "Events", href: "/dashboard/school/events", icon: Calendar },
-    { label: "Reports", href: "/dashboard/school/reports", icon: BarChart3 },
+    { label: "Students", href: "/dashboard/students", icon: Users, permission: "students.view" },
+    { label: "Classes", href: "/dashboard/classes", icon: BookOpen, permission: "classes.view" },
+    { label: "Attendance", href: "/dashboard/attendance", icon: Calendar, permission: "attendance.view" },
+    { label: "Teachers", href: "/dashboard/school/teachers", icon: Contact, permission: "teachers.view" },
+    { label: "Subjects", href: "/dashboard/school/subjects", icon: BookOpen, permission: "subjects.view" },
+    { label: "Timetable", href: "/dashboard/school/timetable", icon: Calendar, permission: "timetable.view" },
+    { label: "Exams", href: "/dashboard/school/exams", icon: Trophy, permission: "exams.view" },
+    { label: "Assignments", href: "/dashboard/school/assignments", icon: ClipboardList, permission: "assignments.view" },
+    { label: "Admissions", href: "/dashboard/school/admissions", icon: FileText, permission: "admissions.view" },
+    { label: "Fees", href: "/dashboard/fees", icon: DollarSign, permission: "fees.view" },
+    { label: "Fee Structures", href: "/dashboard/school/fee-structures", icon: CreditCard, permission: "fees.view" },
+    { label: "Payroll", href: "/dashboard/school/salaries", icon: CreditCard, permission: "salaries.view" },
+    { label: "Expenses", href: "/dashboard/school/expenses", icon: DollarSign, permission: "expenses.view" },
+    { label: "Library", href: "/dashboard/school/library", icon: BookOpen, permission: "library.view" },
+    { label: "Transport", href: "/dashboard/school/transport", icon: Package, permission: "transport.view" },
+    { label: "Hostel", href: "/dashboard/school/hostel", icon: Building2, permission: "hostel.view" },
+    { label: "Notices", href: "/dashboard/school/notices", icon: Bell, permission: "notices.view" },
+    { label: "Events", href: "/dashboard/school/events", icon: Calendar, permission: "events.view" },
+    { label: "Reports", href: "/dashboard/school/reports", icon: BarChart3, permission: "analytics.view" },
     { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
   CLINIC: [
@@ -77,11 +77,11 @@ const industryNav: Record<string, NavLink[]> = {
   ],
   RESTAURANT: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Orders/POS", href: "/dashboard/orders", icon: BookOpen },
-    { label: "Kitchen", href: "/dashboard/kitchen", icon: ChefHat },
-    { label: "Menu", href: "/dashboard/menu", icon: BookOpen },
-    { label: "Tables", href: "/dashboard/tables", icon: Calendar },
-    { label: "Staff", href: "/dashboard/staff", icon: Users },
+    { label: "Orders/POS", href: "/dashboard/orders", icon: BookOpen, permission: "orders.view" },
+    { label: "Kitchen", href: "/dashboard/kitchen", icon: ChefHat, permission: "orders.view" },
+    { label: "Menu", href: "/dashboard/menu", icon: BookOpen, permission: "menu.view" },
+    { label: "Tables", href: "/dashboard/tables", icon: Calendar, permission: "tables.view" },
+    { label: "Staff", href: "/dashboard/staff", icon: Users, permission: "staff.view" },
     { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
   GYM: [
@@ -101,10 +101,10 @@ const industryNav: Record<string, NavLink[]> = {
   ],
   BOOKSHOP: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Books", href: "/dashboard/books", icon: BookOpen },
-    { label: "Sales", href: "/dashboard/sales", icon: DollarSign },
-    { label: "Customers", href: "/dashboard/customers", icon: Users },
-    { label: "Inventory", href: "/dashboard/inventory", icon: Calendar },
+    { label: "Books", href: "/dashboard/books", icon: BookOpen, permission: "inventory.view" },
+    { label: "Sales", href: "/dashboard/sales", icon: DollarSign, permission: "sales.view" },
+    { label: "Customers", href: "/dashboard/customers", icon: Users, permission: "customers.view" },
+    { label: "Inventory", href: "/dashboard/inventory", icon: Calendar, permission: "inventory.view" },
     { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
   CAR_RENTAL: [
@@ -184,24 +184,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.refresh();
   };
 
+  const canAccess = (permission?: string) => {
+    if (!permission) return true;
+    const [resource] = permission.split(".");
+    const permissions = userData?.permissions || [];
+    return (
+      permissions.includes("*") ||
+      permissions.includes(permission) ||
+      permissions.includes(`${resource}.*`) ||
+      (permission === "members.view" && permissions.includes("members.view.assigned"))
+    );
+  };
+
   const rawNav = userData?.tenant
     ? industryNav[userData.tenant.industry] || industryNav.SCHOOL
     : [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }];
-  const nav = rawNav.filter((link) => {
-    if (!link.permission) return true;
-    const [resource] = link.permission.split(".");
-    const permissions = userData?.permissions || [];
-    return permissions.includes("*") || permissions.includes(link.permission) || permissions.includes(`${resource}.*`) || (link.permission === "members.view" && permissions.includes("members.view.assigned"));
-  });
 
   // Links available to every industry/tenant.
   const commonNav: NavLink[] = [
+    { label: "Team & Roles", href: "/dashboard/team", icon: UserCog, permission: "settings.manage" },
     { label: "Scanner", href: "/dashboard/scanner", icon: ScanLine },
     { label: "Bookings", href: "/dashboard/bookings", icon: Inbox },
     { label: "Data & Reports", href: "/dashboard/data", icon: Database },
     { label: "Account", href: "/dashboard/account", icon: UserCog },
   ];
-  nav.push(...commonNav);
+
+  const nav = [...rawNav, ...commonNav].filter((link) => canAccess(link.permission));
 
   useEffect(() => {
     if (!userData || loading || pathname === "/dashboard") return;

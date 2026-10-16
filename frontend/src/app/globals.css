@@ -1309,6 +1309,14 @@
 [data-theme="dark"] .hover\:bg-slate-100:hover { background-color: #1e293b !important; }
 [data-theme="dark"] .hover\:bg-white:hover { background-color: #1e293b !important; }
 
+/* Arbitrary light hex backgrounds used as page shells (bg-[#fbf9f2] etc.) */
+[data-theme="dark"] .bg-\[\#fbf9f2\] { background-color: #0b1220 !important; }
+[data-theme="dark"] .bg-\[\#f8fafc\] { background-color: #0b1220 !important; }
+[data-theme="dark"] .bg-\[\#f9fafb\] { background-color: #0b1220 !important; }
+[data-theme="dark"] .bg-\[\#f1f5f9\] { background-color: #0b1220 !important; }
+[data-theme="dark"] .bg-\[\#ffffff\] { background-color: #0b1220 !important; }
+[data-theme="dark"] .bg-\[\#fff\] { background-color: #0b1220 !important; }
+
 [data-theme="dark"] .text-slate-900 { color: #f1f5f9 !important; }
 [data-theme="dark"] .text-slate-800 { color: #e2e8f0 !important; }
 [data-theme="dark"] .text-slate-700 { color: #cbd5e1 !important; }

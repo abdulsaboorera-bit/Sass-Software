@@ -16,7 +16,9 @@ router.use("/messages", messagesRoutes);
 
 router.get("/tenants", ctrl.listTenants);
 router.post("/tenants", ctrl.createTenant);
+router.get("/tenants/:id", ctrl.getTenant);
 router.get("/roles", ctrl.listRoles);
+router.get("/search", ctrl.search);
 router.patch("/tenants", ctrl.updateTenant);
 router.patch("/tenants/:id", ctrl.updateTenant);
 

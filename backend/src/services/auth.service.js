@@ -5,7 +5,7 @@ const { hashPassword, verifyPassword } = require("../utils/password");
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require("../utils/jwt");
 const { ApiError } = require("../utils/apiResponse");
 const { REFRESH_MAX_AGE } = require("../utils/cookies");
-const { SYSTEM_ROLES } = require("../seed/roles");
+const { rolesForIndustry } = require("../seed/roles");
 const { verifyTotp, generateSecret, keyUri } = require("../utils/totp");
 const { randomCode } = require("../utils/ids");
 
@@ -147,19 +147,18 @@ async function signup({ email, password, name, phone, businessName, industry, us
     status: "TRIAL",
     trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
   });
-  let role;
+  let roles = [];
   let user;
   try {
-    const owner = SYSTEM_ROLES.find((item) => item.slug === "owner");
-    // Role and user are independent of each other; only the membership needs both.
-    [role, user] = await Promise.all([
-      TenantRole.create({ tenantId: tenant._id, ...owner }),
-      User.create({ email: normalizedEmail, passwordHash, name, phone, role: "SUPER_ADMIN", status: "ACTIVE", tenantId: tenant._id }),
-    ]);
-    await TenantUser.create({ tenantId: tenant._id, userId: user._id, roleId: role._id });
+    // Seed the industry's full role set so the Team & Roles screen is usable
+    // immediately, then attach the creator as the Owner.
+    roles = await TenantRole.insertMany(rolesForIndustry(industry).map((r) => ({ tenantId: tenant._id, ...r })));
+    const ownerRole = roles.find((r) => r.slug === "owner") || roles[0];
+    user = await User.create({ email: normalizedEmail, passwordHash, name, phone, role: "SUPER_ADMIN", status: "ACTIVE", tenantId: tenant._id });
+    await TenantUser.create({ tenantId: tenant._id, userId: user._id, roleId: ownerRole._id });
   } catch (error) {
     if (user) await User.deleteOne({ _id: user._id });
-    if (role) await TenantRole.deleteOne({ _id: role._id });
+    await TenantRole.deleteMany({ tenantId: tenant._id });
     await Tenant.deleteOne({ _id: tenant._id });
     throw error;
   }

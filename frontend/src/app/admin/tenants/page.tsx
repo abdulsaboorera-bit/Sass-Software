@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Plus, ChevronLeft, ChevronRight, AlertCircle, X, Pencil } from "lucide-react";
+import Link from "next/link";
+import { Search, Plus, ChevronLeft, ChevronRight, AlertCircle, X, Pencil, Eye } from "lucide-react";
 
 interface Tenant {
   id: string;
@@ -235,6 +236,13 @@ export default function TenantsPage() {
                   <td className="px-5 py-3.5 text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center justify-end gap-1.5">
+                      <Link
+                        href={`/admin/tenants/${t.id}`}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors"
+                        title="View details"
+                      >
+                        <Eye size={14} />
+                      </Link>
                       <button
                         onClick={() => openEdit(t)}
                         className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors border-none bg-transparent cursor-pointer"

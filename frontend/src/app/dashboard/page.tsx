@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 // recharts is heavy and only ever renders for a few industries — load it lazily
 // so the dashboard shell paints without waiting on the charting library.
 const DashboardCharts = dynamic(() => import("@/components/dashboard/DashboardCharts"), { ssr: false, loading: () => null });
+const InsightsCard = dynamic(() => import("@/components/dashboard/InsightsCard"), { ssr: false, loading: () => null });
 
 interface UserData {
   user: { id: string; name: string; role: string };
@@ -472,6 +473,8 @@ export default function DashboardPage() {
       </div>
 
       <DashboardCharts industry={industry} gymData={gymData} salonData={salonData} clinicData={clinicData} schoolData={schoolData} />
+
+      <InsightsCard days={30} />
 
       {/* Quick Actions */}
       <div className={`grid gap-4 mb-8 ${isGym ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>        {config.actions.map((action) => (          <Link

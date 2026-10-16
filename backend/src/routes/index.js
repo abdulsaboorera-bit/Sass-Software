@@ -25,6 +25,8 @@ const auditLogsRoutes = require("./auditLogs.routes");
 const searchRoutes = require("./search.routes");
 const lookupRoutes = require("./lookup.routes");
 const onboardingRoutes = require("./onboarding.routes");
+const insightsRoutes = require("./insights.routes");
+const teamRoutes = require("./team.routes");
 
 const router = express.Router();
 
@@ -53,5 +55,7 @@ router.use("/audit-logs", auditLogsRoutes);
 router.use("/search", searchRoutes);
 router.use("/lookup", lookupRoutes);
 router.use("/onboarding", onboardingRoutes);
+router.use("/insights", insightsRoutes);
+router.use("/team", teamRoutes);
 
 module.exports = router;

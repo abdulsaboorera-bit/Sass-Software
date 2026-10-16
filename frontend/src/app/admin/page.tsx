@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, Users, TrendingUp, DollarSign, ChevronRight, AlertCircle } from "lucide-react";
+import { Building2, Users, TrendingUp, DollarSign, ChevronRight, AlertCircle, Search, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface Stats {
@@ -13,14 +13,41 @@ interface Stats {
   recentTenants: { id: string; name: string; industry: string; createdAt: string }[];
 }
 
+interface SearchResults {
+  tenants: { id: string; name: string; slug: string; industry: string; status: string }[];
+  users: { id: string; name: string; email: string; status: string; role: string }[];
+}
+
 export default function AdminOverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<SearchResults | null>(null);
 
   useEffect(() => {
     fetchStats();
   }, []);
+
+  const runSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) {
+      setResults(null);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/admin/search?q=${encodeURIComponent(q)}`, { credentials: "include" });
+      const data = await res.json();
+      setResults({ tenants: data.tenants || [], users: data.users || [] });
+    } catch {
+      setResults({ tenants: [], users: [] });
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -88,6 +115,57 @@ export default function AdminOverviewPage() {
         <p className="text-slate-500 text-sm">Manage tenants, users, and platform settings.</p>
       </div>
 
+      {/* Global search */}
+      <form onSubmit={runSearch} className="mb-6">
+        <div className="relative max-w-md">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search any tenant or user across the platform..."
+            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400"
+          />
+          {searching && <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 animate-spin" />}
+        </div>
+      </form>
+
+      {results && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6">
+          {results.tenants.length === 0 && results.users.length === 0 ? (
+            <p className="text-slate-400 text-sm">No matches for &ldquo;{query}&rdquo;.</p>
+          ) : (
+            <div className="space-y-4">
+              {results.tenants.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2">Tenants</p>
+                  <div className="space-y-1.5">
+                    {results.tenants.map((t) => (
+                      <Link key={t.id} href={`/admin/tenants/${t.id}`} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 no-underline">
+                        <span className="text-slate-800 text-sm font-semibold">{t.name}</span>
+                        <span className="text-slate-400 text-xs">{t.industry}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {results.users.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2">Users</p>
+                  <div className="space-y-1.5">
+                    {results.users.map((u) => (
+                      <Link key={u.id} href="/admin/users" className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 no-underline">
+                        <span className="text-slate-800 text-sm font-semibold">{u.name}</span>
+                        <span className="text-slate-400 text-xs">{u.email}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((stat) => (
@@ -114,7 +192,7 @@ export default function AdminOverviewPage() {
         {stats?.recentTenants && stats.recentTenants.length > 0 ? (
           <div className="space-y-3">
             {stats.recentTenants.map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+              <Link key={t.id} href={`/admin/tenants/${t.id}`} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors no-underline">
                 <div>
                   <p className="text-slate-900 font-semibold text-sm">{t.name}</p>
                   <p className="text-slate-500 text-xs">{t.industry}</p>
@@ -122,7 +200,7 @@ export default function AdminOverviewPage() {
                 <span className="text-slate-400 text-xs">
                   {new Date(t.createdAt).toLocaleDateString()}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (

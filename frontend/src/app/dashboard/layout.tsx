@@ -333,7 +333,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <GlobalSearch />
             <NotificationBell />
-            <SettingsToggles className="hidden sm:flex" />
+            <SettingsToggles />
             <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200">
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {userData?.user?.name?.charAt(0) || "U"}

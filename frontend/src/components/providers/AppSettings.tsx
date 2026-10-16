@@ -3,59 +3,45 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
-type Locale = "en" | "ur";
 
 interface AppSettingsValue {
   theme: Theme;
-  locale: Locale;
   toggleTheme: () => void;
   setTheme: (t: Theme) => void;
-  toggleLocale: () => void;
-  setLocale: (l: Locale) => void;
 }
 
 const AppSettingsContext = createContext<AppSettingsValue | null>(null);
 
 const THEME_KEY = "nexus-theme";
-const LOCALE_KEY = "nexus-locale";
+const LEGACY_LOCALE_KEY = "nexus-locale";
 
-export function applySettings(theme: Theme, locale: Locale) {
+export function applySettings(theme: Theme) {
   const root = document.documentElement;
   root.setAttribute("data-theme", theme);
-  root.setAttribute("lang", locale === "ur" ? "ur" : "en");
-  root.setAttribute("dir", locale === "ur" ? "rtl" : "ltr");
   root.classList.toggle("dark", theme === "dark");
 }
 
 export function AppSettingsProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
-  const [locale, setLocaleState] = useState<Locale>("en");
 
   useEffect(() => {
     const storedTheme = (localStorage.getItem(THEME_KEY) as Theme) || "light";
-    const storedLocale = (localStorage.getItem(LOCALE_KEY) as Locale) || "en";
+    localStorage.removeItem(LEGACY_LOCALE_KEY);
+    document.documentElement.removeAttribute("dir");
     setThemeState(storedTheme);
-    setLocaleState(storedLocale);
-    applySettings(storedTheme, storedLocale);
+    applySettings(storedTheme);
   }, []);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
     localStorage.setItem(THEME_KEY, t);
-    applySettings(t, (localStorage.getItem(LOCALE_KEY) as Locale) || "en");
-  }, []);
-
-  const setLocale = useCallback((l: Locale) => {
-    setLocaleState(l);
-    localStorage.setItem(LOCALE_KEY, l);
-    applySettings((localStorage.getItem(THEME_KEY) as Theme) || "light", l);
+    applySettings(t);
   }, []);
 
   const toggleTheme = useCallback(() => setTheme(theme === "dark" ? "light" : "dark"), [theme, setTheme]);
-  const toggleLocale = useCallback(() => setLocale(locale === "ur" ? "en" : "ur"), [locale, setLocale]);
 
   return (
-    <AppSettingsContext.Provider value={{ theme, locale, toggleTheme, setTheme, toggleLocale, setLocale }}>
+    <AppSettingsContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
     </AppSettingsContext.Provider>
   );
@@ -68,4 +54,4 @@ export function useAppSettings() {
 }
 
 /** Inline script string to apply the stored theme before first paint (avoids flash). */
-export const settingsInitScript = `(function(){try{var t=localStorage.getItem('${THEME_KEY}')||'light';var l=localStorage.getItem('${LOCALE_KEY}')||'en';var r=document.documentElement;r.setAttribute('data-theme',t);r.setAttribute('lang',l==='ur'?'ur':'en');r.setAttribute('dir',l==='ur'?'rtl':'ltr');if(t==='dark')r.classList.add('dark');}catch(e){}})();`;
+export const settingsInitScript = `(function(){try{localStorage.removeItem('${LEGACY_LOCALE_KEY}');var t=localStorage.getItem('${THEME_KEY}')||'light';var r=document.documentElement;r.removeAttribute('dir');r.setAttribute('lang','en');r.setAttribute('data-theme',t);if(t==='dark')r.classList.add('dark');}catch(e){}})();`;

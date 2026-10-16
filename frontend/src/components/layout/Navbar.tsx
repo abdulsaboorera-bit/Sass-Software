@@ -235,6 +235,10 @@ export default function Navbar() {
                 )
               )}
               <div className="mt-4 pt-4 flex flex-col gap-2.5 border-t border-white/5">
+                <div className="flex items-center justify-between px-3">
+                  <span className="text-sm text-zinc-400">Appearance</span>
+                  <SettingsToggles tone="dark" />
+                </div>
                 <Link href="/contact" className="btn-secondary text-center justify-center py-3">Contact Us</Link>
                 <Link href="/demo" className="btn-primary text-center justify-center py-3">Request Demo</Link>
               </div>

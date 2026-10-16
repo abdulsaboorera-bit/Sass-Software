@@ -1,7 +1,18 @@
 "use client";
 
 import { Fragment, useEffect, useState, useCallback } from "react";
-import { Plus, Search, Pencil, Trash2, X, ChevronDown, ChevronUp, Download, Filter, Calendar, CreditCard } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, X, ChevronDown, ChevronUp, Download, Filter, Calendar, CreditCard, AlertTriangle, Loader2 } from "lucide-react";
+
+interface ExpiringMember {
+  id: string;
+  memberNo: string;
+  name: string;
+  phone: string;
+  plan?: { name: string; price: string } | null;
+  endDate: string;
+  daysUntilExpiry: number;
+  effectiveStatus?: string;
+}
 
 interface Member {
   id: string;
@@ -72,6 +83,10 @@ export default function MembersPage() {
   const [pages, setPages] = useState(1);
   const [renewingMember, setRenewingMember] = useState<Member | null>(null);
   const [renewForm, setRenewForm] = useState({ planId: "", amount: "", paymentAmount: "", paymentMethod: "CASH" });
+  const [expiringOpen, setExpiringOpen] = useState(false);
+  const [expiring, setExpiring] = useState<ExpiringMember[]>([]);
+  const [expiringDays, setExpiringDays] = useState(7);
+  const [expiringLoading, setExpiringLoading] = useState(false);
 
   const fetchMembers = useCallback(() => {
     setLoading(true);
@@ -100,6 +115,17 @@ export default function MembersPage() {
 
   useEffect(() => { fetchMembers(); }, [fetchMembers]);
   useEffect(() => { fetchPlans(); }, []);
+
+  const fetchExpiring = useCallback(() => {
+    setExpiringLoading(true);
+    fetch(`/api/gym/members/expiring?days=${expiringDays}`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setExpiring(data.members || []))
+      .catch(() => setExpiring([]))
+      .finally(() => setExpiringLoading(false));
+  }, [expiringDays]);
+
+  useEffect(() => { if (expiringOpen) fetchExpiring(); }, [expiringOpen, fetchExpiring]);
 
   const fetchMemberHistory = async (memberId: string) => {
     setHistoryLoading(true);
@@ -277,6 +303,9 @@ export default function MembersPage() {
           <p className="text-slate-500 text-sm">{totalCount || members.length} total members</p>
                </div>
         <div className="flex items-center gap-3">
+          <button onClick={() => setExpiringOpen(true)} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-semibold px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors text-sm cursor-pointer">
+            <AlertTriangle size={14} /> Expiring
+          </button>
           <button onClick={exportCSV} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors text-sm cursor-pointer">
             <Download size={14} /> Export
           </button>
@@ -491,6 +520,49 @@ export default function MembersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {expiringOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setExpiringOpen(false)}>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-amber-500" />
+                <h3 className="text-lg font-bold text-slate-900">Expiring Memberships</h3>
+              </div>
+              <button onClick={() => setExpiringOpen(false)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 border-none bg-transparent cursor-pointer"><X size={18} /></button>
+            </div>
+            <div className="px-6 py-3 border-b border-slate-100 flex items-center gap-2 text-sm">
+              <span className="text-slate-500">Within</span>
+              <select value={expiringDays} onChange={(e) => setExpiringDays(Number(e.target.value))} className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm bg-white">
+                {[3, 7, 14, 30, 60, 90].map((d) => <option key={d} value={d}>{d} days</option>)}
+              </select>
+              <span className="text-slate-400 ml-auto">{expiring.length} member{expiring.length === 1 ? "" : "s"}</span>
+            </div>
+            <div className="overflow-y-auto p-3">
+              {expiringLoading ? (
+                <div className="py-12 grid place-items-center"><Loader2 className="animate-spin text-slate-400" /></div>
+              ) : expiring.length === 0 ? (
+                <p className="text-center text-slate-400 text-sm py-12">No memberships expiring in this window.</p>
+              ) : (
+                <div className="space-y-2">
+                  {expiring.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl px-3 py-2.5">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 truncate">{member.name}</p>
+                        <p className="text-xs text-slate-400">{member.memberNo} · {member.phone}{member.plan?.name ? ` · ${member.plan.name}` : ""}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-slate-500">{new Date(member.endDate).toLocaleDateString()}</p>
+                        <p className={`text-xs font-bold ${member.daysUntilExpiry <= 3 ? "text-red-600" : "text-amber-600"}`}>{member.daysUntilExpiry}d left</p>
+                      </div>
+                      <button onClick={() => { setExpiringOpen(false); openRenew(member as unknown as Member); }} className="shrink-0 px-2.5 py-1 rounded-lg bg-green-600 text-white text-xs font-semibold border-none cursor-pointer">Renew</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

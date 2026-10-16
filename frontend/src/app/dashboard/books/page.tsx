@@ -12,6 +12,8 @@ export default function BooksPage() {
   const [form, setForm] = useState({ title: "", author: "", isbn: "", category: "", price: "", costPrice: "", quantity: "1" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupMsg, setLookupMsg] = useState("");
 
   const fetchBooks = () => {
     fetch("/api/bookshop/books?limit=50").then(r => r.json()).then(data => { if (data.books) setBooks(data.books); }).finally(() => setLoading(false));
@@ -19,7 +21,33 @@ export default function BooksPage() {
 
   useEffect(() => { fetchBooks(); }, []);
 
-  const resetForm = () => { setForm({ title: "", author: "", isbn: "", category: "", price: "", costPrice: "", quantity: "1" }); setEditingBook(null); setShowForm(false); setError(""); };
+  const resetForm = () => { setForm({ title: "", author: "", isbn: "", category: "", price: "", costPrice: "", quantity: "1" }); setEditingBook(null); setShowForm(false); setError(""); setLookupMsg(""); };
+
+  const lookupIsbn = async () => {
+    const isbn = form.isbn.trim();
+    if (!isbn) { setLookupMsg("Enter an ISBN first"); return; }
+    setLookupLoading(true);
+    setLookupMsg("");
+    try {
+      const res = await fetch(`/api/bookshop/isbn/${encodeURIComponent(isbn)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Lookup failed");
+      if (!data.found) { setLookupMsg("No match found for this ISBN"); return; }
+      const b = data.book || {};
+      setForm((prev) => ({
+        ...prev,
+        title: b.title || prev.title,
+        author: b.author || prev.author,
+        isbn: b.isbn || prev.isbn,
+        ...(data.source === "openlibrary" && data.suggested ? { quantity: prev.quantity || String(data.suggested.quantity ?? "") } : {}),
+      }));
+      setLookupMsg(data.source === "local" ? "Found in your inventory" : "Details imported from OpenLibrary");
+    } catch (err: unknown) {
+      setLookupMsg(err instanceof Error ? err.message : "Lookup failed");
+    } finally {
+      setLookupLoading(false);
+    }
+  };
 
   const startEdit = (b: Book) => {
     setEditingBook(b);
@@ -81,13 +109,19 @@ export default function BooksPage() {
           <div className="grid sm:grid-cols-2 gap-3">
             <input type="text" placeholder="Title *" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputCls} />
             <input type="text" placeholder="Author *" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} className={inputCls} />
-            <input type="text" placeholder="ISBN" value={form.isbn} onChange={e => setForm({ ...form, isbn: e.target.value })} className={inputCls} />
+            <div className="flex gap-2">
+              <input type="text" placeholder="ISBN" value={form.isbn} onChange={e => setForm({ ...form, isbn: e.target.value })} className={`${inputCls} flex-1`} />
+              <button type="button" onClick={lookupIsbn} disabled={lookupLoading} className="shrink-0 px-3 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold disabled:opacity-50 border-none cursor-pointer">
+                {lookupLoading ? "..." : "Lookup"}
+              </button>
+            </div>
             <input type="text" placeholder="Category" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputCls} />
             <input type="number" step="0.01" placeholder="Price *" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className={inputCls} />
             <input type="number" step="0.01" placeholder="Cost price *" value={form.costPrice} onChange={e => setForm({ ...form, costPrice: e.target.value })} className={inputCls} />
             <input type="number" placeholder="Quantity" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} className={inputCls} />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
+          {lookupMsg && <p className="text-slate-500 text-sm">{lookupMsg}</p>}
           <button type="submit" disabled={submitting} className="bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 border-none cursor-pointer">
             {submitting ? "Saving..." : editingBook ? "Update Book" : "Add Book"}
           </button>

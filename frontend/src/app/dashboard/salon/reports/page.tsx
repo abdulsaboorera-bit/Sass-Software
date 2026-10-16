@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Calendar, TrendingUp, AlertCircle, Package, DollarSign, UserCheck } from "lucide-react";
+import { Users, Calendar, TrendingUp, AlertCircle, Package, DollarSign, UserCheck, Gauge } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 interface TopService { serviceId: string; name?: string; price?: number; bookings: number }
 interface TopStaff { staffId: string; name?: string; role?: string; services: number; revenue: number }
+interface StaffUtil {
+  staffId: string;
+  name: string;
+  role?: string;
+  specialization?: string;
+  appointments: number;
+  bookedMinutes: number;
+  revenue: number;
+  utilization: number;
+}
 interface ReportData {
   customers?: { total?: number; newThisMonth?: number };
   appointments?: { today?: number; upcoming?: number; completedThisMonth?: number; cancelledThisMonth?: number };
@@ -21,9 +31,16 @@ interface ReportData {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+const DAY = 86400000;
+const dateStr = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString().slice(0, 10);
+
 export default function SalonReportsPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [error, setError] = useState("");
+  const [utilization, setUtilization] = useState<StaffUtil[]>([]);
+  const [utilLoading, setUtilLoading] = useState(true);
+  const [from, setFrom] = useState(dateStr(-29 * DAY));
+  const [to, setTo] = useState(dateStr(0));
 
   useEffect(() => {
     (async () => {
@@ -37,6 +54,21 @@ export default function SalonReportsPage() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      setUtilLoading(true);
+      try {
+        const response = await fetch(`/api/salon/analytics/staff-utilization?from=${from}&to=${to}`, { credentials: "include" });
+        const json = await response.json();
+        if (response.ok) setUtilization(json.staff || []);
+      } catch {
+        setUtilization([]);
+      } finally {
+        setUtilLoading(false);
+      }
+    })();
+  }, [from, to]);
 
   if (error) return <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>;
   if (!data) return <p className="text-slate-400 text-sm">Loading reports...</p>;
@@ -140,6 +172,56 @@ export default function SalonReportsPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl p-4 mt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h3 className="font-semibold text-sm text-slate-700 inline-flex items-center gap-1.5"><Gauge size={15} /> Staff utilization</h3>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs" />
+            <span>to</span>
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs" />
+          </div>
+        </div>
+        {utilLoading ? (
+          <p className="text-slate-400 text-sm py-6 text-center">Loading...</p>
+        ) : utilization.length === 0 ? (
+          <p className="text-slate-400 text-sm py-6 text-center">No staff found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="text-left py-2 text-xs uppercase text-slate-500">Staff</th>
+                  <th className="text-left py-2 text-xs uppercase text-slate-500">Role</th>
+                  <th className="text-right py-2 text-xs uppercase text-slate-500">Appointments</th>
+                  <th className="text-right py-2 text-xs uppercase text-slate-500">Booked (h)</th>
+                  <th className="text-right py-2 text-xs uppercase text-slate-500">Revenue</th>
+                  <th className="text-left py-2 pl-4 text-xs uppercase text-slate-500">Utilization</th>
+                </tr>
+              </thead>
+              <tbody>
+                {utilization.map((s) => (
+                  <tr key={String(s.staffId)} className="border-b border-slate-50">
+                    <td className="py-2.5 text-sm font-medium text-slate-800">{s.name}{s.specialization ? <span className="text-xs text-slate-400"> · {s.specialization}</span> : null}</td>
+                    <td className="py-2.5 text-sm text-slate-600">{s.role || "—"}</td>
+                    <td className="py-2.5 text-sm text-right text-slate-600">{s.appointments}</td>
+                    <td className="py-2.5 text-sm text-right text-slate-600">{(s.bookedMinutes / 60).toFixed(1)}</td>
+                    <td className="py-2.5 text-sm text-right font-semibold text-slate-800">PKR {Number(s.revenue || 0).toLocaleString()}</td>
+                    <td className="py-2.5 pl-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${s.utilization >= 75 ? "bg-green-500" : s.utilization >= 40 ? "bg-amber-500" : "bg-red-400"}`} style={{ width: `${Math.min(100, s.utilization)}%` }} />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600 w-12">{s.utilization}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

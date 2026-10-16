@@ -134,6 +134,10 @@ export default function DemoPage() {
                             <option>Clinic / Hospital / Lab</option>
                             <option>Book Shop / Stationery</option>
                             <option>School / Academy / College</option>
+                            <option>Gym / Fitness Center</option>
+                            <option>Car Rental / Showroom</option>
+                            <option>Real Estate / Property</option>
+                            <option>Salon / Beauty Studio</option>
                             <option>Other</option>
                           </select>
                         </div>

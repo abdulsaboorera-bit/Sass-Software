@@ -1,0 +1,19 @@
+{
+  "name": "NexusSoft ERP",
+  "short_name": "NexusSoft",
+  "description": "Smart management software for restaurants, clinics, book shops, schools, gyms, car rentals, real estate, and salons.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbf9f2",
+  "theme_color": "#15757b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

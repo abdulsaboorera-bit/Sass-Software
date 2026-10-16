@@ -7,7 +7,7 @@ import { AnimatedBarChart, AnimatedLineChart, AnimatedDonutProgress, AnimatedPie
 
 const values = [
   { icon: Target, title: "Mission-Driven", desc: "We exist to make enterprise-grade software accessible and affordable for every business in Pakistan, regardless of size.", color: "#15757b", bg: "#f0f9f9" },
-  { icon: Eye, title: "Visionary", desc: "We envision a Pakistan where every restaurant, clinic, school, and shop runs on modern digital infrastructure.", color: "#8b5cf6", bg: "#faf5ff" },
+  { icon: Eye, title: "Visionary", desc: "We envision a Pakistan where every restaurant, clinic, school, gym, bookshop, car rental, real estate office, and salon runs on modern digital infrastructure.", color: "#8b5cf6", bg: "#faf5ff" },
   { icon: Heart, title: "Client-Centered", desc: "Your success is our success. We build long-term partnerships, not one-time transactions. Every client gets a dedicated account manager.", color: "#ec4899", bg: "#fdf2f8" },
   { icon: Zap, title: "Innovation First", desc: "We stay ahead of the curve — constantly updating our platforms with the latest technologies to keep your business competitive.", color: "#4a9ea2", bg: "#ecfeff" },
 ];
@@ -112,7 +112,7 @@ export default function AboutPage() {
                 <Target size={32} className="mb-4 opacity-80" />
                 <h2 className="text-2xl font-bold mb-3">Our Mission</h2>
                 <p className="text-blue-100 leading-relaxed">
-                  To empower every Pakistani restaurant, clinic, school, and shop with powerful,
+                  To empower every Pakistani restaurant, clinic, school, gym, bookshop, car rental, real estate office, and salon with powerful,
                   affordable management software that automates operations, reduces costs, and
                   drives sustainable growth — making digital transformation accessible to all.
                 </p>

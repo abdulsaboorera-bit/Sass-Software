@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, FileText } from "lucide-react";
 
 interface Ref { id: string; name: string; patientNo?: string; code?: string }
 interface LabTest {
@@ -187,7 +187,10 @@ export default function ClinicLabPage() {
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${result.status === "COMPLETED" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{result.status}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => archiveResult(result)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    <div className="inline-flex items-center gap-3">
+                      <a href={`/api/clinic/lab-results/${result.id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600"><FileText size={14} /> PDF</a>
+                      <button onClick={() => archiveResult(result)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    </div>
                   </td>
                 </tr>
               ))}

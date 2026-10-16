@@ -60,6 +60,12 @@ export async function proxy(request: NextRequest) {
   // Check if the path is a solution sub-page (public)
   const isSolutionPage = pathname.startsWith("/solutions/");
 
+  // Public per-tenant booking page + its unauthenticated API.
+  const isBookingPage = pathname === "/book" || pathname.startsWith("/book/");
+  const isPublicMenuPage = pathname === "/menu" || pathname.startsWith("/menu/");
+  const isPublicListingsPage = pathname === "/listings" || pathname.startsWith("/listings/");
+  const isPublicApi = pathname === "/api/public" || pathname.startsWith("/api/public/");
+
   // The member self-service portal uses its own client-side JWT (Bearer token in
   // localStorage), not the staff access_token cookie — so it is public to this
   // staff middleware and guards itself.
@@ -72,7 +78,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/api/") === false && pathname.includes(".");
 
-  if (publicPaths.includes(pathname) || isSolutionPage || isMemberPortal || isMemberPortalApi || isStaticFile) {
+  if (publicPaths.includes(pathname) || isSolutionPage || isBookingPage || isPublicMenuPage || isPublicListingsPage || isPublicApi || isMemberPortal || isMemberPortalApi || isStaticFile) {
     return NextResponse.next();
   }
 

@@ -12,7 +12,7 @@ const sections = [
   },
   {
     title: "2. Services",
-    content: "Orbitrix ERP provides custom business management software including Restaurant Management System, Clinic Management System, Book Shop Management System, and School Management System. Services are provided on a subscription basis and include software access, cloud hosting, updates, and technical support as defined in your service plan.",
+    content: "Orbitrix ERP provides custom business management software including Restaurant Management System, Clinic Management System, Book Shop Management System, School Management System, Gym Management System, Car Rental Management System, Real Estate Management System, and Salon Management System. Services are provided on a subscription basis and include software access, cloud hosting, updates, and technical support as defined in your service plan.",
   },
   {
     title: "3. Account Responsibilities",

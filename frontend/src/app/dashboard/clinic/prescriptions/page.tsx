@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, QrCode } from "lucide-react";
 
 interface Ref { id: string; name: string; patientNo?: string; specialization?: string }
 interface Medication { name: string; dosage?: string; frequency?: string; duration?: string; instructions?: string }
@@ -27,6 +27,7 @@ export default function ClinicPrescriptionsPage() {
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [qr, setQr] = useState<{ id: string; qr: string; patient?: string } | null>(null);
 
   const load = async () => {
     try {
@@ -97,8 +98,7 @@ export default function ClinicPrescriptionsPage() {
     await load();
   };
 
-  const updateMed = (index: number, key: keyof Medication, value: string) => {
-    setForm((prev) => {
+  const updateMed = (index: number, key: keyof Medication, value: string) => {    setForm((prev) => {
       const medications = prev.medications.map((m, i) => (i === index ? { ...m, [key]: value } : m));
       return { ...prev, medications };
     });
@@ -106,6 +106,17 @@ export default function ClinicPrescriptionsPage() {
 
   const addMed = () => setForm((prev) => ({ ...prev, medications: [...prev.medications, { ...emptyMed }] }));
   const removeMed = (index: number) => setForm((prev) => ({ ...prev, medications: prev.medications.filter((_, i) => i !== index) }));
+
+  const showQr = async (rx: Prescription) => {
+    try {
+      const response = await fetch(`/api/clinic/prescriptions/${rx.id}/qr`, { credentials: "include" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to load QR");
+      setQr({ id: rx.id, qr: data.qr, patient: rx.patientId?.name });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Unable to load QR");
+    }
+  };
 
   const statusColor = (status: string) =>
     status === "DISPENSED" ? "bg-green-100 text-green-700"
@@ -136,11 +147,12 @@ export default function ClinicPrescriptionsPage() {
               <th className="text-left px-4 py-3 text-xs uppercase text-slate-500">Diagnosis</th>
               <th className="text-right px-4 py-3 text-xs uppercase text-slate-500">Meds</th>
               <th className="text-left px-4 py-3 text-xs uppercase text-slate-500">Status</th>
+              <th className="text-right px-4 py-3 text-xs uppercase text-slate-500">Actions</th>
             </tr>
           </thead>
           <tbody>
             {prescriptions.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">No prescriptions yet.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400 text-sm">No prescriptions yet.</td></tr>
             ) : prescriptions.map((rx) => (
               <tr key={rx.id} className="border-b border-slate-100">
                 <td className="px-4 py-3 text-sm text-slate-600">{rx.createdAt ? new Date(rx.createdAt).toLocaleDateString() : "—"}</td>
@@ -152,6 +164,11 @@ export default function ClinicPrescriptionsPage() {
                   <select value={rx.status} onChange={(e) => setStatus(rx, e.target.value)} className={`text-xs font-semibold rounded-full px-2 py-1 border-none cursor-pointer ${statusColor(rx.status)}`}>
                     {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
                   </select>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => showQr(rx)} title="Show QR code" className="inline-flex items-center gap-1 text-slate-500 hover:text-blue-600 border-none bg-transparent cursor-pointer text-xs">
+                    <QrCode size={15} /> QR
+                  </button>
                 </td>
               </tr>
             ))}
@@ -207,6 +224,21 @@ export default function ClinicPrescriptionsPage() {
             </div>
             <button type="submit" className="mt-5 w-full bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-sm cursor-pointer">Save Prescription</button>
           </form>
+        </div>
+      )}
+
+      {qr && (
+        <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4" onClick={() => setQr(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-900 text-sm">Prescription QR</h3>
+              <button onClick={() => setQr(null)} className="text-slate-400 border-none bg-transparent cursor-pointer"><X size={18} /></button>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qr.qr} alt="Prescription QR" className="mx-auto w-48 h-48" />
+            {qr.patient && <p className="mt-3 text-sm text-slate-600">{qr.patient}</p>}
+            <a href={qr.qr} download={`prescription-${qr.id}.png`} className="mt-4 inline-block text-blue-600 text-xs font-semibold">Download PNG</a>
+          </div>
         </div>
       )}
     </div>

@@ -14,6 +14,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [code, setCode] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,13 +26,19 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(twoFactor ? { ...form, code } : form),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         setError(data.error || "Login failed");
+        return;
+      }
+
+      // Password accepted but a second factor is required.
+      if (data.twoFactorRequired) {
+        setTwoFactor(true);
         return;
       }
 
@@ -77,45 +85,72 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Email</label>
-              <input
-                required
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="you@company.com"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Password</label>
-              <div className="relative">
+            {twoFactor ? (
+              <div>
+                <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Authentication Code</label>
                 <input
                   required
-                  type={showPassword ? "text" : "password"}
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="Enter your password"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-10"
+                  autoFocus
+                  inputMode="numeric"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Enter 6-digit code"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm tracking-[0.3em] text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
+                <p className="text-slate-500 text-xs mt-2">
+                  Enter the code from your authenticator app, or one of your recovery codes.
+                </p>
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer border-none bg-transparent"
+                  onClick={() => { setTwoFactor(false); setCode(""); setError(""); }}
+                  className="text-blue-600 font-semibold text-xs mt-2 bg-transparent border-none cursor-pointer"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  ← Use a different account
                 </button>
               </div>
-            </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Email</label>
+                  <input
+                    required
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="you@company.com"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 text-xs font-bold mb-1.5 uppercase tracking-wide">Password</label>
+                  <div className="relative">
+                    <input
+                      required
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      placeholder="Enter your password"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer border-none bg-transparent"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer text-sm"
             >
-              {loading ? "Signing in..." : "Sign In"} {!loading && <ArrowRight size={15} />}
+              {loading ? "Signing in..." : twoFactor ? "Verify" : "Sign In"} {!loading && <ArrowRight size={15} />}
             </button>
           </form>
 

@@ -1284,3 +1284,58 @@
     padding: 1rem;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   DARK THEME — opt-in via [data-theme="dark"] on <html>.
+   Unlayered rules beat Tailwind's layered utilities, so these
+   override the hard-coded light utilities used across the app.
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="dark"] body {
+  background: #0b1220;
+  color: #e2e8f0;
+}
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #0f172a; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #334155; }
+
+[data-theme="dark"] .bg-white { background-color: #111a2e !important; }
+[data-theme="dark"] .bg-slate-50 { background-color: #0f172a !important; }
+[data-theme="dark"] .bg-slate-100 { background-color: #1e293b !important; }
+[data-theme="dark"] .bg-slate-200 { background-color: #334155 !important; }
+[data-theme="dark"] .hover\:bg-slate-50:hover { background-color: #1e293b !important; }
+[data-theme="dark"] .hover\:bg-slate-100:hover { background-color: #1e293b !important; }
+[data-theme="dark"] .hover\:bg-white:hover { background-color: #1e293b !important; }
+
+[data-theme="dark"] .text-slate-900 { color: #f1f5f9 !important; }
+[data-theme="dark"] .text-slate-800 { color: #e2e8f0 !important; }
+[data-theme="dark"] .text-slate-700 { color: #cbd5e1 !important; }
+[data-theme="dark"] .text-slate-600 { color: #cbd5e1 !important; }
+[data-theme="dark"] .text-slate-500 { color: #94a3b8 !important; }
+[data-theme="dark"] .text-slate-400 { color: #64748b !important; }
+[data-theme="dark"] .hover\:text-slate-600:hover { color: #e2e8f0 !important; }
+[data-theme="dark"] .hover\:text-slate-700:hover { color: #f1f5f9 !important; }
+
+[data-theme="dark"] .border-slate-200 { border-color: #1e293b !important; }
+[data-theme="dark"] .border-slate-100 { border-color: #172036 !important; }
+[data-theme="dark"] .divide-slate-100 > * + * { border-color: #172036 !important; }
+
+[data-theme="dark"] .bg-slate-900 { background-color: #e2e8f0 !important; }
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: #0f172a;
+  color: #f1f5f9;
+  border-color: #1e293b;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder { color: #64748b; }
+
+[data-theme="dark"] .badge-gray-light { background: #1e293b; color: #cbd5e1; }
+[data-theme="dark"] .badge-blue-light { background: #0c3a3d; color: #80bec0; }
+[data-theme="dark"] .badge-green-light { background: #14351f; color: #86efac; }
+[data-theme="dark"] .badge-orange-light { background: #3a2a12; color: #fdba74; }
+[data-theme="dark"] .badge-purple-light { background: #2a1f3d; color: #d8b4fe; }
+[data-theme="dark"] .badge-red-light { background: #3a1a1a; color: #fca5a5; }
+
+/* Card surface used by dashboard panels */
+[data-theme="dark"] .glass-card,
+[data-theme="dark"] .dashboard-mockup { background-color: #111a2e; border-color: #1e293b; }

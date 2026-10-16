@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Utensils, Stethoscope, BookOpen, GraduationCap, ArrowRight, CheckCircle, Dumbbell, Shield, Zap, Headphones, Clock, TrendingUp, Users, BarChart3, Globe, Award, ChevronRight } from "lucide-react";
+import { Utensils, Stethoscope, BookOpen, GraduationCap, ArrowRight, CheckCircle, Dumbbell, Shield, Zap, Headphones, Clock, TrendingUp, Users, BarChart3, Globe, Award, ChevronRight, Car, Building2, Scissors } from "lucide-react";
 import SolutionsShowcase from "@/components/solutions/SolutionsShowcase";
 import SolutionsWorkflow from "@/components/solutions/SolutionsWorkflow";
 import SolutionsStats from "@/components/solutions/SolutionsStats";
@@ -52,12 +52,39 @@ const solutions = [
     bg: "bg-red-500/10", color: "text-red-400",
     stat: "80+", statLabel: "Gyms Powered",
   },
+  {
+    icon: Car, title: "Car Rental Management System",
+    desc: "Fleet and booking management for rental companies — vehicle tracking, reservations, customer records, and payment collection.",
+    features: ["Fleet Management", "Booking & Reservations", "Customer Records", "Rental Agreements", "Payment Tracking"],
+    href: "/solutions/car-rental",
+    gradient: "from-sky-500 to-blue-600",
+    bg: "bg-sky-500/10", color: "text-sky-400",
+    stat: "40+", statLabel: "Fleets Managed",
+  },
+  {
+    icon: Building2, title: "Real Estate Management System",
+    desc: "Manage properties, units, tenants, leases, and maintenance requests — with automated rent tracking and owner reporting.",
+    features: ["Property & Unit Records", "Tenant & Lease Management", "Rent Tracking", "Maintenance Requests", "Owner Reports"],
+    href: "/solutions/real-estate",
+    gradient: "from-cyan-500 to-teal-600",
+    bg: "bg-cyan-500/10", color: "text-cyan-400",
+    stat: "60+", statLabel: "Portfolios Managed",
+  },
+  {
+    icon: Scissors, title: "Salon Management System",
+    desc: "Appointment scheduling, service catalog, staff management, and billing for salons, spas, and beauty studios.",
+    features: ["Appointment Booking", "Service Catalog", "Staff Scheduling", "Client Profiles", "Billing & Packages"],
+    href: "/solutions/salon",
+    gradient: "from-pink-500 to-rose-500",
+    bg: "bg-pink-500/10", color: "text-pink-400",
+    stat: "90+", statLabel: "Salons Styled",
+  },
 ];
 
 const trustStats = [
   { value: "600+", label: "Businesses Live", icon: TrendingUp },
   { value: "98%", label: "Client Satisfaction", icon: Award },
-  { value: "5", label: "Industry Solutions", icon: Globe },
+  { value: "8", label: "Industry Solutions", icon: Globe },
   { value: "24/7", label: "Expert Support", icon: Headphones },
 ];
 

@@ -7,10 +7,14 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar, DollarSign,
   Settings, ChevronLeft, ChevronRight, Zap, Bell, LogOut,
   Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact,  Building2, Home, FileText, Wrench, Scissors,
-  Stethoscope, Pill, Microscope
+  Stethoscope, Pill, Microscope, Database, UserCog, Inbox, ScanLine, ChefHat
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
 import SessionKeepAlive from "@/components/auth/SessionKeepAlive";
+import NotificationBell from "@/components/dashboard/NotificationBell";
+import GlobalSearch from "@/components/dashboard/GlobalSearch";
+import SettingsToggles from "@/components/ui/SettingsToggles";
+import OnboardingBanner from "@/components/dashboard/OnboardingBanner";
 import "@/lib/apiCache";
 import { clearCurrentUserCache, getCurrentUser } from "@/lib/currentUser";
 
@@ -73,19 +77,11 @@ const industryNav: Record<string, NavLink[]> = {
   ],
   RESTAURANT: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Orders/POS", href: "/dashboard/restaurant/orders", icon: BookOpen },
-    { label: "Menu", href: "/dashboard/restaurant/menu", icon: BookOpen },
-    { label: "Tables", href: "/dashboard/restaurant/tables", icon: Calendar },
-    { label: "Reservations", href: "/dashboard/restaurant/reservations", icon: Calendar },
-    { label: "Customers", href: "/dashboard/restaurant/customers", icon: Users },
-    { label: "Staff", href: "/dashboard/restaurant/staff", icon: Users },
-    { label: "Salaries", href: "/dashboard/restaurant/salaries", icon: DollarSign },
-    { label: "Attendance", href: "/dashboard/restaurant/attendance", icon: Calendar },
-    { label: "Inventory", href: "/dashboard/restaurant/inventory", icon: DollarSign },
-    { label: "Suppliers", href: "/dashboard/restaurant/suppliers", icon: Users },
-    { label: "Expenses", href: "/dashboard/restaurant/expenses", icon: DollarSign },
-    { label: "Billing", href: "/dashboard/restaurant/billing", icon: DollarSign },
-    { label: "Reports", href: "/dashboard/restaurant/reports", icon: BarChart3 },
+    { label: "Orders/POS", href: "/dashboard/orders", icon: BookOpen },
+    { label: "Kitchen", href: "/dashboard/kitchen", icon: ChefHat },
+    { label: "Menu", href: "/dashboard/menu", icon: BookOpen },
+    { label: "Tables", href: "/dashboard/tables", icon: Calendar },
+    { label: "Staff", href: "/dashboard/staff", icon: Users },
     { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
   GYM: [
@@ -116,6 +112,7 @@ const industryNav: Record<string, NavLink[]> = {
     { label: "Cars", href: "/dashboard/car-rental/cars", icon: Package, permission: "cars.view" },
     { label: "Customers", href: "/dashboard/car-rental/customers", icon: Users, permission: "customers.view" },
     { label: "Rentals", href: "/dashboard/car-rental/rentals", icon: Calendar, permission: "rentals.view" },
+    { label: "Fleet Tools", href: "/dashboard/car-rental/fleet", icon: Wrench, permission: "cars.view" },
     { label: "Payments", href: "/dashboard/car-rental/payments", icon: DollarSign, permission: "billing.view" },
     { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   ],
@@ -196,6 +193,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const permissions = userData?.permissions || [];
     return permissions.includes("*") || permissions.includes(link.permission) || permissions.includes(`${resource}.*`) || (link.permission === "members.view" && permissions.includes("members.view.assigned"));
   });
+
+  // Links available to every industry/tenant.
+  const commonNav: NavLink[] = [
+    { label: "Scanner", href: "/dashboard/scanner", icon: ScanLine },
+    { label: "Bookings", href: "/dashboard/bookings", icon: Inbox },
+    { label: "Data & Reports", href: "/dashboard/data", icon: Database },
+    { label: "Account", href: "/dashboard/account", icon: UserCog },
+  ];
+  nav.push(...commonNav);
 
   useEffect(() => {
     if (!userData || loading || pathname === "/dashboard") return;
@@ -325,9 +331,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button className="relative p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer border-none bg-transparent">
-              <Bell size={18} />
-            </button>
+            <GlobalSearch />
+            <NotificationBell />
+            <SettingsToggles className="hidden sm:flex" />
             <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200">
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {userData?.user?.name?.charAt(0) || "U"}
@@ -339,6 +345,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
         </header>
+
+        <OnboardingBanner />
 
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
           {children}

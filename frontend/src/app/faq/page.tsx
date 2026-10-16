@@ -8,7 +8,7 @@ const categories = [
   {
     name: "General",
     faqs: [
-      { q: "What is Orbitrix ERP?", a: "Orbitrix ERP is a Pakistani software company that builds custom management systems for restaurants, clinics, book shops, and schools. We create tailored solutions, not one-size-fits-all software." },
+      { q: "What is Orbitrix ERP?", a: "Orbitrix ERP is a Pakistani software company that builds custom management systems for restaurants, clinics, book shops, schools, gyms, car rentals, real estate, and salons. We create tailored solutions, not one-size-fits-all software." },
       { q: "How is Orbitrix ERP different from generic SaaS tools?", a: "Unlike generic tools, every Orbitrix ERP system is built specifically for your business. You get software that matches your exact workflows, with local support and ongoing maintenance included." },
       { q: "How long does it take to go live?", a: "Most clients are fully live within 48–72 hours. Complex enterprise setups may take 1–2 weeks. We handle setup, data migration, and training." },
       { q: "Do I need technical knowledge to use the system?", a: "Not at all. Our systems are designed for everyday business users. If you can use WhatsApp, you can use Orbitrix ERP. We also provide training sessions." },

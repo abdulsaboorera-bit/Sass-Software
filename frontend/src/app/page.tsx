@@ -12,7 +12,7 @@ import {
   Zap, Award, HeadphonesIcon, MessageSquare, LayoutDashboard,
   Globe, ChevronDown, Phone, Dumbbell, Play,
   Clock, Package, Sparkles, Activity,
-  Target
+  Target, Car, Building2, Scissors
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────
@@ -245,6 +245,72 @@ const solutions = [
     ],
     href: "/solutions/gym",
   },
+  {
+    icon: Car, title: "Car Rental Management",
+    tag: "Automotive", tagStyle: "badge-blue-light",
+    accent: "#3b82f6", accentEnd: "#0ea5e9", accentLight: "#eff6ff", iconBg: "#eff6ff",
+    desc: "Run your rental fleet end-to-end — vehicle availability, bookings, customer records, rental agreements and payment collection in one dashboard.",
+    features: ["Fleet & Vehicle Records", "Booking & Reservations", "Rental Agreements", "Customer Database", "Payment Tracking"],
+    chartData: [
+      { name: "Mon", value: 12 },
+      { name: "Tue", value: 18 },
+      { name: "Wed", value: 15 },
+      { name: "Thu", value: 22 },
+      { name: "Fri", value: 28 },
+      { name: "Sat", value: 34 },
+      { name: "Sun", value: 20 },
+    ],
+    metrics: [
+      { label: "Vehicles", value: "128" },
+      { label: "Active Rentals", value: "46" },
+      { label: "Utilization", value: "82%" },
+    ],
+    href: "/solutions/car-rental",
+  },
+  {
+    icon: Building2, title: "Real Estate Management",
+    tag: "Property", tagStyle: "badge-green-light",
+    accent: "#0891b2", accentEnd: "#14b8a6", accentLight: "#ecfeff", iconBg: "#ecfeff",
+    desc: "Manage properties, units, tenants and leases with automated rent tracking, maintenance requests and clear owner reporting.",
+    features: ["Property & Unit Records", "Tenant & Lease Management", "Rent Tracking", "Maintenance Requests", "Owner Reports"],
+    chartData: [
+      { name: "Mon", value: 60 },
+      { name: "Tue", value: 72 },
+      { name: "Wed", value: 68 },
+      { name: "Thu", value: 80 },
+      { name: "Fri", value: 85 },
+      { name: "Sat", value: 92 },
+      { name: "Sun", value: 74 },
+    ],
+    metrics: [
+      { label: "Properties", value: "340" },
+      { label: "Occupancy", value: "94%" },
+      { label: "Rent Collected", value: "₨18.6L" },
+    ],
+    href: "/solutions/real-estate",
+  },
+  {
+    icon: Scissors, title: "Salon Management",
+    tag: "Beauty", tagStyle: "badge-purple-light",
+    accent: "#db2777", accentEnd: "#ec4899", accentLight: "#fdf2f8", iconBg: "#fdf2f8",
+    desc: "Fill your chairs and keep clients coming back — appointment booking, service catalog, staff scheduling and billing built for salons and spas.",
+    features: ["Appointment Booking", "Service Catalog", "Staff Scheduling", "Client Profiles", "Billing & Packages"],
+    chartData: [
+      { name: "Mon", value: 24 },
+      { name: "Tue", value: 30 },
+      { name: "Wed", value: 28 },
+      { name: "Thu", value: 36 },
+      { name: "Fri", value: 48 },
+      { name: "Sat", value: 56 },
+      { name: "Sun", value: 40 },
+    ],
+    metrics: [
+      { label: "Bookings/Day", value: "68" },
+      { label: "Repeat Rate", value: "76%" },
+      { label: "Revenue", value: "₨6.2L" },
+    ],
+    href: "/solutions/salon",
+  },
 ];
 
 const features = [
@@ -303,7 +369,7 @@ const testimonials = [
 const stats = [
   { value: 500, suffix: "+", label: "Businesses Served",    sub: "Across Pakistan",   icon: Users,        color: "#15757b" },
   { value: 98,  suffix: "%", label: "Client Satisfaction",  sub: "Based on surveys",   icon: Award,        color: "#10b981" },
-  { value: 5,   suffix: "",  label: "Industry Solutions",   sub: "Purpose-built each", icon: Package,      color: "#8b5cf6" },
+  { value: 8,   suffix: "",  label: "Industry Solutions",   sub: "Purpose-built each", icon: Package,      color: "#8b5cf6" },
   { value: 24,  suffix: "/7",label: "Expert Support",       sub: "Zero hold times",    icon: HeadphonesIcon,color: "#f97316" },
 ];
 
@@ -316,11 +382,14 @@ const progressBars = [
 ];
 
 const industryPieData = [
-  { name: "Restaurants", value: 35, color: "#f97316" },
-  { name: "Clinics", value: 25, color: "#10b981" },
-  { name: "Schools", value: 20, color: "#8b5cf6" },
-  { name: "Book Shops", value: 12, color: "#15757b" },
-  { name: "Gyms", value: 8, color: "#ef4444" },
+  { name: "Restaurants", value: 30, color: "#f97316" },
+  { name: "Clinics", value: 20, color: "#10b981" },
+  { name: "Schools", value: 16, color: "#8b5cf6" },
+  { name: "Book Shops", value: 10, color: "#15757b" },
+  { name: "Gyms", value: 9, color: "#ef4444" },
+  { name: "Car Rentals", value: 7, color: "#3b82f6" },
+  { name: "Real Estate", value: 5, color: "#0891b2" },
+  { name: "Salons", value: 3, color: "#db2777" },
 ];
 
 const revenueBarData = [
@@ -381,8 +450,9 @@ export default function HomePage() {
           {/* Subheading */}
           <p className="animate-fade-up delay-150 mx-auto px-2"
             style={{ fontSize: "clamp(0.9rem, 2vw, 1.125rem)", lineHeight: 1.75, color: "#94a3b8", maxWidth: 560, marginBottom: "2rem" }}>
-            Custom-built systems for restaurants, clinics, book shops, schools, and gyms.
-            We automate your daily operations so you can focus on growing your business.
+            Custom-built systems for restaurants, clinics, book shops, schools, gyms,
+            car rentals, real estate, and salons. We automate your daily operations so
+            you can focus on growing your business.
           </p>
 
           {/* CTA Buttons */}
@@ -606,7 +676,7 @@ export default function HomePage() {
           <div className="section-intro">
             <p className="section-label">Our Solutions</p>
             <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.625rem)", fontWeight: 800, letterSpacing: "-0.03em", color: "#111827", marginBottom: "1rem" }}>
-              Purpose-Built for Five Industries
+              Purpose-Built for Eight Industries
             </h2>
             <p style={{ fontSize: "1.0625rem", color: "#6b7280", lineHeight: 1.7 }}>
               Not generic software adapted to fit — each product is engineered around how your industry actually operates.

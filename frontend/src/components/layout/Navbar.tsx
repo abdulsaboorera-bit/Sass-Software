@@ -3,14 +3,18 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronDown, Utensils, Stethoscope, BookOpen, GraduationCap, Phone, ArrowRight, Zap, Dumbbell, MessageCircle } from "lucide-react";
+import { Menu, X, ChevronDown, Utensils, Stethoscope, BookOpen, GraduationCap, Phone, ArrowRight, Zap, Dumbbell, MessageCircle, Car, Building2, Scissors } from "lucide-react";
+import SettingsToggles from "@/components/ui/SettingsToggles";
 
 const solutions = [
-  { icon: Utensils,     name: "Restaurant Management", desc: "POS, kitchen display & inventory",  href: "/solutions/restaurant", iconBg: "#fff7ed", iconColor: "#f97316" },
-  { icon: Stethoscope,  name: "Clinic Management",     desc: "EMR, appointments & prescriptions", href: "/solutions/clinic",     iconBg: "#f0fdf4", iconColor: "#10b981" },
-  { icon: BookOpen,     name: "Book Shop Management",  desc: "Inventory, POS & barcode scanning",  href: "/solutions/bookshop",   iconBg: "#f0f9f9", iconColor: "#15757b" },
-  { icon: GraduationCap,name: "School Management",     desc: "Students, fees & parent portal",     href: "/solutions/school",     iconBg: "#faf5ff", iconColor: "#8b5cf6" },
-  { icon: Dumbbell,     name: "Gym Management",        desc: "Members, trainers & billing",        href: "/solutions/gym",        iconBg: "#fef2f2", iconColor: "#ef4444" },
+  { icon: Utensils,     name: "Restaurant Management", desc: "POS, kitchen display & inventory",  href: "/solutions/restaurant",  iconBg: "#fff7ed", iconColor: "#f97316" },
+  { icon: Stethoscope,  name: "Clinic Management",     desc: "EMR, appointments & prescriptions", href: "/solutions/clinic",      iconBg: "#f0fdf4", iconColor: "#10b981" },
+  { icon: BookOpen,     name: "Book Shop Management",  desc: "Inventory, POS & barcode scanning",  href: "/solutions/bookshop",    iconBg: "#f0f9f9", iconColor: "#15757b" },
+  { icon: GraduationCap,name: "School Management",     desc: "Students, fees & parent portal",     href: "/solutions/school",      iconBg: "#faf5ff", iconColor: "#8b5cf6" },
+  { icon: Dumbbell,     name: "Gym Management",        desc: "Members, trainers & billing",        href: "/solutions/gym",         iconBg: "#fef2f2", iconColor: "#ef4444" },
+  { icon: Car,          name: "Car Rental Management", desc: "Fleet, bookings & rentals",          href: "/solutions/car-rental",  iconBg: "#eff6ff", iconColor: "#3b82f6" },
+  { icon: Building2,    name: "Real Estate Management",desc: "Properties, tenants & leases",       href: "/solutions/real-estate", iconBg: "#ecfeff", iconColor: "#0891b2" },
+  { icon: Scissors,     name: "Salon Management",      desc: "Appointments, services & staff",     href: "/solutions/salon",       iconBg: "#fdf2f8", iconColor: "#db2777" },
 ];
 
 const nav = [
@@ -167,6 +171,7 @@ export default function Navbar() {
                 <Phone size={13} /> Support
               </Link>
               <div className="w-px h-5 bg-white/8 mx-1.5 hidden xl:block" />
+              <SettingsToggles tone="dark" className="mr-1" />
               <Link
                 href="/login"
                 className="inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-zinc-400 no-underline px-3.5 py-2 rounded-full transition-all duration-200 hover:text-white hover:bg-white/5"

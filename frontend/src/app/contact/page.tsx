@@ -329,6 +329,9 @@ export default function ContactPage() {
                               <option>Book Shop Management System</option>
                               <option>School Management System</option>
                               <option>Gym Management System</option>
+                              <option>Car Rental Management System</option>
+                              <option>Real Estate Management System</option>
+                              <option>Salon Management System</option>
                               <option>Custom Software Development</option>
                               <option>General Inquiry</option>
                             </select>

@@ -9,6 +9,10 @@ const solutions = [
   { name: "Clinic Management", href: "/solutions/clinic" },
   { name: "Book Shop Management", href: "/solutions/bookshop" },
   { name: "School Management", href: "/solutions/school" },
+  { name: "Gym Management", href: "/solutions/gym" },
+  { name: "Car Rental Management", href: "/solutions/car-rental" },
+  { name: "Real Estate Management", href: "/solutions/real-estate" },
+  { name: "Salon Management", href: "/solutions/salon" },
 ];
 
 const company = [
@@ -92,8 +96,8 @@ export default function Footer() {
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">
               Empowering businesses with custom-built management software.
-              We specialize in restaurants, clinics, book shops, and schools
-              — turning complexity into simplicity.
+              We specialize in restaurants, clinics, book shops, schools, gyms,
+              car rentals, real estate, and salons — turning complexity into simplicity.
             </p>
             {/* Contact Info */}
             <div className="space-y-3 mb-6">

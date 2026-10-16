@@ -54,7 +54,7 @@ export default function CareersPage() {
             <span className="gradient-text">Pakistani Business</span>
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Join a team that&apos;s digitizing restaurants, clinics, schools, and shops across Pakistan.
+            Join a team that&apos;s digitizing restaurants, clinics, schools, gyms, bookshops, car rentals, real estate, and salons across Pakistan.
             We&apos;re a small team with big ambitions — and we need talented people.
           </p>
         </div>

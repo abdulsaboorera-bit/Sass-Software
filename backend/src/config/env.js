@@ -27,8 +27,8 @@ const env = {
     issuer: process.env.JWT_ISSUER || "nexussoft",
     accessAudience: process.env.JWT_ACCESS_AUDIENCE || "nexussoft-api",
     refreshAudience: process.env.JWT_REFRESH_AUDIENCE || "nexussoft-refresh",
-    accessTtl: process.env.ACCESS_TOKEN_TTL || "15m",
-    refreshTtl: process.env.REFRESH_TOKEN_TTL || "7d",
+    accessTtl: process.env.ACCESS_TOKEN_TTL || "1d",
+    refreshTtl: process.env.REFRESH_TOKEN_TTL || "30d",
   },
 
   cron: {

@@ -2,8 +2,8 @@
 
 const env = require("../config/env");
 
-const ACCESS_MAX_AGE = 15 * 60 * 1000; // 15 minutes
-const REFRESH_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+const ACCESS_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
+const REFRESH_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const baseCookie = {
   httpOnly: true,

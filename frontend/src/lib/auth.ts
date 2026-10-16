@@ -35,7 +35,7 @@ export async function createAccessToken(payload: TokenPayload): Promise<string> 
   return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("15m") // 15 minutes
+    .setExpirationTime("1d") // 1 day
     .setIssuer("nexussoft")
     .setAudience("nexussoft-api")
     .sign(JWT_SECRET);
@@ -45,7 +45,7 @@ export async function createRefreshToken(userId: string): Promise<string> {
   return new SignJWT({ userId } as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d") // 7 days
+    .setExpirationTime("30d") // 30 days
     .setIssuer("nexussoft")
     .setAudience("nexussoft-refresh")
     .sign(JWT_SECRET);
@@ -88,7 +88,7 @@ export async function setAuthCookies(accessToken: string, refreshToken: string) 
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 15 * 60, // 15 minutes
+    maxAge: 24 * 60 * 60, // 1 day
     path: "/",
   });
 
@@ -96,7 +96,7 @@ export async function setAuthCookies(accessToken: string, refreshToken: string) 
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 30 * 24 * 60 * 60, // 30 days
     path: "/",
   });
 }

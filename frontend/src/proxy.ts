@@ -85,6 +85,8 @@ export async function proxy(request: NextRequest) {
   const isApi = pathname.startsWith("/api/");
   const accessToken = request.cookies.get("access_token")?.value;
   const refreshTokenValue = request.cookies.get("refresh_token")?.value;
+  // Set by the platform admin UI when it "impersonates" a tenant.
+  const activeTenantId = request.cookies.get("active_tenant_id")?.value;
 
   const redirectToLogin = () => {
     const loginUrl = new URL("/login", request.url);
@@ -136,23 +138,33 @@ export async function proxy(request: NextRequest) {
   }
 
   const authPayload = payload as TokenPayload;
+  const isPlatformAdmin = authPayload.role === "SUPER_ADMIN" && !authPayload.tenantId;
 
   // Admin route protection — only platform super admins (no tenant) can access admin
   if (pathname.startsWith("/admin")) {
-    if (authPayload.role !== "SUPER_ADMIN" || authPayload.tenantId) {
+    if (!isPlatformAdmin) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
-  // Dashboard route protection — tenant users only (admins without tenant go to /admin)
+  // Dashboard route protection — platform admins may only enter /dashboard when
+  // they have explicitly impersonated a tenant (active_tenant_id cookie);
+  // otherwise they belong in the admin panel.
   if (pathname.startsWith("/dashboard") && !isApi) {
-    if (authPayload.role === "SUPER_ADMIN" && !authPayload.tenantId) {
+    if (isPlatformAdmin && !activeTenantId) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
   }
 
+  // Forward the impersonated tenant to the backend. The backend only honours
+  // x-tenant-id for tenantless super admins, so this is safe for everyone else.
+  const requestHeaders = new Headers(request.headers);
+  if (isPlatformAdmin && activeTenantId) {
+    requestHeaders.set("x-tenant-id", activeTenantId);
+  }
+
   // Add user info to headers for downstream use
-  const response = NextResponse.next();
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("x-user-id", authPayload.userId);
   response.headers.set("x-user-email", authPayload.email);
   response.headers.set("x-user-role", authPayload.role);

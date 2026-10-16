@@ -235,7 +235,7 @@ export default function ClinicPrescriptionsPage() {
               <button onClick={() => setQr(null)} className="text-slate-400 border-none bg-transparent cursor-pointer"><X size={18} /></button>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qr.qr} alt="Prescription QR" className="mx-auto w-48 h-48" />
+            <img src={qr.qr} alt="Prescription QR" loading="lazy" decoding="async" className="mx-auto w-48 h-48" />
             {qr.patient && <p className="mt-3 text-sm text-slate-600">{qr.patient}</p>}
             <a href={qr.qr} download={`prescription-${qr.id}.png`} className="mt-4 inline-block text-blue-600 text-xs font-semibold">Download PNG</a>
           </div>

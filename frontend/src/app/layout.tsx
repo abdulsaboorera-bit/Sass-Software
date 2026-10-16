@@ -7,9 +7,11 @@ import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
 import { AppSettingsProvider, settingsInitScript } from "@/components/providers/AppSettings";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
+// A single variable font file covers every weight (100–900) and is far lighter
+// than shipping 7 separate static files.
 const inter = Inter({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  weight: "variable",
   variable: "--font-inter",
   display: "swap",
 });

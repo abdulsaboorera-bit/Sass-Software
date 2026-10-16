@@ -16,4 +16,6 @@ const staffSchema = new Schema(
   baseOptions
 );
 
+staffSchema.index({ tenantId: 1, createdAt: -1 });
+
 module.exports = mongoose.models.Staff || mongoose.model("Staff", staffSchema);

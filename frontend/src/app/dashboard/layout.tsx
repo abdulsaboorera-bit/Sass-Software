@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, BookOpen, Calendar, DollarSign,
   Settings, ChevronLeft, ChevronRight, Zap, Bell, LogOut,
   Menu, X, BarChart3, Package, ClipboardList, CreditCard, Trophy, Contact,  Building2, Home, FileText, Wrench, Scissors,
-  Stethoscope, Pill, Microscope, Database, UserCog, Inbox, ScanLine, ChefHat
+  Stethoscope, Pill, Microscope, Database, UserCog, Inbox, ScanLine, ChefHat, Eye
 } from "lucide-react";
 import ChatWidget from "@/components/ChatWidget";
 import SessionKeepAlive from "@/components/auth/SessionKeepAlive";
@@ -33,6 +33,7 @@ interface UserData {
     plan: string;
   } | null;
   permissions: string[];
+  impersonating?: boolean;
 }
 
 type NavLink = { label: string; href: string; icon: typeof LayoutDashboard; permission?: string };
@@ -182,6 +183,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     clearCurrentUserCache();
     router.push("/login");
     router.refresh();
+  };
+
+  const exitImpersonation = () => {
+    document.cookie = "active_tenant_id=; path=/; max-age=0";
+    clearCurrentUserCache();
+    window.location.href = "/admin";
   };
 
   const canAccess = (permission?: string) => {
@@ -353,6 +360,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
         </header>
+
+        {userData?.impersonating && (
+          <div className="flex items-center justify-between gap-3 px-4 py-2 bg-amber-500 text-white text-xs sm:text-sm font-semibold shrink-0">
+            <span className="flex items-center gap-2 min-w-0 truncate">
+              <Eye size={15} className="shrink-0" />
+              <span className="truncate">Platform admin — full access to <strong>{userData?.tenant?.name}</strong></span>
+            </span>
+            <button
+              onClick={exitImpersonation}
+              className="shrink-0 px-3 py-1 rounded-md bg-white/20 hover:bg-white/30 transition-colors cursor-pointer border-none text-white font-semibold text-xs"
+            >
+              Exit to admin
+            </button>
+          </div>
+        )}
 
         <OnboardingBanner />
 

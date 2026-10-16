@@ -45,6 +45,9 @@ async function list({ tenantId, page = 1, limit = 20, search, status, planId, tr
   const skip = (page - 1) * limit;
   const [rows, total] = await Promise.all([
     Member.find(filter)
+      // The list view never renders these (photo can be a large base64 blob;
+      // the histories grow unbounded) — keep the payload lean.
+      .select("-photo -notesHistory -renewals")
       .populate("plan", "name price duration")
       .populate("trainer", "name")
       .sort({ createdAt: -1 })

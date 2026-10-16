@@ -16,4 +16,6 @@ const branchSchema = new Schema(
   baseOptions
 );
 
+branchSchema.index({ tenantId: 1, createdAt: -1 });
+
 module.exports = mongoose.models.Branch || mongoose.model("Branch", branchSchema);

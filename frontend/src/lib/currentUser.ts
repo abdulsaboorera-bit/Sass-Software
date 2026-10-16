@@ -5,6 +5,7 @@ export interface CurrentUserResponse {
     user: { id: string; name: string; email: string; role: string };
     tenant: { id: string; slug: string; name: string; industry: string; plan: string } | null;
     permissions: string[];
+    impersonating?: boolean;
   } | null;
 }
 

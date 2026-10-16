@@ -109,7 +109,7 @@ export default function PublicMenuPage() {
               <div key={item.id} className="bg-white border border-slate-200 rounded-2xl p-4 flex gap-4">
                 {item.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.imageUrl} alt={item.name} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+                  <img src={item.imageUrl} alt={item.name} loading="lazy" decoding="async" className="w-20 h-20 rounded-xl object-cover shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3">

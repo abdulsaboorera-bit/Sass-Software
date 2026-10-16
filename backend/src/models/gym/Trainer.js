@@ -25,6 +25,8 @@ const trainerSchema = new Schema(
   baseOptions
 );
 
+trainerSchema.index({ tenantId: 1, createdAt: -1 });
+
 // Members assigned to this trainer (reverse side of Member.trainerId).
 trainerSchema.virtual("assignedMembers", {
   ref: "Member",

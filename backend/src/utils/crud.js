@@ -99,7 +99,7 @@ function makeCrudRouter({
       return apiSuccess(res, { [keyPlural]: rows });
     }
 
-    const { page, limit } = paginate(req.query, { maxLimit: 1000 });
+    const { page, limit } = paginate(req.query, { maxLimit: 500 });
     let [rows, total] = await Promise.all([
       applyPopulate(model.find(filter)).sort(sort).skip((page - 1) * limit).limit(limit).lean({ virtuals: true }),
       model.countDocuments(filter),

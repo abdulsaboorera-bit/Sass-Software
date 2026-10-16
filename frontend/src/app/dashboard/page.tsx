@@ -300,14 +300,15 @@ export default function DashboardPage() {
   const fetchDashboardStats = async (industry: string) => {
     try {
       if (industry === "SCHOOL") {
-        const [dashRes, revenueRes, attendanceRes] = await Promise.all([
+        // The dashboard payload already embeds revenue + low-attendance; only the
+        // attendance trend needs a second call.
+        const [dashRes, attendanceRes] = await Promise.all([
           fetch("/api/school/analytics/dashboard", { credentials: "include" }).then((r) => r.json()).catch(() => null),
-          fetch("/api/school/analytics/revenue?months=6", { credentials: "include" }).then((r) => r.json()).catch(() => null),
           fetch("/api/school/analytics/attendance-trend?days=30", { credentials: "include" }).then((r) => r.json()).catch(() => null),
         ]);
         const dash = dashRes || {};
         setSchoolData({
-          revenue: revenueRes || dash.revenue || undefined,
+          revenue: dash.revenue || undefined,
           attendance: attendanceRes || undefined,
           lowAttendance: dash.lowAttendance || undefined,
         });
@@ -318,13 +319,10 @@ export default function DashboardPage() {
           fees: dash.fees?.collected || 0,
         });
       } else if (industry === "CLINIC") {
-        const [dashRes, revenueRes, doctorsRes] = await Promise.all([
-          fetch("/api/clinic/analytics/dashboard", { credentials: "include" }).then(r => r.json()).catch(() => null),
-          fetch("/api/clinic/analytics/revenue?months=6", { credentials: "include" }).then(r => r.json()).catch(() => null),
-          fetch("/api/clinic/analytics/top-doctors?limit=5", { credentials: "include" }).then(r => r.json()).catch(() => null),
-        ]);
+        // The dashboard payload already embeds revenue + top doctors.
+        const dashRes = await fetch("/api/clinic/analytics/dashboard", { credentials: "include" }).then(r => r.json()).catch(() => null);
         const dash = dashRes || {};
-        setClinicData({ revenue: revenueRes || undefined, topDoctors: doctorsRes?.topDoctors || [] });
+        setClinicData({ revenue: dash.revenue || undefined, topDoctors: dash.topDoctors || [] });
         setStats({
           patients: dash.patients?.total || 0,
           todayAppointments: dash.appointments?.today || 0,
@@ -334,17 +332,14 @@ export default function DashboardPage() {
           lowStock: dash.inventory?.lowStockCount || 0,
         });
       } else if (industry === "GYM") {
-        const [dashRes, revenueRes, attendanceRes, pendingRes] = await Promise.all([
-          fetch("/api/gym/analytics/dashboard", { credentials: "include" }).then(r => r.json()).catch(() => null),
-          fetch("/api/gym/analytics/revenue?months=6", { credentials: "include" }).then(r => r.json()).catch(() => null),
-          fetch("/api/gym/attendance/trends?days=30", { credentials: "include" }).then(r => r.json()).catch(() => null),
-          fetch("/api/gym/analytics/pending-payments", { credentials: "include" }).then(r => r.json()).catch(() => null),
-        ]);
+        // The dashboard payload already embeds revenue, attendance trend, and
+        // pending payments — one call replaces four.
+        const dashRes = await fetch("/api/gym/analytics/dashboard", { credentials: "include" }).then(r => r.json()).catch(() => null);
         setGymData({
           dashboard: dashRes,
-          revenue: revenueRes,
-          attendance: attendanceRes,
-          pending: pendingRes,
+          revenue: dashRes?.revenue,
+          attendance: dashRes?.attendanceTrend,
+          pending: dashRes?.pendingPayments,
         });
         setStats({
           totalMembers: dashRes?.members?.total || 0,

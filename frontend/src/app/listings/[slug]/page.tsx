@@ -85,7 +85,7 @@ export default function PublicListingsPage() {
             <section key={property.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
               {property.pictures?.[0] && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={property.pictures[0]} alt={property.name} className="w-full h-48 object-cover" />
+                <img src={property.pictures[0]} alt={property.name} loading="lazy" decoding="async" className="w-full h-48 object-cover" />
               )}
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">

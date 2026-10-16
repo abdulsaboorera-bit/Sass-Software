@@ -67,11 +67,21 @@ const me = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.userId).select("-passwordHash").lean();
   if (!user) return apiSuccess(res, { user: null });
 
-  const tenant = user.tenantId ? await Tenant.findById(user.tenantId).lean() : null;
+  // A platform super admin owns no tenant and has unrestricted access.
+  const isPlatformAdmin = user.role === "SUPER_ADMIN" && !user.tenantId;
+
+  // A platform super admin may "impersonate" a tenant by sending x-tenant-id
+  // (which the Next.js proxy derives from the active_tenant_id cookie). Everyone
+  // else is pinned to their own tenant.
+  const activeTenantId = user.tenantId || (isPlatformAdmin ? req.headers["x-tenant-id"] : null);
+  const tenant = activeTenantId ? await Tenant.findById(activeTenantId).lean() : null;
 
   let permissions = [];
   let roleSlug = null;
-  if (user.tenantId) {
+  if (isPlatformAdmin) {
+    permissions = ["*"];
+    roleSlug = "owner";
+  } else if (user.tenantId) {
     const membership = await TenantUser.findOne({
       tenantId: user.tenantId,
       userId: user._id,
@@ -88,10 +98,17 @@ const me = asyncHandler(async (req, res) => {
   return apiSuccess(res, {
     user: { id: String(user._id), name: user.name, email: user.email, role: user.role },
     tenant: tenant
-      ? { id: String(tenant._id), slug: tenant.slug, name: tenant.name, industry: tenant.industry }
+      ? {
+          id: String(tenant._id),
+          slug: tenant.slug,
+          name: tenant.name,
+          industry: tenant.industry,
+          plan: tenant.plan,
+        }
       : null,
     roleSlug,
     permissions,
+    impersonating: isPlatformAdmin && !!tenant,
   });
 });
 

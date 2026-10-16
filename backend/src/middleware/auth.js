@@ -6,6 +6,20 @@ const asyncHandler = require("../utils/asyncHandler");
 const { Tenant, TenantUser, User } = require("../models");
 
 /**
+ * Tiny in-process cache for the per-request User lookup. This runs on every
+ * authenticated request, so a short TTL trades a few seconds of staleness
+ * (e.g. a just-suspended account) for skipping a DB round-trip on the hot path.
+ */
+const USER_CACHE_TTL_MS = 5_000;
+const USER_CACHE_MAX = 2_000;
+const userCache = new Map();
+
+function cacheKeyFor(user) {
+  const id = user && (user._id || user.id);
+  return id ? String(id) : null;
+}
+
+/**
  * Read the access token from the httpOnly cookie (as the Next.js app sets it)
  * or an `Authorization: Bearer <token>` header (for API clients / the new
  * Express-first frontends). Attaches `req.user` (token payload) when valid.
@@ -31,7 +45,26 @@ const attachUser = (req, _res, next) => {
 /** Require a valid, authenticated user. */
 async function loadCurrentUser(req) {
   if (req.currentUser !== undefined) return req.currentUser;
-  req.currentUser = await User.findById(req.user && req.user.userId).select("role status tenantId").lean();
+
+  const userId = req.user && req.user.userId;
+
+  if (userId) {
+    const cached = userCache.get(String(userId));
+    if (cached && Date.now() - cached.at < USER_CACHE_TTL_MS) {
+      req.currentUser = cached.user;
+      return req.currentUser;
+    }
+  }
+
+  const user = await User.findById(userId).select("role status tenantId").lean();
+
+  if (user) {
+    if (userCache.size >= USER_CACHE_MAX) userCache.clear();
+    const key = cacheKeyFor(user);
+    if (key) userCache.set(key, { at: Date.now(), user });
+  }
+
+  req.currentUser = user;
   return req.currentUser;
 }
 

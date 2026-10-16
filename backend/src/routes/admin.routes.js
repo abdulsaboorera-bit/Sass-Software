@@ -21,6 +21,7 @@ router.get("/roles", ctrl.listRoles);
 router.get("/search", ctrl.search);
 router.patch("/tenants", ctrl.updateTenant);
 router.patch("/tenants/:id", ctrl.updateTenant);
+router.delete("/tenants/:id", ctrl.deleteTenant);
 
 router.get("/users", ctrl.listUsers);
 router.post("/users", ctrl.createUser);

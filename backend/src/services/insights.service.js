@@ -206,29 +206,43 @@ async function overview({ tenantId, industry, days = 30, horizon = 7 }) {
   const metrics = [];
   let primarySeries = null;
 
-  for (const source of sources) {
-    try {
-      if (!models[source.model]) continue;
-      const [cur, prev] = await Promise.all([
-        dailySeries(tenantId, source, currentFrom, now),
-        dailySeries(tenantId, source, previousFrom, currentFrom),
-      ]);
-      metrics.push(buildMetric(source, totalOf(cur), totalOf(prev), windowDays));
-      if (!primarySeries) primarySeries = grid(cur);
-    } catch (err) {
+  // Fetch every source's current + previous series concurrently instead of
+  // awaiting them one-by-one; declaration order is preserved when the metrics
+  // are assembled below, so the primary series stays the first source.
+  const results = await Promise.all(
+    sources.map(async (source) => {
+      if (!models[source.model]) return null;
+      try {
+        const [cur, prev] = await Promise.all([
+          dailySeries(tenantId, source, currentFrom, now),
+          dailySeries(tenantId, source, previousFrom, currentFrom),
+        ]);
+        return { source, cur, prev };
+      } catch (err) {
+        return { source };
+      }
+    })
+  );
+
+  for (const result of results) {
+    if (!result) continue;
+    if (!result.cur) {
       // A missing/incompatible model should never break the whole dashboard.
       metrics.push({
-        key: source.key,
-        label: source.label,
-        kind: source.kind,
+        key: result.source.key,
+        label: result.source.label,
+        kind: result.source.kind,
         current: 0,
         previous: 0,
         changePct: 0,
         direction: "flat",
         severity: "neutral",
-        sentence: `${source.label} unavailable`,
+        sentence: `${result.source.label} unavailable`,
       });
+      continue;
     }
+    metrics.push(buildMetric(result.source, totalOf(result.cur), totalOf(result.prev), windowDays));
+    if (!primarySeries) primarySeries = grid(result.cur);
   }
 
   const primary = sources[0];

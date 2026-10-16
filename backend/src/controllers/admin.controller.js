@@ -1,7 +1,7 @@
 "use strict";
 
 const { z } = require("zod");
-const { Tenant, User, TenantUser, TenantRole, PlatformSubscription } = require("../models");
+const { Tenant, User, TenantUser, TenantRole, PlatformSubscription, RefreshToken } = require("../models");
 const { apiSuccess, ApiError } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const { paginate } = require("../utils/query");
@@ -81,6 +81,33 @@ const updateTenant = asyncHandler(async (req, res) => {
   const tenant = await Tenant.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
   if (!tenant) throw ApiError.notFound("Tenant not found");
   return apiSuccess(res, { tenant });
+});
+
+/**
+ * Permanently delete a tenant and every document scoped to it. Walks every
+ * model that declares a `tenantId` path so no vertical data is orphaned, then
+ * removes the tenant's user accounts (a user belongs to one tenant) and their
+ * refresh tokens.
+ */
+const deleteTenant = asyncHandler(async (req, res) => {
+  const id = req.params.id || req.body.id || req.query.id;
+  if (!id) throw ApiError.badRequest("id is required");
+
+  const tenant = await Tenant.findById(id).select("_id name").lean();
+  if (!tenant) throw ApiError.notFound("Tenant not found");
+
+  const userIds = (await User.find({ tenantId: id }).select("_id").lean()).map((u) => u._id);
+  if (userIds.length) await RefreshToken.deleteMany({ userId: { $in: userIds } });
+
+  const models = require("../models");
+  for (const Model of Object.values(models)) {
+    if (!Model || !Model.schema || !Model.schema.path("tenantId")) continue;
+    await Model.deleteMany({ tenantId: id });
+  }
+  await User.deleteMany({ tenantId: id });
+  await Tenant.deleteOne({ _id: id });
+
+  return apiSuccess(res, { success: true, deletedUsers: userIds.length });
 });
 
 // ── Users ────────────────────────────────────────────────
@@ -288,4 +315,4 @@ const search = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { listTenants, listRoles, createTenant, updateTenant, getTenant, search, listUsers, createUser, updateUser, deleteUser };
+module.exports = { listTenants, listRoles, createTenant, updateTenant, deleteTenant, getTenant, search, listUsers, createUser, updateUser, deleteUser };

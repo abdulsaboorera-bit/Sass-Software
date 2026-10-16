@@ -18,5 +18,7 @@ const membershipPlanSchema = new Schema(
   baseOptions
 );
 
+membershipPlanSchema.index({ tenantId: 1, createdAt: -1 });
+
 module.exports =
   mongoose.models.MembershipPlan || mongoose.model("MembershipPlan", membershipPlanSchema);

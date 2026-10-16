@@ -10,6 +10,8 @@ const { permissionGroupsFor } = require("../seed/roles");
 
 /** Only an Owner (the "*" wildcard permission) may grant/revoke ownership. */
 function isOwner(req) {
+  // Platform super admins acting cross-tenant have unrestricted rights.
+  if (req.user && req.user.role === "SUPER_ADMIN" && !req.user.tenantId) return true;
   const perms = req.permissions || [];
   return perms.includes("*");
 }

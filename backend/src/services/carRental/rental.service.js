@@ -136,8 +136,17 @@ async function returnRental({ tenantId, id, returnMileage, notes }) {
   return getRental({ tenantId, id });
 }
 
-async function cancelRental({ tenantId, id }) {
-  const rental = await Rental.findOneAndUpdate({ _id: id, tenantId, status: { $in: ["RESERVED", "ACTIVE"] } }, { $set: { status: "CANCELLED" } }, { new: true });
+/** Append handover/return inspection items to a rental's checklist. */
+async function addChecklist({ tenantId, id, phase, items }) {
+  if (!["PICKUP", "RETURN"].includes(phase)) throw ApiError.badRequest("phase must be PICKUP or RETURN");
+  const entries = (Array.isArray(items) ? items : []).map((i) => ({ phase, label: i.label, ok: i.ok !== false, note: i.note, at: new Date() }));
+  if (!entries.length) throw ApiError.badRequest("At least one checklist item is required");
+  const rental = await Rental.findOneAndUpdate({ _id: id, tenantId }, { $push: { checklist: { $each: entries } } }, { new: true });
+  if (!rental) throw ApiError.notFound("Rental not found");
+  return getRental({ tenantId, id });
+}
+
+async function cancelRental({ tenantId, id }) {  const rental = await Rental.findOneAndUpdate({ _id: id, tenantId, status: { $in: ["RESERVED", "ACTIVE"] } }, { $set: { status: "CANCELLED" } }, { new: true });
   if (!rental) throw ApiError.notFound("Cancellable rental not found");
   await Car.updateOne({ _id: rental.carId, tenantId }, { $set: { status: "AVAILABLE" } });
   return rental.toObject();
@@ -153,4 +162,4 @@ async function dashboard({ tenantId }) {
   return { cars: Object.fromEntries(cars.map((row) => [row._id.toLowerCase(), row.count])), activeRentals, overdueRentals: overdue, totalCollected: revenue[0]?.total || 0 };
 }
 
-module.exports = { listCars, createCar, updateCar, archiveCar, listCustomers, createCustomer, updateCustomer, listRentals, createRental, getRental, recordPayment, returnRental, cancelRental, dashboard };
+module.exports = { listCars, createCar, updateCar, archiveCar, listCustomers, createCustomer, updateCustomer, listRentals, createRental, getRental, recordPayment, returnRental, addChecklist, cancelRental, dashboard };

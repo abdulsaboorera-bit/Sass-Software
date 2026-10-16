@@ -13,7 +13,7 @@
     "seed": "node src/seed/seed.js",
     "db:indexes": "node src/jobs/syncIndexes.js",
     "cron:daily": "node src/jobs/runDaily.js",
-    "test": "node --test test/contracts.test.js test/gym.integration.test.js test/salon.integration.test.js test/school.integration.test.js"
+    "test": "node --test test/contracts.test.js test/gym.integration.test.js test/salon.integration.test.js test/school.integration.test.js test/core.integration.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

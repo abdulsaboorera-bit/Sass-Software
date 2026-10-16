@@ -8,6 +8,7 @@ const { apiSuccess } = require("../../utils/apiResponse");
 const asyncHandler = require("../../utils/asyncHandler");
 const saleCtrl = require("../../controllers/bookshop/sale.controller");
 const { Book, Category, BookCustomer, PurchaseOrder, BookshopSettings } = require("../../models");
+const extrasCtrl = require("../../controllers/bookshop/extras.controller");
 
 const router = express.Router();
 router.use(requireAuth, requireTenant);
@@ -31,6 +32,8 @@ router.use("/purchase-orders", makeCrudRouter({
   model: PurchaseOrder, permission: "inventory", listKey: "purchaseOrders", itemKey: "purchaseOrder",
   filterFields: ["status"],
 }));
+
+router.get("/isbn/:isbn", requirePermission("inventory.view"), extrasCtrl.isbnLookup);
 
 // Sales — computed totals + stock decrement + loyalty.
 router.get("/sales", requirePermission("sales.view"), saleCtrl.list);

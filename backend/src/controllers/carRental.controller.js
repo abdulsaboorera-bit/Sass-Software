@@ -11,6 +11,7 @@ const carSchema = z.object({
   color: z.string().optional(), category: z.enum(["ECONOMY", "COMPACT", "SEDAN", "SUV", "LUXURY", "VAN", "OTHER"]).optional(),
   transmission: z.enum(["MANUAL", "AUTOMATIC", "OTHER"]).optional(), fuelType: z.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC", "OTHER"]).optional(),
   seats: z.number().int().positive().optional(), dailyRate: z.number().nonnegative(), weeklyRate: z.number().nonnegative().optional(), depositAmount: z.number().nonnegative().optional(), mileage: z.number().nonnegative().optional(), pictures: z.array(z.string().url()).max(20).optional(), status: z.enum(["AVAILABLE", "RENTED", "NOT_AVAILABLE", "WORKSHOP"]).optional(), notes: z.string().optional(),
+  insuranceExpiry: z.string().nullable().optional(), registrationExpiry: z.string().nullable().optional(), nextServiceDue: z.string().nullable().optional(),
 });
 const customerSchema = z.object({ name: z.string().min(2), phone: z.string().min(4), email: z.string().email().optional(), licenseNumber: z.string().min(3), licenseExpiry: z.string().optional(), nationalId: z.string().optional(), address: z.string().optional(), emergencyContact: z.string().optional(), notes: z.string().optional() });
 const rentalSchema = z.object({ carId: z.string().min(1), customerId: z.string().min(1), pickupAt: z.string(), dueAt: z.string(), ratePerDay: z.number().nonnegative().optional(), discount: z.number().nonnegative().optional(), tax: z.number().nonnegative().optional(), depositRequired: z.number().nonnegative().optional(), depositPaid: z.number().nonnegative().optional(), pickupMileage: z.number().nonnegative().optional(), paymentAmount: z.number().nonnegative().optional(), paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "CARD", "ONLINE", "JAZZCASH", "EASYPAISA"]).optional(), reference: z.string().optional(), notes: z.string().optional() });
@@ -29,7 +30,14 @@ const createRental = asyncHandler(async (req, res) => apiSuccess(res, { rental: 
 const getRental = asyncHandler(async (req, res) => apiSuccess(res, { rental: await service.getRental({ tenantId: req.tenantId, id: req.params.id }) }));
 const returnRental = asyncHandler(async (req, res) => apiSuccess(res, { rental: await service.returnRental({ tenantId: req.tenantId, id: req.params.id, ...z.object({ returnMileage: z.number().nonnegative().optional(), notes: z.string().optional() }).parse(req.body || {}) }) }));
 const cancelRental = asyncHandler(async (req, res) => apiSuccess(res, { rental: await service.cancelRental({ tenantId: req.tenantId, id: req.params.id }) }));
+const addChecklist = asyncHandler(async (req, res) => {
+  const data = z.object({
+    phase: z.enum(["PICKUP", "RETURN"]),
+    items: z.array(z.object({ label: z.string().min(1), ok: z.boolean().optional(), note: z.string().optional() })).min(1),
+  }).parse(req.body || {});
+  return apiSuccess(res, { rental: await service.addChecklist({ tenantId: req.tenantId, id: req.params.id, ...data }) });
+});
 const recordPayment = asyncHandler(async (req, res) => { const data = z.object({ rentalId: z.string().min(1), amount: z.number().positive(), method: z.enum(["CASH", "BANK_TRANSFER", "CARD", "ONLINE", "JAZZCASH", "EASYPAISA"]), reference: z.string().optional() }).parse(req.body); return apiSuccess(res, await service.recordPayment({ tenantId: req.tenantId, ...data }), 201); });
 const dashboard = asyncHandler(async (req, res) => apiSuccess(res, await service.dashboard({ tenantId: req.tenantId })));
 
-module.exports = { listCars, createCar, updateCar, archiveCar, listCustomers, createCustomer, updateCustomer, listRentals, createRental, getRental, returnRental, cancelRental, recordPayment, dashboard };
+module.exports = { listCars, createCar, updateCar, archiveCar, listCustomers, createCustomer, updateCustomer, listRentals, createRental, getRental, returnRental, cancelRental, recordPayment, addChecklist, dashboard };

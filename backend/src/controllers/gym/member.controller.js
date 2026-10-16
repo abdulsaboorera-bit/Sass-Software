@@ -68,8 +68,13 @@ const list = asyncHandler(async (req, res) => {
   return apiSuccess(res, result);
 });
 
-const getOne = asyncHandler(async (req, res) => {
-  const member = await memberService.getById({
+const expiring = asyncHandler(async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 90);
+  const members = await memberService.expiring({ tenantId: req.tenantId, days, trainerScope: req.memberScope });
+  return apiSuccess(res, { members, days });
+});
+
+const getOne = asyncHandler(async (req, res) => {  const member = await memberService.getById({
     tenantId: req.tenantId,
     id: req.params.id,
     trainerScope: req.memberScope,
@@ -115,4 +120,4 @@ const payments = asyncHandler(async (req, res) => {
   return apiSuccess(res, { payments: history });
 });
 
-module.exports = { list, getOne, create, update, addNote, renew, remove, payments };
+module.exports = { list, expiring, getOne, create, update, addNote, renew, remove, payments };

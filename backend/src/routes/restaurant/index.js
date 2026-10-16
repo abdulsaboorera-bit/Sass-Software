@@ -25,6 +25,7 @@ const expenseRoutes = require("../../controllers/restaurant/expense.controller")
 const payrollCtrl = require("../../controllers/restaurant/payroll.controller");
 const billingCtrl = require("../../controllers/restaurant/billing.controller");
 const analyticsCtrl = require("../../controllers/restaurant/analytics.controller");
+const extrasCtrl = require("../../controllers/restaurant/extras.controller");
 
 const router = express.Router();
 
@@ -205,6 +206,10 @@ router.get("/analytics/top-items", canView, analyticsCtrl.topItems);
 router.get("/analytics/hourly-sales", canView, analyticsCtrl.hourlySales);
 router.get("/analytics/order-stats", canView, analyticsCtrl.orderStats);
 router.get("/analytics/pending-invoices", requirePermission("billing.view"), analyticsCtrl.pendingInvoices);
+
+// ── Kitchen display + Z-report ───────────────────────────
+router.get("/kitchen/orders", requireAnyPermission("orders.view", "orders.edit"), extrasCtrl.kitchenBoard);
+router.get("/reports/z-report", requireAnyPermission("analytics.view", "billing.view", "orders.view"), extrasCtrl.zReport);
 
 // ── Settings (tenant singleton) ──────────────────────────
 const getSettings = asyncHandler(async (req, res) => {

@@ -58,3 +58,39 @@ test("the Express app loads without connecting to MongoDB", () => {
   const app = require("../src/app");
   assert.equal(typeof app, "function");
 });
+
+test("dataset registry resolves a model for every entry and covers all industries", () => {
+  const datasets = require("../src/services/datasets.service");
+  for (const industry of ["GYM", "SCHOOL", "CLINIC", "RESTAURANT", "BOOKSHOP", "CAR_RENTAL", "REAL_ESTATE", "SALON"]) {
+    const list = datasets.listForIndustry(industry);
+    assert.ok(list.length > 0, `${industry} should expose at least one dataset`);
+    list.forEach((item) => assert.ok(datasets.resolve(item.key).Model, `${item.key} resolves a model`));
+  }
+});
+
+test("dataset CSV export renders labels and mapped date columns", () => {
+  const datasets = require("../src/services/datasets.service");
+  const { toCsv } = require("../src/utils/csv");
+  const { columns } = datasets.resolve("gym.members");
+  const csv = toCsv([{ memberNo: "M1", name: "Ali", startDate: "2026-01-02T00:00:00.000Z" }], columns).split("\n");
+  assert.equal(csv[0].split(",")[0], "Member No");
+  assert.ok(csv[1].startsWith("M1,Ali"));
+  assert.ok(csv[1].includes("2026-01-02"));
+});
+
+test("csv parser round-trips quoted fields with commas and newlines", () => {
+  const { parseCsv } = require("../src/utils/csv");
+  const { headers, records } = parseCsv('name,note\n"Ali, Khan","line1\nline2"\n');
+  assert.deepEqual(headers, ["name", "note"]);
+  assert.equal(records[0].name, "Ali, Khan");
+  assert.equal(records[0].note, "line1\nline2");
+});
+
+test("whatsapp click-to-chat normalises local numbers and encodes the message", () => {
+  const { normalizePhone, whatsappLink } = require("../src/utils/whatsapp");
+  assert.equal(normalizePhone("0300-1234567"), "923001234567");
+  assert.equal(normalizePhone("+92 300 1234567"), "923001234567");
+  assert.equal(normalizePhone("00923001234567"), "923001234567");
+  assert.equal(whatsappLink("03001234567", "Hi there"), "https://wa.me/923001234567?text=Hi%20there");
+  assert.equal(whatsappLink("", "x"), null);
+});

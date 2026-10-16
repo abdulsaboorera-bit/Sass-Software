@@ -1,29 +1,80 @@
 "use strict";
 
+const env = require("../config/env");
 const { Notification } = require("../models");
+const { whatsappLink } = require("../utils/whatsapp");
 
 /**
  * Notification service layer.
  *
  * This is deliberately provider-agnostic. Every triggered event is written to
  * the `Notification` collection (an outbox). Delivery is handled by pluggable
- * "channel adapters" registered below. Today only a no-op `log` adapter exists;
- * WhatsApp / email / SMS adapters can be dropped in later by calling
- * `registerAdapter("WHATSAPP", fn)` — no caller code changes.
+ * "channel adapters" registered below.
+ *
+ * Free delivery channels (no paid service required):
+ *   - WHATSAPP: click-to-chat. We generate a wa.me deep link (status QUEUED) that
+ *     staff open from their own WhatsApp; `markSent` flips it to SENT.
+ *   - EMAIL:    optional HTTP provider (Resend/Brevo) via global fetch. When no
+ *     key is configured the row is marked SKIPPED rather than FAILED.
+ *   - IN_APP:   the bell in the app (read via `/api/notifications`).
  *
  * Flow:  emit*()  ->  create Notification(status=PENDING)
- *        dispatchPending()  ->  run adapter  ->  mark SENT / FAILED
+ *        dispatchPending()  ->  run adapter  ->  mark SENT/QUEUED/FAILED/SKIPPED
  */
 
 // ── Channel adapter registry ─────────────────────────────
 const adapters = {
-  // Default adapter: logs to stdout. Returns { ok: true } so rows are marked SENT.
+  // In-app: nothing to deliver; it is already readable from the outbox.
   IN_APP: async () => ({ ok: true }),
+  // Default console adapter.
   LOG: async (n) => {
     console.log(`[notify] (${n.event}) -> ${n.recipientName || n.recipientContact}: ${n.message}`);
     return { ok: true };
   },
+  // Click-to-chat: produce a deep link, don't call any network.
+  WHATSAPP: async (n) => {
+    const link = n.link || whatsappLink(n.recipientContact, n.message);
+    if (!link) return { skipped: true, reason: "No phone number for WhatsApp" };
+    return { ok: true, queued: true, link };
+  },
+  // Optional email via a REST provider. No-ops (SKIPPED) when unconfigured.
+  EMAIL: async (n) => sendEmail(n),
 };
+
+async function sendEmail(n) {
+  const { provider, apiKey, from } = env.email;
+  if (!provider || !apiKey) return { skipped: true, reason: "Email provider not configured" };
+  const to = n.recipientContact;
+  if (!to) return { skipped: true, reason: "No email address for recipient" };
+  try {
+    if (provider === "resend") {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to, subject: n.title, text: n.message }),
+      });
+      if (!res.ok) return { ok: false, error: `Resend ${res.status}` };
+      return { ok: true };
+    }
+    if (provider === "brevo") {
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: { "api-key": apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender: { email: (from.match(/<(.+)>/) || [null, from])[1] },
+          to: [{ email: to }],
+          subject: n.title,
+          textContent: n.message,
+        }),
+      });
+      if (!res.ok) return { ok: false, error: `Brevo ${res.status}` };
+      return { ok: true };
+    }
+    return { skipped: true, reason: `Unknown email provider: ${provider}` };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
 
 /** Register/replace a delivery adapter for a channel (e.g. WhatsApp later). */
 function registerAdapter(channel, fn) {
@@ -41,6 +92,10 @@ async function emit(payload) {
   if (dedupeKey) {
     const existing = await Notification.findOne({ dedupeKey }).select("_id").lean();
     if (existing) return null;
+  }
+  // Pre-compute the click-to-chat link so it is available immediately.
+  if (payload.channel === "WHATSAPP" && !payload.link) {
+    payload.link = whatsappLink(payload.recipientContact, payload.message) || undefined;
   }
   try {
     return await Notification.create({ status: "PENDING", ...payload });
@@ -145,6 +200,8 @@ async function dispatchPending({ tenantId, limit = 200 } = {}) {
   const pending = await Notification.find(filter).limit(limit);
   let sent = 0;
   let failed = 0;
+  let queued = 0;
+  let skipped = 0;
 
   for (const n of pending) {
     const adapter = adapters[n.channel];
@@ -157,7 +214,15 @@ async function dispatchPending({ tenantId, limit = 200 } = {}) {
         continue;
       }
       const result = await adapter(n);
-      if (result && result.ok) {
+      if (result && result.queued) {
+        n.status = "QUEUED";
+        if (result.link) n.link = result.link;
+        queued += 1;
+      } else if (result && result.skipped) {
+        n.status = "SKIPPED";
+        n.error = result.reason || "Adapter skipped";
+        skipped += 1;
+      } else if (result && result.ok) {
         n.status = "SENT";
         n.sentAt = new Date();
         sent += 1;
@@ -174,7 +239,17 @@ async function dispatchPending({ tenantId, limit = 200 } = {}) {
     await n.save();
   }
 
-  return { processed: pending.length, sent, failed };
+  return { processed: pending.length, sent, queued, skipped, failed };
+}
+
+/** Mark a queued click-to-chat notification as delivered (staff clicked send). */
+async function markSent(tenantId, id) {
+  const n = await Notification.findOne({ _id: id, tenantId });
+  if (!n) return null;
+  n.status = "SENT";
+  n.sentAt = new Date();
+  await n.save();
+  return n;
 }
 
 module.exports = {
@@ -186,4 +261,5 @@ module.exports = {
   paymentOverdue,
   missedAttendance,
   dispatchPending,
+  markSent,
 };

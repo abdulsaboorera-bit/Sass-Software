@@ -64,8 +64,26 @@ async function list({ tenantId, page = 1, limit = 20, search, status, planId, tr
   };
 }
 
-async function getById({ tenantId, id, trainerScope }) {
-  const filter = { _id: id, tenantId };
+/** Members whose membership lapses within `days` (default 7), soonest first. */
+async function expiring({ tenantId, days = 7, trainerScope }) {
+  const now = new Date();
+  const until = addDays(now, days);
+  const filter = {
+    tenantId,
+    status: { $nin: ["FROZEN", "CANCELLED"] },
+    endDate: { $gte: now, $lte: until },
+  };
+  if (trainerScope) filter.trainerId = trainerScope;
+
+  const rows = await Member.find(filter)
+    .populate("plan", "name price duration")
+    .populate("trainer", "name")
+    .sort({ endDate: 1 })
+    .lean({ virtuals: true });
+  return rows.map((r) => decorate(r));
+}
+
+async function getById({ tenantId, id, trainerScope }) {  const filter = { _id: id, tenantId };
   if (trainerScope) filter.trainerId = trainerScope;
   const member = await Member.findOne(filter)
     .populate("plan", "name price duration")
@@ -319,6 +337,7 @@ async function paymentHistory({ tenantId, id, trainerScope }) {
 module.exports = {
   decorate,
   list,
+  expiring,
   getById,
   create,
   enroll,

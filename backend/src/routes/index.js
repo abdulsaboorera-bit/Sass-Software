@@ -15,6 +15,16 @@ const bookshopRoutes = require("./bookshop");
 const carRentalRoutes = require("./carRental.routes");
 const realEstateRoutes = require("./realEstate.routes");
 const salonRoutes = require("./salon");
+const dataRoutes = require("./data.routes");
+const notificationsRoutes = require("./notifications.routes");
+const couponsRoutes = require("./coupons.routes");
+const loyaltyRoutes = require("./loyalty.routes");
+const publicRoutes = require("./public.routes");
+const bookingsRoutes = require("./bookings.routes");
+const auditLogsRoutes = require("./auditLogs.routes");
+const searchRoutes = require("./search.routes");
+const lookupRoutes = require("./lookup.routes");
+const onboardingRoutes = require("./onboarding.routes");
 
 const router = express.Router();
 
@@ -33,5 +43,15 @@ router.use("/bookshop", bookshopRoutes);
 router.use("/car-rental", carRentalRoutes);
 router.use("/real-estate", realEstateRoutes);
 router.use("/salon", salonRoutes);
+router.use("/data", dataRoutes);
+router.use("/notifications", notificationsRoutes);
+router.use("/coupons", couponsRoutes);
+router.use("/loyalty", loyaltyRoutes);
+router.use("/public", publicRoutes);
+router.use("/bookings", bookingsRoutes);
+router.use("/audit-logs", auditLogsRoutes);
+router.use("/search", searchRoutes);
+router.use("/lookup", lookupRoutes);
+router.use("/onboarding", onboardingRoutes);
 
 module.exports = router;

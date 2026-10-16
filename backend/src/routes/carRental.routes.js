@@ -2,6 +2,7 @@
 
 const express = require("express");
 const ctrl = require("../controllers/carRental.controller");
+const extrasCtrl = require("../controllers/carRental/extras.controller");
 const { requireAuth, requireTenant, requireIndustry } = require("../middleware/auth");
 const { requirePermission } = require("../middleware/rbac");
 const { sanitize } = require("../utils/crud");
@@ -15,6 +16,8 @@ router.use(requireAuth, requireTenant, requireIndustry("CAR_RENTAL"));
 router.get("/dashboard", requirePermission("rentals.view"), ctrl.dashboard);
 
 router.get("/cars", requirePermission("cars.view"), ctrl.listCars);
+router.get("/cars/availability", requirePermission("cars.view"), extrasCtrl.availability);
+router.get("/cars/expiring-documents", requirePermission("cars.view"), extrasCtrl.expiringDocuments);
 router.post("/cars", requirePermission("cars.create"), ctrl.createCar);
 router.patch("/cars", requirePermission("cars.edit"), ctrl.updateCar);
 router.patch("/cars/:id", requirePermission("cars.edit"), ctrl.updateCar);
@@ -30,6 +33,7 @@ router.get("/rentals", requirePermission("rentals.view"), ctrl.listRentals);
 router.post("/rentals", requirePermission("rentals.create"), ctrl.createRental);
 router.get("/rentals/:id", requirePermission("rentals.view"), ctrl.getRental);
 router.post("/rentals/:id/return", requirePermission("rentals.edit"), ctrl.returnRental);
+router.post("/rentals/:id/checklist", requirePermission("rentals.edit"), ctrl.addChecklist);
 router.post("/rentals/:id/cancel", requirePermission("rentals.edit"), ctrl.cancelRental);
 router.post("/payments", requirePermission("billing.create"), ctrl.recordPayment);
 

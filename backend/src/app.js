@@ -11,6 +11,7 @@ const mongoose = require("mongoose");
 
 const env = require("./config/env");
 const { attachUser } = require("./middleware/auth");
+const auditLog = require("./middleware/audit");
 const { notFoundHandler, errorHandler } = require("./middleware/error");
 const apiRoutes = require("./routes");
 
@@ -58,6 +59,9 @@ app.get("/health/ready", async (_req, res) => {
     return res.status(503).json({ status: "not_ready", database: "unavailable" });
   }
 });
+
+// Append an audit-trail entry for every successful authenticated mutation.
+app.use("/api", auditLog);
 
 app.use("/api", apiRoutes);
 

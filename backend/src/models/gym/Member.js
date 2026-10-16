@@ -77,6 +77,9 @@ const memberSchema = new Schema(
     // NEW — append-only histories (no destructive overwrites).
     notesHistory: { type: [memberNoteSchema], default: [] },
     renewals: { type: [renewalSchema], default: [] },
+
+    // Loyalty points balance (mutated via services/loyalty.service.js).
+    loyaltyPoints: { type: Number, default: 0 },
   },
   baseOptions
 );

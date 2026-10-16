@@ -19,6 +19,7 @@ const billingCtrl = require("../../controllers/salon/billing.controller");
 const inventoryCtrl = require("../../controllers/salon/inventory.controller");
 const payrollCtrl = require("../../controllers/salon/payroll.controller");
 const analyticsCtrl = require("../../controllers/salon/analytics.controller");
+const extrasCtrl = require("../../controllers/salon/extras.controller");
 const expenseCtrl = require("../../controllers/salon/expense.controller");
 
 const router = express.Router();
@@ -209,6 +210,7 @@ router.get("/analytics/revenue", canView, analyticsCtrl.revenue);
 router.get("/analytics/pending-payments", canView, analyticsCtrl.pendingPayments);
 router.get("/analytics/top-services", canView, analyticsCtrl.topServices);
 router.get("/analytics/top-staff", canView, analyticsCtrl.topStaff);
+router.get("/analytics/staff-utilization", canView, extrasCtrl.staffUtilization);
 
 // ── Settings (tenant singleton) ──────────────────────────
 const getSettings = asyncHandler(async (req, res) => {

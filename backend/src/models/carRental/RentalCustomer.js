@@ -16,6 +16,7 @@ const customerSchema = new Schema({
   emergencyContact: { type: String },
   notes: { type: String },
   isActive: { type: Boolean, default: true },
+  loyaltyPoints: { type: Number, default: 0 },
 }, baseOptions);
 
 customerSchema.index({ tenantId: 1, licenseNumber: 1 }, { unique: true });

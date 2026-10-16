@@ -37,6 +37,20 @@ const env = {
     secret: process.env.CRON_SECRET || "change-this-cron-secret",
   },
 
+  // Click-to-chat WhatsApp needs no API key: we deep-link to wa.me. The country
+  // code lets us normalise local numbers like "0300..." into E.164 digits.
+  whatsapp: {
+    countryCode: process.env.WHATSAPP_COUNTRY_CODE || "92",
+  },
+
+  // Optional transactional email. When unset the EMAIL channel becomes a no-op
+  // (marked SKIPPED) instead of failing, so notifications still queue safely.
+  email: {
+    provider: (process.env.EMAIL_PROVIDER || "").toLowerCase(),
+    apiKey: process.env.EMAIL_API_KEY || "",
+    from: process.env.EMAIL_FROM || "NexusSoft <no-reply@nexussoft.app>",
+  },
+
   demoPassword: process.env.DEMO_PASSWORD || (isProd ? null : "password123"),
 };
 

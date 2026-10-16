@@ -9,6 +9,7 @@ const { setAuthCookies, clearAuthCookies } = require("../utils/cookies");
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
+  code: z.string().optional(), // 2FA TOTP / recovery code, only when required
 });
 
 const signupSchema = z.object({
@@ -33,6 +34,8 @@ function reqMeta(req) {
 const login = asyncHandler(async (req, res) => {
   const data = loginSchema.parse(req.body);
   const result = await authService.login({ ...data, ...reqMeta(req) });
+  // Password OK but a second factor is required — don't issue tokens yet.
+  if (result.twoFactorRequired) return apiSuccess(res, { twoFactorRequired: true });
   setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
   return apiSuccess(res, { user: result.user, tenant: result.tenant });
 });

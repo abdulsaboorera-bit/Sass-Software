@@ -38,6 +38,7 @@ const attendanceCtrl = require("../../controllers/school/attendance.controller")
 const billingCtrl = require("../../controllers/school/billing.controller");
 const payrollCtrl = require("../../controllers/school/payroll.controller");
 const examCtrl = require("../../controllers/school/exam.controller");
+const extrasCtrl = require("../../controllers/school/extras.controller");
 const analyticsCtrl = require("../../controllers/school/analytics.controller");
 
 const router = express.Router();
@@ -328,6 +329,11 @@ router.use(
 // ── Attendance (students) ────────────────────────────────
 router.get("/attendance", requirePermission("attendance.view"), attendanceCtrl.list);
 router.post("/attendance", requireAnyPermission("attendance.mark", "attendance.create"), attendanceCtrl.mark);
+router.post("/attendance/scan", requireAnyPermission("attendance.mark", "attendance.create"), extrasCtrl.scanAttendance);
+
+// ── QR codes & printable report cards ────────────────────
+router.get("/students/:id/qr", requirePermission("students.view"), extrasCtrl.studentQr);
+router.get("/exams/report-card/:studentId/pdf", requirePermission("exams.view"), extrasCtrl.reportCardPdf);
 
 // ── Teacher attendance ───────────────────────────────────
 router.use(

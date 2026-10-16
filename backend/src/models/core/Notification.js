@@ -51,12 +51,19 @@ const notificationSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["PENDING", "SENT", "FAILED", "SKIPPED"],
+      enum: ["PENDING", "QUEUED", "SENT", "FAILED", "SKIPPED"],
       default: "PENDING",
       index: true,
     },
     sentAt: { type: Date },
     error: { type: String },
+
+    // For click-to-chat channels (WhatsApp) this holds the wa.me deep link so the
+    // UI can open it directly; delivered human-side then flipped to SENT.
+    link: { type: String },
+
+    // In-app read tracking for the staff notification bell.
+    readAt: { type: Date },
 
     // Idempotency guard so the daily cron doesn't re-create the same
     // "expiring in 3 days" notice on every run. (Unique partial index below.)
@@ -66,6 +73,7 @@ const notificationSchema = new Schema(
 );
 
 notificationSchema.index({ tenantId: 1, event: 1, createdAt: -1 });
+notificationSchema.index({ tenantId: 1, readAt: 1, createdAt: -1 });
 // Partial unique index: when a dedupeKey is supplied it must be unique.
 notificationSchema.index(
   { dedupeKey: 1 },

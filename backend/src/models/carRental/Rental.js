@@ -24,6 +24,18 @@ const rentalSchema = new Schema({
   status: { type: String, enum: ["RESERVED", "ACTIVE", "COMPLETED", "CANCELLED", "OVERDUE"], default: "ACTIVE", index: true },
   pickupMileage: { type: Number, min: 0 },
   returnMileage: { type: Number, min: 0 },
+  checklist: {
+    type: [
+      {
+        phase: { type: String, enum: ["PICKUP", "RETURN"], required: true },
+        label: { type: String, required: true },
+        ok: { type: Boolean, default: true },
+        note: { type: String },
+        at: { type: Date, default: Date.now },
+      },
+    ],
+    default: [],
+  },
   notes: { type: String },
 }, baseOptions);
 

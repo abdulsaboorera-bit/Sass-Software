@@ -8,6 +8,7 @@ const { sanitize } = require("../utils/crud");
 const { apiSuccess } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const { RealEstateSettings } = require("../models");
+const extrasCtrl = require("../controllers/realEstate/extras.controller");
 
 const router = express.Router();
 router.use(requireAuth, requireTenant, requireIndustry("REAL_ESTATE"));
@@ -88,5 +89,8 @@ const updateSettings = asyncHandler(async (req, res) => {
 
 router.get("/settings", requirePermission("settings.view"), getSettings);
 router.patch("/settings", requirePermission("settings.edit"), updateSettings);
+
+router.get("/leases/:id/pdf", requirePermission("leases.view"), extrasCtrl.leasePdf);
+router.get("/statement", requirePermission("billing.view"), extrasCtrl.ownerStatementPdf);
 
 module.exports = router;

@@ -21,6 +21,9 @@ const carSchema = new Schema({
   mileage: { type: Number, min: 0, default: 0 },
   pictures: { type: [String], default: [] },
   status: { type: String, enum: ["AVAILABLE", "RENTED", "NOT_AVAILABLE", "WORKSHOP"], default: "AVAILABLE", index: true },
+  insuranceExpiry: { type: Date, default: null, index: true },
+  registrationExpiry: { type: Date, default: null },
+  nextServiceDue: { type: Date, default: null, index: true },
   notes: { type: String },
   isActive: { type: Boolean, default: true },
 }, baseOptions);

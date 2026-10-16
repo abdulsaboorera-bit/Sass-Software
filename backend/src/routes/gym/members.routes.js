@@ -11,6 +11,9 @@ const router = express.Router();
 // while owners/receptionists (members.view) see everyone.
 router.get("/", memberViewScope, ctrl.list);
 
+// Upcoming expirations (must be declared before "/:id").
+router.get("/expiring", memberViewScope, ctrl.expiring);
+
 // Writes require explicit management permissions.
 // Collection style (frontend: PATCH with id in body, DELETE ?id=).
 router.post("/", requirePermission("members.create"), ctrl.create);

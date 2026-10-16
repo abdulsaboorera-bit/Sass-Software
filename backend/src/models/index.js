@@ -18,6 +18,10 @@ const Branch = require("./core/Branch");
 const Notification = require("./core/Notification");
 const PlatformSubscription = require("./core/PlatformSubscription");
 const Message = require("./core/Message");
+const Coupon = require("./core/Coupon");
+const LoyaltyTransaction = require("./core/LoyaltyTransaction");
+const Booking = require("./core/Booking");
+const OnboardingState = require("./core/OnboardingState");
 
 // ── Gym ──────────────────────────────────────────────────
 const MembershipPlan = require("./gym/MembershipPlan");
@@ -60,6 +64,10 @@ module.exports = {
   Notification,
   PlatformSubscription,
   Message,
+  Coupon,
+  LoyaltyTransaction,
+  Booking,
+  OnboardingState,
   // gym
   MembershipPlan,
   Trainer,

@@ -26,6 +26,7 @@ const {
 const billingCtrl = require("../../controllers/clinic/billing.controller");
 const pharmacyCtrl = require("../../controllers/clinic/pharmacy.controller");
 const payrollCtrl = require("../../controllers/clinic/payroll.controller");
+const extrasCtrl = require("../../controllers/clinic/extras.controller");
 const analyticsCtrl = require("../../controllers/clinic/analytics.controller");
 
 const router = express.Router();
@@ -305,6 +306,10 @@ router.use(
     beforeCreate: validateReference(Doctor, "doctorId", "doctor"),
   })
 );
+
+// ── Extras ────────────────────────────────────────────────
+router.get("/prescriptions/:id/qr", requirePermission("prescriptions.view"), extrasCtrl.prescriptionQr);
+router.get("/lab-results/:id/pdf", requirePermission("lab.view"), extrasCtrl.labResultPdf);
 
 // ── Analytics / reports ──────────────────────────────────
 const canView = requireAnyPermission("analytics.view", "billing.view", "appointments.view");

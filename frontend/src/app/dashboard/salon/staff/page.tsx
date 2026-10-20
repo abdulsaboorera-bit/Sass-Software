@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Staff {
   id: string;
@@ -21,6 +22,7 @@ export default function SalonStaffPage() {
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -37,6 +39,10 @@ export default function SalonStaffPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("staff.create")) {
+      setError("You don't have permission to add staff");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/salon/staff", {
@@ -63,6 +69,10 @@ export default function SalonStaffPage() {
   };
 
   const archive = async (member: Staff) => {
+    if (!can("staff.edit")) {
+      setError("You don't have permission to remove staff");
+      return;
+    }
     if (!confirm(`Remove ${member.name}?`)) return;
     const response = await fetch(`/api/salon/staff/${member.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -80,9 +90,11 @@ export default function SalonStaffPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Staff</h2>
           <p className="text-slate-500 text-sm">Your stylists and team with salaries and commission rates.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> Add Staff
-        </button>
+        {can("staff.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> Add Staff
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
@@ -101,7 +113,9 @@ export default function SalonStaffPage() {
             </div>
             <p className="text-sm text-slate-600 mt-3">{member.phone}</p>
             <p className="text-sm font-semibold text-slate-800 mt-1">PKR {Number(member.salary || 0).toLocaleString()} / month</p>
-            <button onClick={() => archive(member)} className="mt-4 text-xs text-red-600 border-none bg-transparent cursor-pointer">Remove staff</button>
+            {can("staff.edit") && (
+              <button onClick={() => archive(member)} className="mt-4 text-xs text-red-600 border-none bg-transparent cursor-pointer">Remove staff</button>
+            )}
           </div>
         ))}
       </div>

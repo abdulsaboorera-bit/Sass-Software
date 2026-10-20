@@ -1,6 +1,7 @@
 "use client";
 
 import ResourceManager, { type Row } from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -20,6 +21,7 @@ function parsePeriods(payload: Row): Row {
 }
 
 export default function TimetablePage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Timetable"
@@ -41,6 +43,9 @@ export default function TimetablePage() {
       ]}
       transformCreate={parsePeriods}
       transformUpdate={parsePeriods}
+      allowCreate={can("timetable.create")}
+      allowEdit={can("timetable.edit")}
+      allowDelete={can("timetable.edit")}
     />
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function TeachersPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Teachers"
@@ -33,6 +35,9 @@ export default function TeachersPage() {
         { name: "joinDate", label: "Join Date", type: "date" },
         { name: "isActive", label: "Active", type: "boolean" },
       ]}
+      allowCreate={can("teachers.create")}
+      allowEdit={can("teachers.edit")}
+      allowDelete={can("teachers.edit")}
     />
   );
 }

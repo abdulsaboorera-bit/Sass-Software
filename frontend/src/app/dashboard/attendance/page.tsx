@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Student {
   id: string;
@@ -24,6 +25,8 @@ export default function AttendancePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { can } = usePermissions();
+  const canMark = can("attendance.mark") || can("attendance.create");
 
   useEffect(() => {
     fetch("/api/school/classes", { credentials: "include" })
@@ -99,15 +102,17 @@ export default function AttendancePage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Attendance</h2>
           <p className="text-slate-500 text-sm">Mark daily attendance for your students.</p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving || students.length === 0}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer"
-        >
-          {saving ? "Saving..." : saved ? "Saved!" : "Save Attendance"}
-          {!saving && !saved && <CheckCircle size={15} />}
-          {saved && <CheckCircle size={15} />}
-        </button>
+        {canMark && (
+          <button
+            onClick={handleSave}
+            disabled={saving || students.length === 0}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer"
+          >
+            {saving ? "Saving..." : saved ? "Saved!" : "Save Attendance"}
+            {!saving && !saved && <CheckCircle size={15} />}
+            {saved && <CheckCircle size={15} />}
+          </button>
+        )}
       </div>
 
       {/* Controls */}

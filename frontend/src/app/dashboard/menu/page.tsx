@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 
 interface MenuItem { id: string; name: string; price: string; costPrice: string | null; description: string | null; isActive: boolean }
 interface Category { id: string; name: string; menuItems: MenuItem[] }
@@ -16,6 +17,7 @@ export default function MenuPage() {
   const [itemForm, setItemForm] = useState({ name: "", categoryId: "", price: "", costPrice: "", description: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const fetchMenu = () => {
     fetch("/api/restaurant/menu").then(r => r.json()).then(data => { if (data.categories) setCategories(data.categories); }).finally(() => setLoading(false));
@@ -28,6 +30,10 @@ export default function MenuPage() {
 
   const handleCatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingCategory ? !can("menu.edit") : !can("menu.create")) {
+      setError(editingCategory ? "You don't have permission to edit the menu" : "You don't have permission to add to the menu");
+      return;
+    }
     if (!catForm.name) { setError("Name is required"); return; }
     setSubmitting(true);
     setError("");
@@ -53,6 +59,10 @@ export default function MenuPage() {
 
   const handleItemSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingItem ? !can("menu.edit") : !can("menu.create")) {
+      setError(editingItem ? "You don't have permission to edit the menu" : "You don't have permission to add to the menu");
+      return;
+    }
     if (!itemForm.name || !itemForm.categoryId || !itemForm.price) { setError("Name, category, and price are required"); return; }
     setSubmitting(true);
     setError("");
@@ -77,12 +87,14 @@ export default function MenuPage() {
   };
 
   const deleteCategory = async (id: string) => {
+    if (!can("menu.edit")) { setError("You don't have permission to edit the menu"); return; }
     if (!confirm("Delete this category and all its items?")) return;
     await fetch(`/api/restaurant/menu?id=${id}&type=category`, { method: "DELETE" });
     fetchMenu();
   };
 
   const deleteItem = async (id: string) => {
+    if (!can("menu.edit")) { setError("You don't have permission to edit the menu"); return; }
     if (!confirm("Delete this menu item?")) return;
     await fetch(`/api/restaurant/menu?id=${id}&type=item`, { method: "DELETE" });
     fetchMenu();
@@ -98,12 +110,16 @@ export default function MenuPage() {
           <p className="text-slate-500 text-sm">Manage your menu categories and items.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => { resetItemForm(); setShowItemForm(!showItemForm); setShowCategoryForm(false); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-            {showItemForm ? "Cancel" : "Add Item"}
-          </button>
-          <button onClick={() => { resetCatForm(); setShowCategoryForm(!showCategoryForm); setShowItemForm(false); }} className="bg-slate-100 text-slate-700 font-semibold px-4 py-2.5 rounded-xl hover:bg-slate-200 transition-colors text-sm border-none cursor-pointer">
-            {showCategoryForm ? "Cancel" : "Add Category"}
-          </button>
+          {can("menu.create") && (
+            <button onClick={() => { resetItemForm(); setShowItemForm(!showItemForm); setShowCategoryForm(false); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+              {showItemForm ? "Cancel" : "Add Item"}
+            </button>
+          )}
+          {can("menu.create") && (
+            <button onClick={() => { resetCatForm(); setShowCategoryForm(!showCategoryForm); setShowItemForm(false); }} className="bg-slate-100 text-slate-700 font-semibold px-4 py-2.5 rounded-xl hover:bg-slate-200 transition-colors text-sm border-none cursor-pointer">
+              {showCategoryForm ? "Cancel" : "Add Category"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -146,10 +162,12 @@ export default function MenuPage() {
             <div key={cat.id} className="bg-white border border-slate-200 rounded-xl p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-slate-900 font-bold text-sm">{cat.name}</h3>
-                <div className="flex gap-1">
-                  <button onClick={() => { setEditingCategory(cat); setCatForm({ name: cat.name }); setShowCategoryForm(true); setShowItemForm(false); }} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
-                  <button onClick={() => deleteCategory(cat.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Del</button>
-                </div>
+                {can("menu.edit") && (
+                  <div className="flex gap-1">
+                    <button onClick={() => { setEditingCategory(cat); setCatForm({ name: cat.name }); setShowCategoryForm(true); setShowItemForm(false); }} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
+                    <button onClick={() => deleteCategory(cat.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Del</button>
+                  </div>
+                )}
               </div>
               {cat.menuItems.length === 0 ? (
                 <p className="text-slate-400 text-xs">No items</p>
@@ -163,8 +181,12 @@ export default function MenuPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-slate-900">PKR {Number(item.price).toLocaleString()}</span>
-                        <button onClick={() => { setEditingItem(item); setItemForm({ name: item.name, categoryId: cat.id, price: item.price, costPrice: item.costPrice || "", description: item.description || "" }); setShowItemForm(true); setShowCategoryForm(false); }} className="text-[10px] text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
-                        <button onClick={() => deleteItem(item.id)} className="text-[10px] text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Del</button>
+                        {can("menu.edit") && (
+                          <>
+                            <button onClick={() => { setEditingItem(item); setItemForm({ name: item.name, categoryId: cat.id, price: item.price, costPrice: item.costPrice || "", description: item.description || "" }); setShowItemForm(true); setShowCategoryForm(false); }} className="text-[10px] text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
+                            <button onClick={() => deleteItem(item.id)} className="text-[10px] text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Del</button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Ref { id: string; name: string; customerNo?: string; role?: string; price?: number }
 interface Appointment {
@@ -28,6 +29,7 @@ export default function SalonAppointmentsPage() {
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -54,6 +56,10 @@ export default function SalonAppointmentsPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("appointments.create")) {
+      setError("You don't have permission to book appointments");
+      return;
+    }
     setError("");
     if (form.serviceIds.length === 0) {
       setError("Select at least one service");
@@ -85,6 +91,10 @@ export default function SalonAppointmentsPage() {
   };
 
   const setStatus = async (appointment: Appointment, status: string) => {
+    if (!can("appointments.edit")) {
+      setError("You don't have permission to update appointments");
+      return;
+    }
     const response = await fetch(`/api/salon/appointments/${appointment.id}`, {
       method: "PATCH",
       credentials: "include",
@@ -119,9 +129,11 @@ export default function SalonAppointmentsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Appointments</h2>
           <p className="text-slate-500 text-sm">Book, track, and complete client appointments.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> New Appointment
-        </button>
+        {can("appointments.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> New Appointment
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
@@ -151,9 +163,13 @@ export default function SalonAppointmentsPage() {
                 <td className="px-4 py-3 text-sm text-slate-600">{appointment.services?.map((s) => s.name).join(", ") || "—"}</td>
                 <td className="px-4 py-3 text-sm text-right font-semibold text-slate-800">PKR {Number(appointment.total || 0).toLocaleString()}</td>
                 <td className="px-4 py-3">
-                  <select value={appointment.status} onChange={(e) => setStatus(appointment, e.target.value)} className={`text-xs font-semibold rounded-full px-2 py-1 border-none cursor-pointer ${statusColor(appointment.status)}`}>
-                    {STATUSES.map((status) => <option key={status} value={status}>{status.replace("_", " ")}</option>)}
-                  </select>
+                  {can("appointments.edit") ? (
+                    <select value={appointment.status} onChange={(e) => setStatus(appointment, e.target.value)} className={`text-xs font-semibold rounded-full px-2 py-1 border-none cursor-pointer ${statusColor(appointment.status)}`}>
+                      {STATUSES.map((status) => <option key={status} value={status}>{status.replace("_", " ")}</option>)}
+                    </select>
+                  ) : (
+                    <span className={`text-xs font-semibold rounded-full px-2 py-1 ${statusColor(appointment.status)}`}>{appointment.status.replace("_", " ")}</span>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function AdmissionsPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Admissions"
@@ -36,6 +38,9 @@ export default function AdmissionsPage() {
         { name: "source", label: "Source", placeholder: "Walk-in / Website / Referral" },
         { name: "notes", label: "Notes", type: "textarea" },
       ]}
+      allowCreate={can("admissions.create")}
+      allowEdit={can("admissions.edit")}
+      allowDelete={can("admissions.edit")}
     />
   );
 }

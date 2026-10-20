@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { usePermissions } from "@/lib/permissions";
 
 interface Book { id: string; title: string; author: string; price: string; quantity: number }
 interface Customer { id: string; name: string; phone: string | null }
@@ -18,6 +19,7 @@ export default function NewSalePage() {
   const [discount, setDiscount] = useState("0");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   useEffect(() => {
     Promise.all([
@@ -45,6 +47,7 @@ export default function NewSalePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!can("sales.create")) { setError("You don't have permission to record sales"); return; }
     if (items.length === 0) { setError("Add at least one book"); return; }
     for (const item of items) {
       const book = books.find(b => b.id === item.bookId);
@@ -149,9 +152,11 @@ export default function NewSalePage() {
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
-        <button type="submit" disabled={submitting || items.length === 0} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm border-none cursor-pointer">
-          {submitting ? "Processing..." : "Complete Sale"}
-        </button>
+        {can("sales.create") && (
+          <button type="submit" disabled={submitting || items.length === 0} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm border-none cursor-pointer">
+            {submitting ? "Processing..." : "Complete Sale"}
+          </button>
+        )}
       </form>
     </div>
   );

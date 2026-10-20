@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Category { id: string; name: string }
 interface Service {
@@ -23,6 +24,7 @@ export default function SalonServicesPage() {
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -44,6 +46,10 @@ export default function SalonServicesPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("services.create")) {
+      setError("You don't have permission to add services");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/salon/services", {
@@ -71,6 +77,10 @@ export default function SalonServicesPage() {
   };
 
   const archive = async (service: Service) => {
+    if (!can("services.edit")) {
+      setError("You don't have permission to remove services");
+      return;
+    }
     if (!confirm(`Remove ${service.name}?`)) return;
     const response = await fetch(`/api/salon/services/${service.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -94,9 +104,11 @@ export default function SalonServicesPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Services</h2>
           <p className="text-slate-500 text-sm">Your treatment menu with prices, duration, and commissions.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> Add Service
-        </button>
+        {can("services.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> Add Service
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
@@ -114,7 +126,9 @@ export default function SalonServicesPage() {
               <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700">{service.commissionRate || 0}% comm.</span>
             </div>
             <p className="text-lg font-bold text-slate-900 mt-3">PKR {Number(service.price).toLocaleString()}</p>
-            <button onClick={() => archive(service)} className="mt-4 text-xs text-red-600 border-none bg-transparent cursor-pointer">Remove service</button>
+            {can("services.edit") && (
+              <button onClick={() => archive(service)} className="mt-4 text-xs text-red-600 border-none bg-transparent cursor-pointer">Remove service</button>
+            )}
           </div>
         ))}
       </div>

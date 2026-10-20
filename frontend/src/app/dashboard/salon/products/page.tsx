@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X, ArrowLeftRight } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Product {
   id: string;
@@ -31,6 +32,7 @@ export default function SalonProductsPage() {
   const [open, setOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -52,6 +54,10 @@ export default function SalonProductsPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("inventory.create")) {
+      setError("You don't have permission to add products");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/salon/products", {
@@ -82,6 +88,10 @@ export default function SalonProductsPage() {
 
   const saveMovement = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("inventory.edit")) {
+      setError("You don't have permission to record stock movements");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/salon/products/movements", {
@@ -107,6 +117,10 @@ export default function SalonProductsPage() {
   };
 
   const archive = async (product: Product) => {
+    if (!can("inventory.edit")) {
+      setError("You don't have permission to delete products");
+      return;
+    }
     if (!confirm(`Delete ${product.name}?`)) return;
     const response = await fetch(`/api/salon/products/${product.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -125,12 +139,16 @@ export default function SalonProductsPage() {
           <p className="text-slate-500 text-sm">Retail stock, costs, and low-stock tracking.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setMoveOpen(true)} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-            <ArrowLeftRight size={16} /> Stock Movement
-          </button>
-          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-            <Plus size={16} /> Add Product
-          </button>
+          {can("inventory.edit") && (
+            <button onClick={() => setMoveOpen(true)} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+              <ArrowLeftRight size={16} /> Stock Movement
+            </button>
+          )}
+          {can("inventory.create") && (
+            <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+              <Plus size={16} /> Add Product
+            </button>
+          )}
         </div>
       </div>
 
@@ -180,7 +198,9 @@ export default function SalonProductsPage() {
                   <td className="px-4 py-3 text-sm text-right text-slate-600">PKR {Number(product.costPrice).toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm text-right text-slate-600">PKR {Number(product.sellPrice).toLocaleString()}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => archive(product)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    {can("inventory.edit") && (
+                      <button onClick={() => archive(product)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    )}
                   </td>
                 </tr>
               );

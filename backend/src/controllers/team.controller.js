@@ -7,87 +7,15 @@ const asyncHandler = require("../utils/asyncHandler");
 const { hashPassword } = require("../utils/password");
 const { randomCode } = require("../utils/ids");
 const { permissionGroupsFor } = require("../seed/roles");
-const { permits } = require("../middleware/rbac");
-
-/** Only an Owner (the "*" wildcard permission) may grant/revoke ownership. */
-function isOwner(req) {
-  // Platform super admins acting cross-tenant have unrestricted rights.
-  if (req.user && req.user.role === "SUPER_ADMIN" && !req.user.tenantId) return true;
-  const perms = req.permissions || [];
-  return perms.includes("*");
-}
+const {
+  isOwner,
+  normalizeGrantablePermissions,
+  assertCanAssignRole,
+  assertHoldsEveryPermission,
+} = require("../utils/grants");
 
 function slugifyRole(value) {
   return String(value).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
-}
-
-const PERMISSION_PATTERN = /^[a-z0-9_-]+(\.[a-z0-9_-]+){1,2}$/i;
-
-function catalogKeysFor(industry) {
-  const keys = new Set();
-  for (const group of permissionGroupsFor(industry)) {
-    for (const entry of group.permissions) keys.add(entry.key);
-  }
-  return keys;
-}
-
-/** Is `permission` something the role editor can even offer for this industry? */
-function isCatalogPermission(keys, permission) {
-  if (keys.has(permission)) return true;
-  const parts = permission.split(".");
-  return parts.length === 3 && keys.has(`${parts[0]}.${parts[1]}`);
-}
-
-function holdsPermission(granter, permission, keys) {
-  if (permits(granter, permission)) return true;
-  if (!permission.endsWith(".*")) return false;
-  const resource = permission.slice(0, -2);
-  const resourceKeys = [...keys].filter((k) => k.startsWith(`${resource}.`));
-  return resourceKeys.length > 0 && resourceKeys.every((k) => permits(granter, k));
-}
-
-function normalizeGrantablePermissions(req, requested, existing = []) {
-  const granter = req.permissions || [];
-  const keys = catalogKeysFor(req.tenant.industry);
-  const owner = isOwner(req);
-  const alreadyGranted = new Set((existing || []).map((p) => String(p)));
-  const seen = new Set();
-  const result = [];
-
-  for (const raw of requested || []) {
-    const permission = String(raw || "").trim();
-    if (!permission || seen.has(permission)) continue;
-    seen.add(permission);
-
-    if (permission === "*") {
-      if (!owner) throw ApiError.forbidden("Only an owner can grant full access");
-      result.push(permission);
-      continue;
-    }
-    if (!PERMISSION_PATTERN.test(permission)) throw ApiError.badRequest(`Invalid permission "${permission}"`);
-    if (alreadyGranted.has(permission)) {
-      result.push(permission);
-      continue;
-    }
-    if (!isCatalogPermission(keys, permission)) continue;
-    if (!owner && !holdsPermission(granter, permission, keys)) {
-      throw ApiError.forbidden(`You cannot grant "${permission}" because you do not have it`);
-    }
-    result.push(permission);
-  }
-
-  return result;
-}
-
-function assertCanAssignRole(req, role) {
-  if (isOwner(req)) return;
-  const granter = req.permissions || [];
-  const keys = catalogKeysFor(req.tenant.industry);
-  for (const permission of role.permissions || []) {
-    if (!holdsPermission(granter, permission, keys)) {
-      throw ApiError.forbidden(`You cannot assign a role that carries "${permission}" because you do not have it`);
-    }
-  }
 }
 
 async function ownerRoleId(tenantId) {
@@ -216,6 +144,7 @@ const updateMember = asyncHandler(async (req, res) => {
     if (!role) throw ApiError.badRequest("Invalid role for this tenant");
     if (role.slug === "owner" && !isOwner(req)) throw ApiError.forbidden("Only an owner can assign the Owner role");
     assertCanAssignRole(req, role);
+    if (isSelf) assertHoldsEveryPermission(req, role);
     // Never leave the tenant without an active owner.
     if (currentSlug === "owner" && role.slug !== "owner" && (await activeOwnerCount(req.tenantId)) <= 1) {
       throw ApiError.badRequest("The tenant must keep at least one owner");

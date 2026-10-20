@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Ref { id: string; name: string; customerNo?: string }
 interface Invoice {
@@ -39,6 +40,7 @@ export default function SalonBillingPage() {
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -63,6 +65,10 @@ export default function SalonBillingPage() {
 
   const saveInvoice = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("billing.create")) {
+      setError("You don't have permission to create invoices");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/salon/invoices", {
@@ -83,6 +89,10 @@ export default function SalonBillingPage() {
 
   const savePayment = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("billing.create")) {
+      setError("You don't have permission to record payments");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/salon/payments", {
@@ -122,9 +132,11 @@ export default function SalonBillingPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Billing</h2>
           <p className="text-slate-500 text-sm">Invoices, outstanding balances, and payments.</p>
         </div>
-        <button onClick={() => (tab === "invoices" ? setInvoiceOpen(true) : setPaymentOpen(true))} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> {tab === "invoices" ? "New Invoice" : "Record Payment"}
-        </button>
+        {can("billing.create") && (
+          <button onClick={() => (tab === "invoices" ? setInvoiceOpen(true) : setPaymentOpen(true))} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> {tab === "invoices" ? "New Invoice" : "Record Payment"}
+          </button>
+        )}
       </div>
 
       <div className="flex gap-2 mb-4">
@@ -162,7 +174,7 @@ export default function SalonBillingPage() {
                     <td className="px-4 py-3 text-sm text-right font-semibold text-slate-800">PKR {Number(balance).toLocaleString()}</td>
                     <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-1 rounded-full ${statusColor(invoice.status)}`}>{invoice.status}</span></td>
                     <td className="px-4 py-3 text-right">
-                      {invoice.status !== "PAID" && invoice.status !== "CANCELLED" && (
+                      {can("billing.create") && invoice.status !== "PAID" && invoice.status !== "CANCELLED" && (
                         <button onClick={() => openPaymentFor(invoice)} className="text-xs text-blue-600 border-none bg-transparent cursor-pointer">Record payment</button>
                       )}
                     </td>

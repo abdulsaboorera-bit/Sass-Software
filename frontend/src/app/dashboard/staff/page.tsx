@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
+import { getCurrentUser } from "@/lib/currentUser";
 
 interface Staff { id: string; name: string; role: string; phone: string; email: string | null; salary: string | null; isActive: boolean }
 
@@ -12,12 +14,22 @@ export default function StaffPage() {
   const [form, setForm] = useState({ name: "", role: "", phone: "", email: "", salary: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
+  const [staffApi, setStaffApi] = useState("/api/restaurant/staff");
 
   const fetchStaff = () => {
-    fetch("/api/restaurant/staff").then(r => r.json()).then(data => { if (data.staff) setStaff(data.staff); }).finally(() => setLoading(false));
+    fetch(staffApi).then(r => r.json()).then(data => { if (data.staff) setStaff(data.staff); }).finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchStaff(); }, []);
+  useEffect(() => {
+    let alive = true;
+    getCurrentUser()
+      .catch(() => null)
+      .then((d) => { if (alive && d?.user?.tenant?.industry === "GYM") setStaffApi("/api/gym/staff"); })
+      .finally(() => { if (alive) fetchStaff(); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const resetForm = () => { setForm({ name: "", role: "", phone: "", email: "", salary: "" }); setEditingStaff(null); setShowForm(false); setError(""); };
 
@@ -30,6 +42,10 @@ export default function StaffPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingStaff ? !can("staff.edit") : !can("staff.create")) {
+      setError(editingStaff ? "You don't have permission to edit staff" : "You don't have permission to add staff");
+      return;
+    }
     if (!form.name || !form.role || !form.phone) { setError("Name, role, and phone are required"); return; }
     setSubmitting(true);
     setError("");
@@ -37,11 +53,11 @@ export default function StaffPage() {
       const body: Record<string, unknown> = { name: form.name, role: form.role, phone: form.phone, email: form.email || undefined, salary: form.salary ? parseFloat(form.salary) : undefined };
       if (editingStaff) {
         body.id = editingStaff.id;
-        const res = await fetch("/api/restaurant/staff", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const res = await fetch(staffApi, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed");
       } else {
-        const res = await fetch("/api/restaurant/staff", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const res = await fetch(staffApi, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed");
       }
@@ -52,8 +68,9 @@ export default function StaffPage() {
   };
 
   const deleteStaff = async (id: string) => {
+    if (!can("staff.edit")) { setError("You don't have permission to edit staff"); return; }
     if (!confirm("Remove this staff member?")) return;
-    await fetch(`/api/restaurant/staff?id=${id}`, { method: "DELETE" });
+    await fetch(`${staffApi}?id=${id}`, { method: "DELETE" });
     fetchStaff();
   };
 
@@ -66,9 +83,11 @@ export default function StaffPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Staff</h2>
           <p className="text-slate-500 text-sm">{staff.length} staff members</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-          {showForm ? "Cancel" : "Add Staff"}
-        </button>
+        {(showForm || can("staff.create")) && (
+          <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+            {showForm ? "Cancel" : "Add Staff"}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -109,10 +128,12 @@ export default function StaffPage() {
                 <td className="px-4 py-3 text-sm text-slate-600 hidden sm:table-cell">{s.email || "—"}</td>
                 <td className="px-4 py-3 text-sm font-semibold text-slate-900 hidden sm:table-cell">{s.salary ? `PKR ${Number(s.salary).toLocaleString()}` : "—"}</td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button onClick={() => startEdit(s)} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
-                    <button onClick={() => deleteStaff(s.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
-                  </div>
+                  {can("staff.edit") && (
+                    <div className="flex gap-2">
+                      <button onClick={() => startEdit(s)} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
+                      <button onClick={() => deleteStaff(s.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

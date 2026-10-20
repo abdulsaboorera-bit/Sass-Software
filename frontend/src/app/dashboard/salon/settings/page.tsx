@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Settings {
   salonName?: string;
@@ -29,6 +30,7 @@ export default function SalonSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const { can } = usePermissions();
 
   useEffect(() => {
     (async () => {
@@ -47,6 +49,10 @@ export default function SalonSettingsPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("settings.edit")) {
+      setError("You don't have permission to edit settings");
+      return;
+    }
     setSaving(true);
     setError("");
     setSaved(false);
@@ -120,9 +126,11 @@ export default function SalonSettingsPage() {
           {field("Default duration (min)", "defaultAppointmentDuration", "number")}
           {field("Low stock threshold", "lowStockThreshold", "number")}
         </div>
-        <button type="submit" disabled={saving} className="bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm cursor-pointer disabled:opacity-60">
-          {saving ? "Saving..." : "Save Settings"}
-        </button>
+        {can("settings.edit") && (
+          <button type="submit" disabled={saving} className="bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm cursor-pointer disabled:opacity-60">
+            {saving ? "Saving..." : "Save Settings"}
+          </button>
+        )}
       </form>
     </div>
   );

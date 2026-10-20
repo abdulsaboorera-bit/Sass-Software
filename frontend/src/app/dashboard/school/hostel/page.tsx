@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function HostelPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Hostels"
@@ -28,6 +30,9 @@ export default function HostelPage() {
         { name: "capacity", label: "Capacity", type: "number" },
         { name: "isActive", label: "Active", type: "boolean" },
       ]}
+      allowCreate={can("hostel.create")}
+      allowEdit={can("hostel.edit")}
+      allowDelete={can("hostel.edit")}
     />
   );
 }

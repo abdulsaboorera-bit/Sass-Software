@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function SubjectsPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Subjects"
@@ -31,6 +33,9 @@ export default function SubjectsPage() {
         { name: "totalMarks", label: "Total Marks", type: "number" },
         { name: "passingMarks", label: "Passing Marks", type: "number" },
       ]}
+      allowCreate={can("subjects.create")}
+      allowEdit={can("subjects.edit")}
+      allowDelete={can("subjects.edit")}
     />
   );
 }

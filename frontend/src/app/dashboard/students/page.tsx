@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Trash2, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Student {
   id: string;
@@ -46,6 +47,7 @@ export default function StudentsPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { can } = usePermissions();
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -158,12 +160,14 @@ export default function StudentsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Students</h2>
           <p className="text-slate-500 text-sm">{pagination.total} students total</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer"
-        >
-          <Plus size={16} /> Add Student
-        </button>
+        {can("students.create") && (
+          <button
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer"
+          >
+            <Plus size={16} /> Add Student
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -222,7 +226,7 @@ export default function StudentsPage() {
               ) : students.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-slate-400 text-sm">
-                    No students found. <button onClick={openCreate} className="text-blue-600 font-semibold bg-transparent border-none cursor-pointer">Add your first student</button>
+                    No students found. {can("students.create") && <button onClick={openCreate} className="text-blue-600 font-semibold bg-transparent border-none cursor-pointer">Add your first student</button>}
                   </td>
                 </tr>
               ) : (
@@ -245,23 +249,25 @@ export default function StudentsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEdit(s)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer border-none bg-transparent"
-                          title="Edit"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(s.id)}
-                          disabled={deletingId === s.id}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent disabled:opacity-30"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                      {can("students.edit") && (
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openEdit(s)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer border-none bg-transparent"
+                            title="Edit"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(s.id)}
+                            disabled={deletingId === s.id}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent disabled:opacity-30"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

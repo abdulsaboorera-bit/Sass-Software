@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Order { id: string; orderNumber: number; type: string; status: string; total: string; createdAt: string; table: { number: number } | null; orderItems: { quantity: number; menuItem: { name: string } }[] }
 interface TableOption { id: string; number: number; capacity: number; status: string }
@@ -17,6 +18,7 @@ export default function OrdersPage() {
   const [orderItems, setOrderItems] = useState<OrderItemForm[]>([{ menuItemId: "", quantity: "1" }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const fetchOrders = () => {
     fetch("/api/restaurant/orders?limit=50").then(r => r.json()).then(data => { if (data.orders) setOrders(data.orders); }).finally(() => setLoading(false));
@@ -52,6 +54,7 @@ export default function OrdersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!can("orders.create")) { setError("You don't have permission to create orders"); return; }
     const validItems = orderItems.filter(i => i.menuItemId && parseInt(i.quantity) > 0);
     if (validItems.length === 0) { setError("Add at least one item"); return; }
     setSubmitting(true);
@@ -99,9 +102,11 @@ export default function OrdersPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Orders</h2>
           <p className="text-slate-500 text-sm">Manage restaurant orders.</p>
         </div>
-        <button onClick={() => { resetForm(); openForm(); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-          {showForm ? "Cancel" : "New Order"}
-        </button>
+        {can("orders.create") && (
+          <button onClick={() => { resetForm(); openForm(); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+            {showForm ? "Cancel" : "New Order"}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -163,12 +168,14 @@ export default function OrdersPage() {
                 <td className="px-4 py-3 text-sm font-semibold text-slate-900">PKR {Number(o.total).toLocaleString()}</td>
                 <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${statusColors[o.status] || ""}`}>{o.status}</span></td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-1 flex-wrap">
-                    {o.status === "OPEN" && <button onClick={() => updateStatus(o.id, "PREPARING")} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Start</button>}
-                    {o.status === "PREPARING" && <button onClick={() => updateStatus(o.id, "SERVED")} className="text-xs text-green-600 font-semibold hover:text-green-700 border-none bg-transparent cursor-pointer">Serve</button>}
-                    {o.status === "SERVED" && <button onClick={() => updateStatus(o.id, "COMPLETED")} className="text-xs text-slate-600 font-semibold hover:text-slate-700 border-none bg-transparent cursor-pointer">Complete</button>}
-                    {o.status === "OPEN" && <button onClick={() => deleteOrder(o.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Cancel</button>}
-                  </div>
+                  {can("orders.edit") && (
+                    <div className="flex gap-1 flex-wrap">
+                      {o.status === "OPEN" && <button onClick={() => updateStatus(o.id, "PREPARING")} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Start</button>}
+                      {o.status === "PREPARING" && <button onClick={() => updateStatus(o.id, "SERVED")} className="text-xs text-green-600 font-semibold hover:text-green-700 border-none bg-transparent cursor-pointer">Serve</button>}
+                      {o.status === "SERVED" && <button onClick={() => updateStatus(o.id, "COMPLETED")} className="text-xs text-slate-600 font-semibold hover:text-slate-700 border-none bg-transparent cursor-pointer">Complete</button>}
+                      {o.status === "OPEN" && <button onClick={() => deleteOrder(o.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Cancel</button>}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

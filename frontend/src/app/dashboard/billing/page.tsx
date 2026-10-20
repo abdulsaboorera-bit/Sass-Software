@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X, DollarSign, CheckCircle, CreditCard, FileText } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Invoice {
   id: string;
@@ -40,6 +41,7 @@ export default function BillingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState("");
+  const { can } = usePermissions();
 
   const fetchInvoices = () => {
     setLoadError("");
@@ -81,6 +83,7 @@ export default function BillingPage() {
   };
 
   const handleCreate = async () => {
+    if (!can("billing.create")) { setError("You don't have permission to create invoices or payments"); return; }
     setSaving(true);
     setError("");
     try {
@@ -131,6 +134,7 @@ export default function BillingPage() {
   };
 
   const markPaid = async (invoice: Invoice) => {
+    if (!can("billing.create")) { alert("You don't have permission to record payments"); return; }
     const balance = Math.max(0, Number(invoice.amount) - Number(invoice.paidAmount || 0));
     if (balance <= 0) return;
     try {
@@ -183,12 +187,16 @@ export default function BillingPage() {
           <p className="text-slate-500 text-sm">Manage invoices and payments.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => openCreate("invoice")} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm cursor-pointer">
-            <Plus size={16} /> New Invoice
-          </button>
-          <button onClick={() => openCreate("payment")} className="inline-flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-green-700 transition-colors text-sm cursor-pointer">
-            <CreditCard size={16} /> Record Payment
-          </button>
+          {can("billing.create") && (
+            <button onClick={() => openCreate("invoice")} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm cursor-pointer">
+              <Plus size={16} /> New Invoice
+            </button>
+          )}
+          {can("billing.create") && (
+            <button onClick={() => openCreate("payment")} className="inline-flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-green-700 transition-colors text-sm cursor-pointer">
+              <CreditCard size={16} /> Record Payment
+            </button>
+          )}
         </div>
       </div>
 
@@ -245,7 +253,7 @@ export default function BillingPage() {
                   <td className="px-4 py-3 text-sm text-slate-600">{new Date(inv.dueDate).toLocaleDateString()}</td>
                    <td className="px-4 py-3 text-right">
                      <a href={`/api/gym/insights/invoices/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center mr-2 px-2 py-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600">Receipt</a>
-                    {inv.status !== "PAID" && inv.status !== "CANCELLED" && (
+                    {inv.status !== "PAID" && inv.status !== "CANCELLED" && can("billing.create") && (
                        <button onClick={() => markPaid(inv)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors cursor-pointer">
                         <CheckCircle size={12} /> Mark Paid
                       </button>

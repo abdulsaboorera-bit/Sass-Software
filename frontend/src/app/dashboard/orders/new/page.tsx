@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { usePermissions } from "@/lib/permissions";
 
 interface MenuItem { id: string; name: string; price: string; categoryId: string }
 interface Table { id: string; number: number; capacity: number; status: string }
@@ -18,6 +19,7 @@ export default function NewOrderPage() {
   const [items, setItems] = useState<{ menuItemId: string; quantity: number; notes: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   useEffect(() => {
     Promise.all([
@@ -46,6 +48,7 @@ export default function NewOrderPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!can("orders.create")) { setError("You don't have permission to create orders"); return; }
     if (items.length === 0) { setError("Add at least one item"); return; }
     setSubmitting(true);
     setError("");
@@ -133,9 +136,11 @@ export default function NewOrderPage() {
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
-        <button type="submit" disabled={submitting || items.length === 0} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm border-none cursor-pointer">
-          {submitting ? "Creating..." : "Create Order"}
-        </button>
+        {can("orders.create") && (
+          <button type="submit" disabled={submitting || items.length === 0} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm border-none cursor-pointer">
+            {submitting ? "Creating..." : "Create Order"}
+          </button>
+        )}
       </form>
     </div>
   );

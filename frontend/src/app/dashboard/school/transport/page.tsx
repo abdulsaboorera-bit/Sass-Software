@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function TransportPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Transport"
@@ -28,6 +30,9 @@ export default function TransportPage() {
         { name: "fare", label: "Monthly Fare (PKR)", type: "number" },
         { name: "isActive", label: "Active", type: "boolean" },
       ]}
+      allowCreate={can("transport.create")}
+      allowEdit={can("transport.edit")}
+      allowDelete={can("transport.edit")}
     />
   );
 }

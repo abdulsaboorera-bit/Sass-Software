@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, RefreshCw, ChefHat, Clock, Receipt, Printer } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface OrderItem {
   id: string;
@@ -45,6 +46,7 @@ export default function KitchenPage() {
   const [report, setReport] = useState<ZReport | null>(null);
   const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const loadBoard = useCallback(async () => {
     try {
@@ -63,6 +65,10 @@ export default function KitchenPage() {
   useEffect(() => { void loadBoard(); }, [loadBoard]);
 
   const advance = async (order: Order, status: string) => {
+    if (!can("orders.edit")) {
+      setError("You don't have permission to update orders");
+      return;
+    }
     const response = await fetch(`/api/restaurant/orders/${order.id}`, {
       method: "PATCH",
       credentials: "include",
@@ -140,7 +146,7 @@ export default function KitchenPage() {
                             </li>
                           ))}
                         </ul>
-                        {col.next && (
+                        {col.next && can("orders.edit") && (
                           <button onClick={() => advance(order, col.next!)} className="mt-3 w-full bg-blue-600 text-white text-xs font-semibold py-2 rounded-lg cursor-pointer border-none">
                             {col.nextLabel}
                           </button>

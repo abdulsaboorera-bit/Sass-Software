@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Analytics is management-only. Any of these permissions grants access, so
 // owners (*) and receptionists with reporting rights can view dashboards.
-const canView = requireAnyPermission("analytics.view", "members.view", "fees.reports", "billing.view");
+const canView = requireAnyPermission("analytics.view", "members.view", "billing.view");
 
 router.get("/dashboard", canView, ctrl.dashboard);
 router.get("/members", canView, ctrl.members);

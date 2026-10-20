@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Book { id: string; title: string; author: string; isbn: string | null; price: string; costPrice: string; quantity: number; category: string | null }
 
@@ -14,6 +15,7 @@ export default function BooksPage() {
   const [error, setError] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupMsg, setLookupMsg] = useState("");
+  const { can } = usePermissions();
 
   const fetchBooks = () => {
     fetch("/api/bookshop/books?limit=50").then(r => r.json()).then(data => { if (data.books) setBooks(data.books); }).finally(() => setLoading(false));
@@ -58,6 +60,10 @@ export default function BooksPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingBook ? !can("inventory.edit") : !can("inventory.create")) {
+      setError(editingBook ? "You don't have permission to edit books" : "You don't have permission to add books");
+      return;
+    }
     if (!form.title || !form.author || !form.price || !form.costPrice) { setError("Title, author, price, and cost price are required"); return; }
     setSubmitting(true);
     setError("");
@@ -84,6 +90,7 @@ export default function BooksPage() {
   };
 
   const deleteBook = async (id: string) => {
+    if (!can("inventory.edit")) { setError("You don't have permission to edit books"); return; }
     if (!confirm("Delete this book?")) return;
     await fetch(`/api/bookshop/books?id=${id}`, { method: "DELETE" });
     fetchBooks();
@@ -98,9 +105,11 @@ export default function BooksPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Books</h2>
           <p className="text-slate-500 text-sm">{books.length} titles in inventory</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-          {showForm ? "Cancel" : "Add Book"}
-        </button>
+        {can("inventory.create") && (
+          <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+            {showForm ? "Cancel" : "Add Book"}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -149,10 +158,12 @@ export default function BooksPage() {
                 <td className="px-4 py-3 text-sm font-semibold text-slate-900">PKR {Number(b.price).toLocaleString()}</td>
                 <td className="px-4 py-3"><span className={`text-sm font-semibold ${b.quantity <= 5 ? "text-red-600" : "text-slate-900"}`}>{b.quantity}</span></td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button onClick={() => startEdit(b)} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
-                    <button onClick={() => deleteBook(b.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
-                  </div>
+                  {can("inventory.edit") && (
+                    <div className="flex gap-2">
+                      <button onClick={() => startEdit(b)} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
+                      <button onClick={() => deleteBook(b.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Sale { id: string; invoiceNo: string; total: string; paymentMethod: string; createdAt: string; customer: { name: string } | null; saleItems: { quantity: number; book: { title: string } }[] }
 interface BookOption { id: string; title: string; price: string; quantity: number }
@@ -17,6 +18,7 @@ export default function SalesPage() {
   const [saleItems, setSaleItems] = useState<SaleItemForm[]>([{ bookId: "", quantity: "1" }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const fetchSales = () => {
     fetch("/api/bookshop/sales?limit=50").then(r => r.json()).then(data => { if (data.sales) setSales(data.sales); }).finally(() => setLoading(false));
@@ -52,6 +54,7 @@ export default function SalesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!can("sales.create")) { setError("You don't have permission to record sales"); return; }
     const validItems = saleItems.filter(i => i.bookId && parseInt(i.quantity) > 0);
     if (validItems.length === 0) { setError("Add at least one item"); return; }
     setSubmitting(true);
@@ -82,9 +85,11 @@ export default function SalesPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Sales</h2>
           <p className="text-slate-500 text-sm">Transaction history and invoices.</p>
         </div>
-        <button onClick={() => { resetForm(); openForm(); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-          {showForm ? "Cancel" : "New Sale"}
-        </button>
+        {can("sales.create") && (
+          <button onClick={() => { resetForm(); openForm(); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+            {showForm ? "Cancel" : "New Sale"}
+          </button>
+        )}
       </div>
 
       {showForm && (

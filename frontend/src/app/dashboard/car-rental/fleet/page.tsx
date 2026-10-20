@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarSearch, FileWarning, ClipboardCheck, Loader2, Plus, Trash2 } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Car {
   id: string;
@@ -68,6 +69,7 @@ export default function FleetPage() {
   const [items, setItems] = useState<{ label: string; ok: boolean; note: string }[]>(DEFAULT_ITEMS.map((label) => ({ label, ok: true, note: "" })));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<Rental | null>(null);
+  const { can } = usePermissions();
 
   const loadAvailability = useCallback(async () => {
     setError("");
@@ -117,6 +119,7 @@ export default function FleetPage() {
   useEffect(() => { if (tab === "checklist") void loadRentals(); }, [tab, loadRentals]);
 
   const submitChecklist = async () => {
+    if (!can("rentals.edit")) { setError("You don't have permission to update rentals"); return; }
     if (!rentalId) { setError("Select a rental first"); return; }
     const cleaned = items.filter((it) => it.label.trim());
     if (cleaned.length === 0) { setError("Add at least one checklist item"); return; }
@@ -253,7 +256,7 @@ export default function FleetPage() {
               ))}
             </div>
             <button onClick={() => setItems((prev) => [...prev, { label: "", ok: true, note: "" }])} className="mt-3 inline-flex items-center gap-1 text-sm text-blue-600 font-semibold border-none bg-transparent cursor-pointer"><Plus size={14} /> Add item</button>
-            <button onClick={submitChecklist} disabled={saving} className="mt-4 w-full bg-blue-600 text-white rounded-xl py-2.5 font-semibold text-sm border-none cursor-pointer disabled:opacity-50">{saving ? "Saving..." : "Save checklist"}</button>
+            {can("rentals.edit") && <button onClick={submitChecklist} disabled={saving} className="mt-4 w-full bg-blue-600 text-white rounded-xl py-2.5 font-semibold text-sm border-none cursor-pointer disabled:opacity-50">{saving ? "Saving..." : "Save checklist"}</button>}
           </div>
 
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">

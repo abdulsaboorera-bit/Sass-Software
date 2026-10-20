@@ -4,17 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { usePermissions } from "@/lib/permissions";
 
 export default function NewBookPage() {
   const router = useRouter();
   const [form, setForm] = useState({ title: "", author: "", isbn: "", publisher: "", category: "", price: "", costPrice: "", quantity: "10" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const update = (field: string, value: string) => setForm({ ...form, [field]: value });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!can("inventory.create")) { setError("You don't have permission to add books"); return; }
     if (!form.title || !form.author || !form.price || !form.costPrice) { setError("Title, author, price, and cost price are required"); return; }
     setSubmitting(true);
     setError("");
@@ -91,9 +94,11 @@ export default function NewBookPage() {
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
-        <button type="submit" disabled={submitting} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm border-none cursor-pointer">
-          {submitting ? "Adding..." : "Add Book"}
-        </button>
+        {can("inventory.create") && (
+          <button type="submit" disabled={submitting} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm border-none cursor-pointer">
+            {submitting ? "Adding..." : "Add Book"}
+          </button>
+        )}
       </form>
     </div>
   );

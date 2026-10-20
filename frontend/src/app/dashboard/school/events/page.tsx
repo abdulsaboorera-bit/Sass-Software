@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function EventsPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Events"
@@ -29,6 +31,9 @@ export default function EventsPage() {
         { name: "endDate", label: "End Date", type: "date" },
         { name: "isHoliday", label: "Holiday", type: "boolean" },
       ]}
+      allowCreate={can("events.create")}
+      allowEdit={can("events.edit")}
+      allowDelete={can("events.edit")}
     />
   );
 }

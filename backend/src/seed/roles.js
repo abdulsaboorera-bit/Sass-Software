@@ -21,11 +21,10 @@ const OWNER = ["*"];
 // ── Generic / cross-industry presets ─────────────────────
 const RECEPTIONIST = [
   "members.view", "members.create", "members.edit", "attendance.view", "attendance.mark",
-  "billing.view", "billing.create", "inventory.view", "staff.view", "staff-attendance.view",
-  "staff-attendance.create", "sessions.view", "bookings.view", "bookings.create",
+  "billing.view", "billing.create", "inventory.view", "staff.view", "sessions.view",
 ];
-const TRAINER = ["members.view.assigned", "trainers.view", "attendance.view", "attendance.mark", "sessions.view", "bookings.view"];
-const ACCOUNTANT = ["members.view", "billing.view", "billing.create", "billing.edit", "analytics.view"];
+const TRAINER = ["members.view.assigned", "trainers.view", "attendance.view", "attendance.mark", "sessions.view"];
+const ACCOUNTANT = ["billing.view", "billing.create", "billing.edit", "analytics.view"];
 const INVENTORY_MANAGER = ["inventory.view", "inventory.create", "inventory.edit", "billing.view"];
 
 // ── GYM ──────────────────────────────────────────────────
@@ -35,13 +34,14 @@ const GYM_MANAGER = [
   "sessions.view", "sessions.create", "sessions.edit",
   "trainers.view", "trainers.create", "trainers.edit",
   "inventory.view", "inventory.create", "inventory.edit",
-  "bookings.view", "bookings.create", "analytics.view", "settings.view",
+  "staff.view", "staff.create", "staff.edit",
+  "analytics.view", "settings.*",
 ];
 const GYM_RECEPTIONIST = [
   "members.view", "members.create", "members.edit",
   "attendance.view", "attendance.mark",
   "billing.view", "billing.create",
-  "sessions.view", "bookings.view", "bookings.create", "inventory.view",
+  "sessions.view", "inventory.view", "staff.view",
 ];
 const GYM_ACCOUNTANT = ["members.view", "billing.view", "billing.create", "billing.edit", "analytics.view"];
 
@@ -202,7 +202,7 @@ const ROLE_DEFS = [
 
   { name: "Restaurant Manager", slug: "restaurant-manager", permissions: RESTAURANT_MANAGER, isSystem: true, industries: ["RESTAURANT"] },
   { name: "Restaurant Staff", slug: "restaurant-staff", permissions: RESTAURANT_STAFF, isSystem: true, industries: ["RESTAURANT"] },
-  { name: "Cashier", slug: "restaurant-cashier", permissions: RESTAURANT_CASHIER, isSystem: true, industries: ["RESTAURANT", "BOOKSHOP"] },
+  { name: "Cashier", slug: "restaurant-cashier", permissions: RESTAURANT_CASHIER, isSystem: true, industries: ["RESTAURANT"] },
   { name: "Kitchen Staff", slug: "restaurant-kitchen", permissions: RESTAURANT_KITCHEN, isSystem: true, industries: ["RESTAURANT"] },
 
   { name: "Bookshop Manager", slug: "bookshop-manager", permissions: BOOKSHOP_MANAGER, isSystem: true, industries: ["BOOKSHOP"] },
@@ -249,6 +249,8 @@ function group(label, resource, actions) {
 const COMMON_PERMISSIONS = [
   group("Reports & Analytics", "analytics", ["view"]),
   group("Billing & Payments", "billing", ["view", "create", "edit"]),
+  group("Coupons & Discounts", "coupons", ["create", "manage"]),
+  group("Loyalty Points", "loyalty", ["view", "manage"]),
   group("Settings", "settings", ["view", "edit", "update", "manage"]),
   group("Notifications", "notifications", ["view", "manage"]),
   group("Audit Logs", "audit", ["view", "manage"]),
@@ -267,21 +269,23 @@ const PERMISSION_GROUPS = {
     group("Attendance & Check-ins", "attendance", ["view", "mark", "create", "edit"]),
     group("Classes & Sessions", "sessions", ["view", "create", "edit"]),
     group("Trainers", "trainers", ["view", "create", "edit"]),
+    group("Staff", "staff", ["view", "create", "edit"]),
     group("Inventory", "inventory", ["view", "create", "edit"]),
     group("Expenses", "expenses", ["view", "create", "edit"]),
     group("Salaries", "salaries", ["view", "create", "edit"]),
   ],
   SCHOOL: [
-    group("Students", "students", ["view", "create", "edit", "delete"]),
+    group("Students", "students", ["view", "create", "edit"]),
     group("Classes", "classes", ["view", "create", "edit"]),
     group("Teachers", "teachers", ["view", "create", "edit"]),
     group("Subjects", "subjects", ["view", "create", "edit"]),
     group("Timetable", "timetable", ["view", "create", "edit"]),
     group("Attendance", "attendance", ["view", "mark", "create", "edit"]),
-    group("Exams", "exams", ["view", "marks"]),
+    group("Exams", "exams", ["view", "create", "edit", "marks"]),
     group("Assignments", "assignments", ["view", "create", "edit"]),
     group("Admissions", "admissions", ["view", "create", "edit"]),
     group("Fees", "fees", ["view", "collect", "create", "edit", "reports"]),
+    group("Expenses", "expenses", ["view", "create", "edit"]),
     group("Salaries & Payroll", "salaries", ["view", "create", "edit"]),
     group("Staff Attendance", "staff-attendance", ["view", "create", "edit"]),
     group("Library", "library", ["view", "create", "edit"]),
@@ -308,7 +312,7 @@ const PERMISSION_GROUPS = {
     group("Reservations", "reservations", ["view", "create", "edit"]),
     group("Customers", "customers", ["view", "create", "edit"]),
     group("Staff", "staff", ["view", "create", "edit"]),
-    group("Staff Attendance", "staff-attendance", ["view", "mark", "create"]),
+    group("Staff Attendance", "staff-attendance", ["view", "mark", "create", "edit"]),
     group("Inventory", "inventory", ["view", "create", "edit"]),
     group("Expenses", "expenses", ["view", "create", "edit"]),
     group("Salaries", "salaries", ["view", "create", "edit"]),
@@ -339,7 +343,7 @@ const PERMISSION_GROUPS = {
     group("Appointments", "appointments", ["view", "create", "edit"]),
     group("Services", "services", ["view", "create", "edit"]),
     group("Staff", "staff", ["view", "create", "edit"]),
-    group("Staff Attendance", "staff-attendance", ["view", "mark", "create"]),
+    group("Staff Attendance", "staff-attendance", ["view", "mark", "create", "edit"]),
     group("Inventory & Products", "inventory", ["view", "create", "edit"]),
     group("Expenses", "expenses", ["view", "create", "edit"]),
     group("Salaries", "salaries", ["view", "create", "edit"]),

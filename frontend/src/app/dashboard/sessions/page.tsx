@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QrCode, CheckCircle, XCircle, Users, UserCog, Plus, X, Download, FileText } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 type Tab = "members" | "staff";
 
@@ -75,6 +76,9 @@ function MemberAttendance() {
   const [log, setLog] = useState<CheckInRecord[]>([]);
   const [logLoading, setLogLoading] = useState(true);
   const [summary, setSummary] = useState<{ totalCheckIns: number; uniqueMembers: number; averagePerDay: number } | null>(null);
+  const { can } = usePermissions();
+  const canMark = can("attendance.mark") || can("attendance.create");
+  const canView = can("attendance.view");
 
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(today);
@@ -99,6 +103,10 @@ function MemberAttendance() {
 
   const handleCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canMark) {
+      setResult({ error: "You don't have permission to mark attendance" });
+      return;
+    }
     setLoading(true);
     setResult(null);
     try {
@@ -133,10 +141,12 @@ function MemberAttendance() {
         <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8">
            <div className="flex items-center justify-between mb-4">
              <h3 className="text-slate-900 font-bold text-sm">Member kiosk</h3>
-             <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-               <button type="button" onClick={() => setAction("checkin")} className={`px-2.5 py-1 text-xs font-semibold rounded-md border-none cursor-pointer ${action === "checkin" ? "bg-white text-slate-900 shadow-sm" : "bg-transparent text-slate-500"}`}>Check in</button>
-               <button type="button" onClick={() => setAction("checkout")} className={`px-2.5 py-1 text-xs font-semibold rounded-md border-none cursor-pointer ${action === "checkout" ? "bg-white text-slate-900 shadow-sm" : "bg-transparent text-slate-500"}`}>Check out</button>
-             </div>
+             {canMark && (
+               <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                 <button type="button" onClick={() => setAction("checkin")} className={`px-2.5 py-1 text-xs font-semibold rounded-md border-none cursor-pointer ${action === "checkin" ? "bg-white text-slate-900 shadow-sm" : "bg-transparent text-slate-500"}`}>Check in</button>
+                 <button type="button" onClick={() => setAction("checkout")} className={`px-2.5 py-1 text-xs font-semibold rounded-md border-none cursor-pointer ${action === "checkout" ? "bg-white text-slate-900 shadow-sm" : "bg-transparent text-slate-500"}`}>Check out</button>
+               </div>
+             )}
            </div>
           <form onSubmit={handleCheckIn} className="space-y-4">
             <div>
@@ -163,9 +173,11 @@ function MemberAttendance() {
               />
               <p className="text-xs text-slate-400 mt-1">Defaults to now — change it only to record a past check-in.</p>
             </div>
-            <button type="submit" disabled={loading || !memberNo} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50 border-none cursor-pointer text-sm">
-               {loading ? "Processing..." : action === "checkin" ? "Check In" : "Check Out"}
-            </button>
+            {canMark && (
+              <button type="submit" disabled={loading || !memberNo} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50 border-none cursor-pointer text-sm">
+                 {loading ? "Processing..." : action === "checkin" ? "Check In" : "Check Out"}
+              </button>
+            )}
           </form>
 
           {result && (
@@ -182,7 +194,7 @@ function MemberAttendance() {
           )}
         </div>
 
-        {summary && (
+        {canView && summary && (
           <div className="grid grid-cols-3 gap-3 mt-4">
             <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
               <p className="text-xl font-black text-slate-900">{summary.totalCheckIns}</p>
@@ -200,6 +212,7 @@ function MemberAttendance() {
         )}
       </div>
 
+      {canView && (
       <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-slate-900 font-bold text-sm">Previous Attendance</h3>
@@ -249,6 +262,7 @@ function MemberAttendance() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -276,6 +290,9 @@ function StaffAttendance() {
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({ name: "", phone: "" });
   const [adding, setAdding] = useState(false);
+  const { can } = usePermissions();
+  const canMark = can("attendance.mark") || can("attendance.create");
+  const canAddStaff = can("staff.create");
 
   const fetchStaff = () => {
     setLoading(true);
@@ -333,9 +350,11 @@ function StaffAttendance() {
           onChange={(e) => setDate(e.target.value)}
           className="px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         />
-        <button onClick={() => setAddOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-          <Plus size={16} /> Add Staff
-        </button>
+        {canAddStaff && (
+          <button onClick={() => setAddOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+            <Plus size={16} /> Add Staff
+          </button>
+        )}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -352,7 +371,7 @@ function StaffAttendance() {
                   <p className="text-xs text-slate-400">{s.role || "Staff"} · {s.phone}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {STATUS_OPTIONS.map((opt) => (
+                  {canMark && STATUS_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
                       disabled={marking === s.id}

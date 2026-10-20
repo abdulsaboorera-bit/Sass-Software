@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Customer {
   id: string;
@@ -24,6 +25,7 @@ export default function SalonCustomersPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     setLoading(true);
@@ -43,6 +45,10 @@ export default function SalonCustomersPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("customers.create")) {
+      setError("You don't have permission to add customers");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/salon/customers", {
@@ -62,6 +68,10 @@ export default function SalonCustomersPage() {
   };
 
   const archive = async (customer: Customer) => {
+    if (!can("customers.edit")) {
+      setError("You don't have permission to archive customers");
+      return;
+    }
     if (!confirm(`Archive ${customer.name}?`)) return;
     const response = await fetch(`/api/salon/customers/${customer.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -79,9 +89,11 @@ export default function SalonCustomersPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Customers</h2>
           <p className="text-slate-500 text-sm">Your salon client book, loyalty points, and spend.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> Add Customer
-        </button>
+        {can("customers.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> Add Customer
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
@@ -115,7 +127,9 @@ export default function SalonCustomersPage() {
                 <td className="px-4 py-3 text-sm text-right font-semibold text-slate-800">PKR {Number(customer.totalSpent || 0).toLocaleString()}</td>
                 <td className="px-4 py-3 text-sm text-right text-slate-600">{customer.loyaltyPoints ?? 0}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => archive(customer)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Archive</button>
+                  {can("customers.edit") && (
+                    <button onClick={() => archive(customer)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Archive</button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle, Clock, RefreshCw } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Salary {
   id: string;
@@ -31,6 +32,7 @@ export default function SalariesPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -65,6 +67,10 @@ export default function SalariesPage() {
   }, [month]);
 
   const handleGenerate = async () => {
+    if (!can("salaries.create")) {
+      setError("You don't have permission to generate payroll");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -85,6 +91,10 @@ export default function SalariesPage() {
   };
 
   const handlePay = async (salary: Salary) => {
+    if (!can("salaries.edit")) {
+      setError("You don't have permission to mark salaries as paid");
+      return;
+    }
     if (!window.confirm(`Mark salary for ${salary.staff?.name || "staff"} as paid?`)) return;
     try {
       const res = await fetch(`/api/school/salaries/${salary.id}/pay`, {
@@ -115,13 +125,15 @@ export default function SalariesPage() {
             onChange={(e) => setMonth(e.target.value)}
             className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
-          <button
-            onClick={handleGenerate}
-            disabled={busy}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw size={16} className={busy ? "animate-spin" : ""} /> Generate
-          </button>
+          {can("salaries.create") && (
+            <button
+              onClick={handleGenerate}
+              disabled={busy}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={busy ? "animate-spin" : ""} /> Generate
+            </button>
+          )}
         </div>
       </div>
 
@@ -180,7 +192,7 @@ export default function SalariesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {s.status !== "PAID" && (
+                      {s.status !== "PAID" && can("salaries.edit") && (
                         <button
                           onClick={() => handlePay(s)}
                           className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors border-none cursor-pointer"

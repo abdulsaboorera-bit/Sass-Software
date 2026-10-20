@@ -18,6 +18,43 @@ export function permits(permissions: string[] | null | undefined, permission?: s
   return false;
 }
 
+/**
+ * Mirror of the backend's holdsPermission() (backend/src/utils/grants.js):
+ * "resource.*" counts as held when the granter holds every catalogued action
+ * for that resource, so a manager with billing.view/create/edit can still
+ * assign a role asking for billing.*.
+ */
+export function holdsPermission(
+  permissions: string[] | null | undefined,
+  permission: string,
+  catalogKeys: Set<string>
+): boolean {
+  if (permits(permissions, permission)) return true;
+  if (!permission.endsWith(".*") || !permissions) return false;
+  const resource = permission.slice(0, -2);
+  const resourceKeys = [...catalogKeys].filter((k) => k.startsWith(`${resource}.`));
+  return resourceKeys.length > 0 && resourceKeys.every((k) => permits(permissions, k));
+}
+
+/**
+ * Expand "resource.*" wildcards into the concrete catalog keys they cover so
+ * the role editor can show and toggle them as individual chips.
+ */
+export function expandWildcards(permissions: string[], catalogKeys: Set<string>): string[] {
+  const expanded: string[] = [];
+  for (const permission of permissions) {
+    if (!permission.endsWith(".*")) {
+      expanded.push(permission);
+      continue;
+    }
+    const resource = permission.slice(0, -2);
+    const resourceKeys = [...catalogKeys].filter((k) => k.startsWith(`${resource}.`));
+    if (resourceKeys.length === 0) expanded.push(permission);
+    else expanded.push(...resourceKeys);
+  }
+  return [...new Set(expanded)];
+}
+
 export interface PermissionState {
   /** Granted permission keys; empty while loading or when unavailable. */
   permissions: string[];

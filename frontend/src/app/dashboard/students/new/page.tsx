@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { usePermissions } from "@/lib/permissions";
 
 interface ClassOption {
   id: string;
@@ -18,6 +19,7 @@ export default function NewStudentPage() {
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
   const [form, setForm] = useState({
     admissionNo: "",
     name: "",
@@ -40,6 +42,10 @@ export default function NewStudentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!can("students.create")) {
+      setError("You don't have permission to add students");
+      return;
+    }
     setLoading(true);
     setError("");
 
@@ -194,13 +200,15 @@ export default function NewStudentPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer text-sm"
-          >
-            {loading ? "Saving..." : "Add Student"} {!loading && <Save size={15} />}
-          </button>
+          {can("students.create") && (
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer text-sm"
+            >
+              {loading ? "Saving..." : "Add Student"} {!loading && <Save size={15} />}
+            </button>
+          )}
         </form>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Table { id: string; number: number; capacity: number; status: string; section: string | null }
 
@@ -12,6 +13,7 @@ export default function TablesPage() {
   const [form, setForm] = useState({ number: "", capacity: "", section: "Indoor" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const fetchTables = () => {
     fetch("/api/restaurant/tables").then(r => r.json()).then(data => { if (data.tables) setTables(data.tables); }).finally(() => setLoading(false));
@@ -23,6 +25,10 @@ export default function TablesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingTable ? !can("tables.edit") : !can("tables.create")) {
+      setError(editingTable ? "You don't have permission to edit tables" : "You don't have permission to add tables");
+      return;
+    }
     if (!form.number || !form.capacity) { setError("Number and capacity are required"); return; }
     setSubmitting(true);
     setError("");
@@ -49,11 +55,13 @@ export default function TablesPage() {
   };
 
   const updateStatus = async (id: string, status: string) => {
+    if (!can("tables.edit")) { setError("You don't have permission to edit tables"); return; }
     await fetch("/api/restaurant/tables", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
     fetchTables();
   };
 
   const deleteTable = async (id: string) => {
+    if (!can("tables.edit")) { setError("You don't have permission to edit tables"); return; }
     if (!confirm("Delete this table?")) return;
     await fetch(`/api/restaurant/tables?id=${id}`, { method: "DELETE" });
     fetchTables();
@@ -74,9 +82,11 @@ export default function TablesPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Tables</h2>
           <p className="text-slate-500 text-sm">Visual floor plan management.</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-          {showForm ? "Cancel" : "Add Table"}
-        </button>
+        {can("tables.create") && (
+          <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+            {showForm ? "Cancel" : "Add Table"}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -107,14 +117,16 @@ export default function TablesPage() {
               <p className="text-xs font-medium mt-1">{t.capacity} seats</p>
               <p className="text-[10px] font-semibold uppercase mt-1">{t.status}</p>
               {t.section && <p className="text-[10px] opacity-60 mt-0.5">{t.section}</p>}
-              <div className="flex justify-center gap-1 mt-2">
-                {t.status === "AVAILABLE" && <button onClick={() => updateStatus(t.id, "OCCUPIED")} className="text-[10px] text-red-600 font-semibold hover:text-red-700 border-none bg-transparent cursor-pointer">Occupy</button>}
-                {t.status === "OCCUPIED" && <button onClick={() => updateStatus(t.id, "AVAILABLE")} className="text-[10px] text-green-600 font-semibold hover:text-green-700 border-none bg-transparent cursor-pointer">Free</button>}
-                {t.status !== "RESERVED" && <button onClick={() => updateStatus(t.id, "RESERVED")} className="text-[10px] text-amber-600 font-semibold hover:text-amber-700 border-none bg-transparent cursor-pointer">Reserve</button>}
-                {t.status === "RESERVED" && <button onClick={() => updateStatus(t.id, "AVAILABLE")} className="text-[10px] text-green-600 font-semibold hover:text-green-700 border-none bg-transparent cursor-pointer">Cancel</button>}
-                <button onClick={() => { setEditingTable(t); setForm({ number: String(t.number), capacity: String(t.capacity), section: t.section || "Indoor" }); setShowForm(true); }} className="text-[10px] text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
-                <button onClick={() => deleteTable(t.id)} className="text-[10px] text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Del</button>
-              </div>
+              {can("tables.edit") && (
+                <div className="flex justify-center gap-1 mt-2">
+                  {t.status === "AVAILABLE" && <button onClick={() => updateStatus(t.id, "OCCUPIED")} className="text-[10px] text-red-600 font-semibold hover:text-red-700 border-none bg-transparent cursor-pointer">Occupy</button>}
+                  {t.status === "OCCUPIED" && <button onClick={() => updateStatus(t.id, "AVAILABLE")} className="text-[10px] text-green-600 font-semibold hover:text-green-700 border-none bg-transparent cursor-pointer">Free</button>}
+                  {t.status !== "RESERVED" && <button onClick={() => updateStatus(t.id, "RESERVED")} className="text-[10px] text-amber-600 font-semibold hover:text-amber-700 border-none bg-transparent cursor-pointer">Reserve</button>}
+                  {t.status === "RESERVED" && <button onClick={() => updateStatus(t.id, "AVAILABLE")} className="text-[10px] text-green-600 font-semibold hover:text-green-700 border-none bg-transparent cursor-pointer">Cancel</button>}
+                  <button onClick={() => { setEditingTable(t); setForm({ number: String(t.number), capacity: String(t.capacity), section: t.section || "Indoor" }); setShowForm(true); }} className="text-[10px] text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
+                  <button onClick={() => deleteTable(t.id)} className="text-[10px] text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Del</button>
+                </div>
+              )}
             </div>
           ))}
         </div>

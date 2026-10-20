@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function ExpensesPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Expenses"
@@ -38,6 +40,9 @@ export default function ExpensesPage() {
         ] },
         { name: "notes", label: "Notes", type: "textarea" },
       ]}
+      allowCreate={can("expenses.create")}
+      allowEdit={can("expenses.edit")}
+      allowDelete={can("expenses.edit")}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState, useCallback } from "react";
 import { Plus, Search, Pencil, Trash2, X, ChevronDown, ChevronUp, Download, Filter, Calendar, CreditCard, AlertTriangle, Loader2 } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface ExpiringMember {
   id: string;
@@ -87,6 +88,7 @@ export default function MembersPage() {
   const [expiring, setExpiring] = useState<ExpiringMember[]>([]);
   const [expiringDays, setExpiringDays] = useState(7);
   const [expiringLoading, setExpiringLoading] = useState(false);
+  const { can } = usePermissions();
 
   const fetchMembers = useCallback(() => {
     setLoading(true);
@@ -193,6 +195,7 @@ export default function MembersPage() {
   const renew = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!renewingMember) return;
+    if (!can("members.edit")) { setError("You don't have permission to renew memberships"); return; }
     setSaving(true); setError("");
     try {
       const response = await fetch(`/api/gym/members/${renewingMember.id}/renew`, {
@@ -208,6 +211,8 @@ export default function MembersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editing && !can("members.edit")) { setError("You don't have permission to edit members"); return; }
+    if (!editing && !can("members.create")) { setError("You don't have permission to add members"); return; }
     setSaving(true);
     setError("");
     try {
@@ -333,12 +338,14 @@ export default function MembersPage() {
               <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
-          <button
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer"
-          >
-            <Plus size={16} /> New Member
-          </button>
+          {can("members.create") && (
+            <button
+              onClick={openCreate}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer"
+            >
+              <Plus size={16} /> New Member
+            </button>
+          )}
         </div>
       </div>
 
@@ -394,13 +401,17 @@ export default function MembersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors border-none bg-transparent cursor-pointer">
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={() => openRenew(m)} className="px-2 py-1 rounded-lg hover:bg-green-50 text-xs font-semibold text-green-600 border-none bg-transparent cursor-pointer">Renew</button>
-                        <button onClick={() => handleDelete(m)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors border-none bg-transparent cursor-pointer">
-                          <Trash2 size={14} />
-                        </button>
+                        {can("members.edit") && (
+                          <>
+                            <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors border-none bg-transparent cursor-pointer">
+                              <Pencil size={14} />
+                            </button>
+                            <button onClick={() => openRenew(m)} className="px-2 py-1 rounded-lg hover:bg-green-50 text-xs font-semibold text-green-600 border-none bg-transparent cursor-pointer">Renew</button>
+                            <button onClick={() => handleDelete(m)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors border-none bg-transparent cursor-pointer">
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -557,7 +568,9 @@ export default function MembersPage() {
                         <p className="text-xs text-slate-500">{new Date(member.endDate).toLocaleDateString()}</p>
                         <p className={`text-xs font-bold ${member.daysUntilExpiry <= 3 ? "text-red-600" : "text-amber-600"}`}>{member.daysUntilExpiry}d left</p>
                       </div>
-                      <button onClick={() => { setExpiringOpen(false); openRenew(member as unknown as Member); }} className="shrink-0 px-2.5 py-1 rounded-lg bg-green-600 text-white text-xs font-semibold border-none cursor-pointer">Renew</button>
+                      {can("members.edit") && (
+                        <button onClick={() => { setExpiringOpen(false); openRenew(member as unknown as Member); }} className="shrink-0 px-2.5 py-1 rounded-lg bg-green-600 text-white text-xs font-semibold border-none cursor-pointer">Renew</button>
+                      )}
                     </div>
                   ))}
                 </div>

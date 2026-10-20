@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Search, Pencil, Trash2, X, Package, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface InventoryItem {
   id: string;
@@ -48,6 +49,7 @@ export default function InventoryPage() {
   const [movementForm, setMovementForm] = useState({ quantity: "", unitPrice: "", notes: "" });
   const [movementSubmitting, setMovementSubmitting] = useState(false);
   const [fetchError, setFetchError] = useState("");
+  const { can } = usePermissions();
 
   const fetchItems = () => {
     setLoading(true);
@@ -85,6 +87,10 @@ export default function InventoryPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingItem ? !can("inventory.edit") : !can("inventory.create")) {
+      setError(editingItem ? "You don't have permission to edit inventory" : "You don't have permission to add inventory items");
+      return;
+    }
     if (!form.name || form.quantity === "" || form.costPrice === "") { setError("Name, quantity, and cost price are required"); return; }
     setSubmitting(true); setError("");
     try {
@@ -111,6 +117,7 @@ export default function InventoryPage() {
   };
 
   const deleteItem = async (id: string) => {
+    if (!can("inventory.edit")) { setError("You don't have permission to edit inventory"); return; }
     if (!confirm("Delete this inventory item?")) return;
     await fetch(`/api/gym/inventory?id=${id}`, { method: "DELETE", credentials: "include" });
     fetchItems(); fetchSummary();
@@ -123,6 +130,7 @@ export default function InventoryPage() {
 
   const handleMovement = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!can("inventory.create")) { alert("You don't have permission to record inventory movements"); return; }
     if (!movementModal || !movementForm.quantity) return;
     setMovementSubmitting(true);
     try {
@@ -154,9 +162,11 @@ export default function InventoryPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Gym Inventory</h2>
           <p className="text-slate-500 text-sm">{items.length} items tracked</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-          {showForm ? "Cancel" : "+ Add Item"}
-        </button>
+        {(showForm || can("inventory.create")) && (
+          <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+            {showForm ? "Cancel" : "+ Add Item"}
+          </button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -258,16 +268,26 @@ export default function InventoryPage() {
                   <td className="px-4 py-3 text-sm text-slate-500 hidden lg:table-cell">{item.minStock}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-slate-900 hidden lg:table-cell">PKR {item.costPrice.toLocaleString()}</td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1.5">
-                       <button onClick={() => openMovement(item, "PURCHASE")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 border-none bg-transparent cursor-pointer" title="Stock In">
-                        <ArrowDown size={14} />
-                      </button>
-                       <button onClick={() => openMovement(item, "SALE")} className="p-1.5 rounded-lg hover:bg-orange-50 text-orange-600 border-none bg-transparent cursor-pointer" title="Stock Out">
-                        <ArrowUp size={14} />
-                      </button>
-                      <button onClick={() => startEdit(item)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 border-none bg-transparent cursor-pointer">Edit</button>
-                      <button onClick={() => deleteItem(item.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 border-none bg-transparent cursor-pointer">Del</button>
-                    </div>
+                    {can("inventory.edit") || can("inventory.create") ? (
+                      <div className="flex gap-1.5">
+                        {can("inventory.create") && (
+                          <>
+                            <button onClick={() => openMovement(item, "PURCHASE")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 border-none bg-transparent cursor-pointer" title="Stock In">
+                              <ArrowDown size={14} />
+                            </button>
+                            <button onClick={() => openMovement(item, "SALE")} className="p-1.5 rounded-lg hover:bg-orange-50 text-orange-600 border-none bg-transparent cursor-pointer" title="Stock Out">
+                              <ArrowUp size={14} />
+                            </button>
+                          </>
+                        )}
+                        {can("inventory.edit") && (
+                          <>
+                            <button onClick={() => startEdit(item)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 border-none bg-transparent cursor-pointer">Edit</button>
+                            <button onClick={() => deleteItem(item.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 border-none bg-transparent cursor-pointer">Del</button>
+                          </>
+                        )}
+                      </div>
+                    ) : null}
                   </td>
                 </tr>
               );

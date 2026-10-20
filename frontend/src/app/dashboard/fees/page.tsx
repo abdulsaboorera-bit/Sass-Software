@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DollarSign, CheckCircle, Clock, Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface FeePayment {
   id: string;
@@ -34,6 +35,7 @@ export default function FeesPage() {
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [form, setForm] = useState({ studentId: "", amount: "", month: "", year: new Date().getFullYear(), method: "CASH" });
   const [saving, setSaving] = useState(false);
+  const { can } = usePermissions();
 
   const fetchFees = async () => {
     setLoading(true);
@@ -117,12 +119,14 @@ export default function FeesPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Fee Management</h2>
           <p className="text-slate-500 text-sm">Track and manage student fee payments.</p>
         </div>
-        <button
-          onClick={openModal}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer"
-        >
-          <Plus size={16} /> Collect Fee
-        </button>
+        {(can("fees.collect") || can("fees.create")) && (
+          <button
+            onClick={openModal}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer"
+          >
+            <Plus size={16} /> Collect Fee
+          </button>
+        )}
       </div>
 
       {/* Summary Cards */}

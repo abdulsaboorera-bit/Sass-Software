@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Customer { id: string; name: string; phone: string | null; email: string | null; loyaltyPoints: number }
 
@@ -12,6 +13,7 @@ export default function CustomersPage() {
   const [form, setForm] = useState({ name: "", phone: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const fetchCustomers = () => {
     fetch("/api/bookshop/customers").then(r => r.json()).then(data => { if (data.customers) setCustomers(data.customers); }).finally(() => setLoading(false));
@@ -30,6 +32,10 @@ export default function CustomersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingCustomer ? !can("customers.edit") : !can("customers.create")) {
+      setError(editingCustomer ? "You don't have permission to edit customers" : "You don't have permission to add customers");
+      return;
+    }
     if (!form.name) { setError("Name is required"); return; }
     setSubmitting(true);
     setError("");
@@ -52,6 +58,7 @@ export default function CustomersPage() {
   };
 
   const deleteCustomer = async (id: string) => {
+    if (!can("customers.edit")) { setError("You don't have permission to edit customers"); return; }
     if (!confirm("Delete this customer?")) return;
     await fetch(`/api/bookshop/customers?id=${id}`, { method: "DELETE" });
     fetchCustomers();
@@ -66,9 +73,11 @@ export default function CustomersPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Customers</h2>
           <p className="text-slate-500 text-sm">{customers.length} registered customers</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
-          {showForm ? "Cancel" : "Add Customer"}
-        </button>
+        {can("customers.create") && (
+          <button onClick={() => { resetForm(); setShowForm(!showForm); }} className="bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer">
+            {showForm ? "Cancel" : "Add Customer"}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -105,10 +114,12 @@ export default function CustomersPage() {
                 <td className="px-4 py-3 text-sm text-slate-600">{c.email || "—"}</td>
                 <td className="px-4 py-3 text-sm font-semibold text-amber-600">{c.loyaltyPoints} pts</td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button onClick={() => startEdit(c)} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
-                    <button onClick={() => deleteCustomer(c.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
-                  </div>
+                  {can("customers.edit") && (
+                    <div className="flex gap-2">
+                      <button onClick={() => startEdit(c)} className="text-xs text-blue-600 font-semibold hover:text-blue-700 border-none bg-transparent cursor-pointer">Edit</button>
+                      <button onClick={() => deleteCustomer(c.id)} className="text-xs text-red-500 font-semibold hover:text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

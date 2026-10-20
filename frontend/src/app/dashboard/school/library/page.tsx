@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function LibraryPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Library"
@@ -28,6 +30,9 @@ export default function LibraryPage() {
         { name: "price", label: "Price (PKR)", type: "number" },
         { name: "shelf", label: "Shelf" },
       ]}
+      allowCreate={can("library.create")}
+      allowEdit={can("library.edit")}
+      allowDelete={can("library.edit")}
     />
   );
 }

@@ -5,7 +5,8 @@ import {
   Users, ShieldCheck, Plus, Search, X, Trash2, Loader2, AlertCircle,
   Check, KeyRound, Pencil,
 } from "lucide-react";
-import { usePermissions } from "@/lib/permissions";
+import { usePermissions, holdsPermission, expandWildcards } from "@/lib/permissions";
+import { getCurrentUser } from "@/lib/currentUser";
 
 type Role = {
   id: string;
@@ -32,17 +33,30 @@ type Member = {
 type PermGroup = { resource: string; label: string; permissions: { key: string; label: string }[] };
 
 export default function TeamPage() {
-  const { can } = usePermissions();
-  const assignable = (r: Role) => r.permissions.every((p) => can(p));
+  const { can, permissions } = usePermissions();
   const [tab, setTab] = useState<"members" | "roles">("members");
   const [members, setMembers] = useState<Member[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [groups, setGroups] = useState<PermGroup[]>([]);
+  const catalogKeys = useMemo(
+    () => new Set(groups.flatMap((g) => g.permissions.map((p) => p.key))),
+    [groups]
+  );
+  // Which roles this account may put on a given member: owners can assign
+  // anything; everyone else may hire into any pre-existing non-owner role but
+  // may never promote their OWN account beyond what they hold (backend rule).
+  const assignableRole = (r: Role, member?: Member) => {
+    if (permissions.includes("*")) return true;
+    if (r.permissions.includes("*")) return false;
+    if (!member || member.userId !== meId) return true;
+    return r.permissions.every((p) => holdsPermission(permissions, p, catalogKeys));
+  };
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
+  const [meId, setMeId] = useState<string | null>(null);
 
   // member modal
   const [showAdd, setShowAdd] = useState(false);
@@ -75,11 +89,17 @@ export default function TeamPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setLoading, setError, setForbidden, setMembers, setRoles, setGroups]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    getCurrentUser()
+      .then((d) => setMeId(d.user?.user?.id || null))
+      .catch(() => {});
+  }, []);
 
   const filteredMembers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -276,7 +296,7 @@ export default function TeamPage() {
                         onChange={(e) => changeRole(m, e.target.value)}
                         className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm bg-white cursor-pointer"
                       >
-                        {roles.filter((r) => r.id === m.role?.id || assignable(r)).map((r) => (
+                        {roles.filter((r) => r.id === m.role?.id || assignableRole(r, m)).map((r) => (
                           <option key={r.id} value={r.id}>{r.name}</option>
                         ))}
                       </select>
@@ -331,7 +351,13 @@ export default function TeamPage() {
                 {r.editable && (
                   <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
                     <button
-                      onClick={() => setRoleModal({ id: r.id, name: r.name, permissions: r.permissions.includes("*") ? [] : r.permissions })}
+                      onClick={() => setRoleModal({
+                        id: r.id,
+                        name: r.name,
+                        // Wildcards ("students.*") become individual chips so the
+                        // editor can show and toggle everything it holds.
+                        permissions: r.permissions.includes("*") ? [] : expandWildcards(r.permissions, catalogKeys),
+                      })}
                       className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600 cursor-pointer border-none bg-transparent"
                     >
                       <Pencil size={12} /> Edit
@@ -378,7 +404,7 @@ export default function TeamPage() {
                 <select required value={addForm.roleId} onChange={(e) => setAddForm({ ...addForm, roleId: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white cursor-pointer">
                   <option value="">Select a role…</option>
-                  {roles.filter(assignable).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {roles.filter((r) => assignableRole(r)).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               </div>
               <div>

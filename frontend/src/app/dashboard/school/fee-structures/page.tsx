@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function FeeStructuresPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Fee Structures"
@@ -29,6 +31,9 @@ export default function FeeStructuresPage() {
         { name: "amount", label: "Amount (PKR)", type: "number", required: true },
         { name: "isActive", label: "Active", type: "boolean" },
       ]}
+      allowCreate={can("fees.create")}
+      allowEdit={can("fees.edit")}
+      allowDelete={can("fees.edit")}
     />
   );
 }

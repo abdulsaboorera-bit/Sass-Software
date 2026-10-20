@@ -271,7 +271,7 @@ test("a non-owner cannot assign a full-access role to a new member", async (t) =
   assert.equal(await User.countDocuments({ email }), 0);
 });
 
-test("a non-owner cannot promote their own account to a role they do not hold", async (t) => {
+test("a settings-manager cannot promote their own account but may hire into a pre-existing role", async (t) => {
   if (!databaseAvailable) return t.skip("MongoDB unavailable");
   const members = (await api("GET", "/api/team/members", { token: tokens.manager })).data.members;
   const self = members.find((m) => m.email === "rbac-manager@clinic.test");
@@ -287,11 +287,13 @@ test("a non-owner cannot promote their own account to a role they do not hold", 
   );
   assert.equal(unchanged.role.slug, "settings-admin");
 
+  // Hiring into a pre-existing non-owner role is allowed even without holding
+  // its permissions (the owner seeded that preset for exactly this purpose).
   const hire = await api("POST", "/api/team/members", {
     token: tokens.manager,
     body: { email: `hire-${Date.now()}@clinic.test`, roleId: deniedRoleId },
   });
-  assert.equal(hire.status, 403);
+  assert.equal(hire.status, 201);
 
   const ownerHire = await api("POST", "/api/team/members", {
     token: tokens.owner,

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ScanLine, QrCode, Loader2, Search, CheckCircle2, Download, UserCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
+import { usePermissions } from "@/lib/permissions";
 
 interface LookupResult {
   type: string;
@@ -24,6 +25,7 @@ export default function ScannerPage() {
   const [qr, setQr] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState("");
+  const { can } = usePermissions();
 
   useEffect(() => {
     getCurrentUser()
@@ -62,6 +64,10 @@ export default function ScannerPage() {
   };
 
   const quickAction = async () => {
+    if (industry === "GYM" && !(can("attendance.mark") || can("attendance.create"))) {
+      setError("You don't have permission to check in members");
+      return;
+    }
     setActionMsg("");
     try {
       if (industry === "SCHOOL") {
@@ -90,7 +96,10 @@ export default function ScannerPage() {
     }
   };
 
-  const canQuickAction = (industry === "SCHOOL" || industry === "GYM") && Boolean(result);
+  const canQuickAction =
+    (industry === "SCHOOL" || industry === "GYM") &&
+    Boolean(result) &&
+    (industry !== "GYM" || can("attendance.mark") || can("attendance.create"));
 
   return (
     <div className="max-w-4xl">

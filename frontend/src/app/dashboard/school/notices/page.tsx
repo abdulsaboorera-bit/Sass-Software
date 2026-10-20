@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function NoticesPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Notices"
@@ -27,6 +29,9 @@ export default function NoticesPage() {
         { name: "expiresAt", label: "Expires At", type: "date" },
         { name: "isPinned", label: "Pinned", type: "boolean" },
       ]}
+      allowCreate={can("notices.create")}
+      allowEdit={can("notices.edit")}
+      allowDelete={can("notices.edit")}
     />
   );
 }

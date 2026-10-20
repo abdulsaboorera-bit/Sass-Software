@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface SchoolClass {
   id: string;
@@ -20,6 +21,7 @@ export default function ClassesPage() {
 
   const [editing, setEditing] = useState<SchoolClass | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { can } = usePermissions();
 
   const fetchClasses = async () => {
     try {
@@ -124,12 +126,14 @@ export default function ClassesPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Classes</h2>
           <p className="text-slate-500 text-sm">{classes.length} classes configured</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer"
-        >
-          <Plus size={16} /> Add Class
-        </button>
+        {can("classes.create") && (
+          <button
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm border-none cursor-pointer"
+          >
+            <Plus size={16} /> Add Class
+          </button>
+        )}
       </div>
 
       {/* Create / Edit Form */}
@@ -199,21 +203,23 @@ export default function ClassesPage() {
                   Monthly Fee: <span className="font-semibold">PKR {Number(c.feeAmount).toLocaleString()}</span>
                 </p>
               )}
-              <div className="flex gap-1 pt-2 border-t border-slate-100 mt-3">
-                <button
-                  onClick={() => openEdit(c)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
-                >
-                  <Pencil size={12} /> Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(c.id)}
-                  disabled={deletingId === c.id}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent disabled:opacity-30"
-                >
-                  <Trash2 size={12} /> Delete
-                </button>
-              </div>
+              {can("classes.edit") && (
+                <div className="flex gap-1 pt-2 border-t border-slate-100 mt-3">
+                  <button
+                    onClick={() => openEdit(c)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+                  >
+                    <Pencil size={12} /> Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(c.id)}
+                    disabled={deletingId === c.id}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent disabled:opacity-30"
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

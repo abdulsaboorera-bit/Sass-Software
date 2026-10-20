@@ -1,8 +1,10 @@
 "use client";
 
 import ResourceManager from "@/components/school/ResourceManager";
+import { usePermissions } from "@/lib/permissions";
 
 export default function AssignmentsPage() {
+  const { can } = usePermissions();
   return (
     <ResourceManager
       title="Assignments"
@@ -35,6 +37,9 @@ export default function AssignmentsPage() {
           { value: "OPEN", label: "Open" }, { value: "CLOSED", label: "Closed" },
         ] },
       ]}
+      allowCreate={can("assignments.create")}
+      allowEdit={can("assignments.edit")}
+      allowDelete={can("assignments.edit")}
     />
   );
 }

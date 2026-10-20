@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X, CheckCircle, Clock, Trash2 } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Appt {
   id: string;
@@ -25,6 +26,7 @@ export default function AppointmentsPage() {
   const [form, setForm] = useState({ patientId: "", doctorId: "", date: "", time: "", reason: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const fetchAppointments = () => {
     fetch("/api/clinic/appointments?limit=50", { credentials: "include" })
@@ -51,6 +53,10 @@ export default function AppointmentsPage() {
   };
 
   const handleCreate = async () => {
+    if (!can("appointments.create")) {
+      setError("You don't have permission to book appointments");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -72,6 +78,10 @@ export default function AppointmentsPage() {
   };
 
   const updateStatus = async (id: string, status: string) => {
+    if (!can("appointments.edit")) {
+      alert("You don't have permission to update appointments");
+      return;
+    }
     try {
       const res = await fetch(`/api/clinic/appointments/${id}`, {
         method: "PATCH",
@@ -87,6 +97,10 @@ export default function AppointmentsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!can("appointments.edit")) {
+      alert("You don't have permission to delete appointments");
+      return;
+    }
     if (!confirm("Delete this appointment?")) return;
     try {
       const res = await fetch(`/api/clinic/appointments/${id}`, { method: "DELETE", credentials: "include" });
@@ -112,9 +126,11 @@ export default function AppointmentsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Appointments</h2>
           <p className="text-slate-500 text-sm">Manage patient appointments.</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm cursor-pointer">
-          <Plus size={16} /> Book Appointment
-        </button>
+        {can("appointments.create") && (
+          <button onClick={openCreate} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm cursor-pointer">
+            <Plus size={16} /> Book Appointment
+          </button>
+        )}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -151,19 +167,21 @@ export default function AppointmentsPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1">
-                    {a.status === "SCHEDULED" && (
+                    {can("appointments.edit") && a.status === "SCHEDULED" && (
                       <button onClick={() => updateStatus(a.id, "CONFIRMED")} title="Confirm" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-amber-600 transition-colors cursor-pointer">
                         <CheckCircle size={14} />
                       </button>
                     )}
-                    {a.status === "CONFIRMED" && (
+                    {can("appointments.edit") && a.status === "CONFIRMED" && (
                       <button onClick={() => updateStatus(a.id, "COMPLETED")} title="Complete" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-green-600 transition-colors cursor-pointer">
                         <Clock size={14} />
                       </button>
                     )}
-                    <button onClick={() => handleDelete(a.id)} title="Delete" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-red-600 transition-colors cursor-pointer">
-                      <Trash2 size={14} />
-                    </button>
+                    {can("appointments.edit") && (
+                      <button onClick={() => handleDelete(a.id)} title="Delete" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-red-600 transition-colors cursor-pointer">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

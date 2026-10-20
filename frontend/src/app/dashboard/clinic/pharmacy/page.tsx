@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X, Trash2, ArrowLeftRight } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Ref { id: string; name: string; patientNo?: string }
 interface Category { id: string; name: string }
@@ -63,6 +64,7 @@ export default function ClinicPharmacyPage() {
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [saleOpen, setSaleOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -89,6 +91,10 @@ export default function ClinicPharmacyPage() {
 
   const saveMedicine = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("pharmacy.create")) {
+      setError("You don't have permission to add medicines");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/pharmacy/medicines", {
@@ -124,6 +130,10 @@ export default function ClinicPharmacyPage() {
 
   const saveMovement = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("pharmacy.edit")) {
+      setError("You don't have permission to record stock movements");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/pharmacy/medicines/movements", {
@@ -150,6 +160,10 @@ export default function ClinicPharmacyPage() {
 
   const saveSupplier = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("pharmacy.create")) {
+      setError("You don't have permission to add suppliers");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/pharmacy/suppliers", {
@@ -178,6 +192,10 @@ export default function ClinicPharmacyPage() {
   const addCategory = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!categoryName.trim()) return;
+    if (!can("pharmacy.create")) {
+      setError("You don't have permission to add categories");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/pharmacy/categories", {
@@ -197,6 +215,10 @@ export default function ClinicPharmacyPage() {
 
   const saveSale = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("pharmacy.create")) {
+      setError("You don't have permission to record sales");
+      return;
+    }
     setError("");
     const items = saleForm.items.filter((i) => i.medicineId && Number(i.quantity) > 0).map((i) => ({ medicineId: i.medicineId, quantity: Number(i.quantity) }));
     if (items.length === 0) {
@@ -226,6 +248,10 @@ export default function ClinicPharmacyPage() {
   };
 
   const deleteMedicine = async (medicine: Medicine) => {
+    if (!can("pharmacy.edit")) {
+      setError("You don't have permission to delete medicines");
+      return;
+    }
     if (!confirm(`Delete ${medicine.name}?`)) return;
     const response = await fetch(`/api/clinic/pharmacy/medicines/${medicine.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) { const data = await response.json().catch(() => ({})); setError(data.error || "Unable to delete medicine"); }
@@ -233,6 +259,10 @@ export default function ClinicPharmacyPage() {
   };
 
   const deleteSupplier = async (supplier: Supplier) => {
+    if (!can("pharmacy.edit")) {
+      setError("You don't have permission to delete suppliers");
+      return;
+    }
     if (!confirm(`Delete ${supplier.name}?`)) return;
     const response = await fetch(`/api/clinic/pharmacy/suppliers/${supplier.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) { const data = await response.json().catch(() => ({})); setError(data.error || "Unable to delete supplier"); }
@@ -240,6 +270,10 @@ export default function ClinicPharmacyPage() {
   };
 
   const cancelSale = async (sale: Sale) => {
+    if (!can("pharmacy.edit")) {
+      setError("You don't have permission to cancel sales");
+      return;
+    }
     if (!confirm(`Cancel sale ${sale.saleRef}? Stock will be restored.`)) return;
     const response = await fetch(`/api/clinic/pharmacy/sales/${sale.id}/cancel`, { method: "POST", credentials: "include" });
     if (!response.ok) { const data = await response.json().catch(() => ({})); setError(data.error || "Unable to cancel sale"); }
@@ -263,12 +297,14 @@ export default function ClinicPharmacyPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Pharmacy</h2>
           <p className="text-slate-500 text-sm">Medicine inventory, sales, and suppliers.</p>
         </div>
-        <button
-          onClick={() => (tab === "medicines" ? setMedOpen(true) : tab === "suppliers" ? setSupplierOpen(true) : setSaleOpen(true))}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer"
-        >
-          <Plus size={16} /> {tab === "medicines" ? "Add Medicine" : tab === "suppliers" ? "Add Supplier" : "New Sale"}
-        </button>
+        {can("pharmacy.create") && (
+          <button
+            onClick={() => (tab === "medicines" ? setMedOpen(true) : tab === "suppliers" ? setSupplierOpen(true) : setSaleOpen(true))}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer"
+          >
+            <Plus size={16} /> {tab === "medicines" ? "Add Medicine" : tab === "suppliers" ? "Add Supplier" : "New Sale"}
+          </button>
+        )}
       </div>
 
       <div className="flex gap-2 mb-4">
@@ -295,14 +331,18 @@ export default function ClinicPharmacyPage() {
             </div>
             <form onSubmit={addCategory} className="flex gap-2 max-w-md">
               <input placeholder="New category" value={categoryName} onChange={(e) => setCategoryName(e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-              <button type="submit" className="bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm cursor-pointer">Add</button>
+              {can("pharmacy.create") && (
+                <button type="submit" className="bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm cursor-pointer">Add</button>
+              )}
             </form>
           </div>
 
           <div className="flex justify-end mb-3">
-            <button onClick={() => setMoveOpen(true)} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-              <ArrowLeftRight size={16} /> Stock Movement
-            </button>
+            {can("pharmacy.edit") && (
+              <button onClick={() => setMoveOpen(true)} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+                <ArrowLeftRight size={16} /> Stock Movement
+              </button>
+            )}
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
@@ -334,7 +374,7 @@ export default function ClinicPharmacyPage() {
                       <td className="px-4 py-3 text-sm text-right text-slate-600">PKR {Number(medicine.costPrice).toLocaleString()}</td>
                       <td className="px-4 py-3 text-sm text-right text-slate-600">PKR {Number(medicine.sellPrice).toLocaleString()}</td>
                       <td className={`px-4 py-3 text-sm ${expired ? "text-red-600" : "text-slate-600"}`}>{medicine.expiryDate ? new Date(medicine.expiryDate).toLocaleDateString() : "—"}</td>
-                      <td className="px-4 py-3 text-right"><button onClick={() => deleteMedicine(medicine)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button></td>
+                      <td className="px-4 py-3 text-right">{can("pharmacy.edit") && <button onClick={() => deleteMedicine(medicine)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>}</td>
                     </tr>
                   );
                 })}
@@ -370,7 +410,7 @@ export default function ClinicPharmacyPage() {
                   <td className="px-4 py-3 text-sm text-right font-semibold text-slate-800">PKR {Number(sale.total).toLocaleString()}</td>
                   <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-1 rounded-full ${sale.status === "PAID" ? "bg-green-100 text-green-700" : sale.status === "CANCELLED" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700"}`}>{sale.status}</span></td>
                   <td className="px-4 py-3 text-right">
-                    {sale.status !== "CANCELLED" && <button onClick={() => cancelSale(sale)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Cancel</button>}
+                    {can("pharmacy.edit") && sale.status !== "CANCELLED" && <button onClick={() => cancelSale(sale)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Cancel</button>}
                   </td>
                 </tr>
               ))}
@@ -400,7 +440,7 @@ export default function ClinicPharmacyPage() {
                   <td className="px-4 py-3 text-sm text-slate-600">{supplier.contactPerson || "—"}</td>
                   <td className="px-4 py-3 text-sm text-slate-600">{supplier.phone || "—"}</td>
                   <td className="px-4 py-3 text-sm text-slate-600">{supplier.email || "—"}</td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => deleteSupplier(supplier)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button></td>
+                  <td className="px-4 py-3 text-right">{can("pharmacy.edit") && <button onClick={() => deleteSupplier(supplier)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>}</td>
                 </tr>
               ))}
             </tbody>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X, Trash2, QrCode } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Ref { id: string; name: string; patientNo?: string; specialization?: string }
 interface Medication { name: string; dosage?: string; frequency?: string; duration?: string; instructions?: string }
@@ -28,6 +29,7 @@ export default function ClinicPrescriptionsPage() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [qr, setQr] = useState<{ id: string; qr: string; patient?: string } | null>(null);
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -52,6 +54,10 @@ export default function ClinicPrescriptionsPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("prescriptions.create")) {
+      setError("You don't have permission to create prescriptions");
+      return;
+    }
     setError("");
     const medications = form.medications.filter((m) => m.name.trim());
     if (medications.length === 0) {
@@ -84,6 +90,10 @@ export default function ClinicPrescriptionsPage() {
   };
 
   const setStatus = async (rx: Prescription, status: string) => {
+    if (!can("prescriptions.edit")) {
+      setError("You don't have permission to change prescription status");
+      return;
+    }
     const response = await fetch(`/api/clinic/prescriptions/${rx.id}`, {
       method: "PATCH",
       credentials: "include",
@@ -130,9 +140,11 @@ export default function ClinicPrescriptionsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Prescriptions</h2>
           <p className="text-slate-500 text-sm">Diagnoses and medication plans issued to patients.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> New Prescription
-        </button>
+        {can("prescriptions.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> New Prescription
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}

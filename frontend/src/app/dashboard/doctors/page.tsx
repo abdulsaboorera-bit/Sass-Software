@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Doctor {
   id: string;
@@ -25,6 +26,7 @@ export default function DoctorsPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const fetchDoctors = () => {
     fetch("/api/clinic/doctors", { credentials: "include" })
@@ -58,6 +60,10 @@ export default function DoctorsPage() {
   };
 
   const handleSave = async () => {
+    if (editing ? !can("doctors.edit") : !can("doctors.create")) {
+      setError(editing ? "You don't have permission to edit doctors" : "You don't have permission to add doctors");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -93,6 +99,10 @@ export default function DoctorsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!can("doctors.edit")) {
+      alert("You don't have permission to deactivate doctors");
+      return;
+    }
     if (!confirm("Deactivate this doctor?")) return;
     try {
       const res = await fetch(`/api/clinic/doctors?id=${id}`, { method: "DELETE", credentials: "include" });
@@ -110,9 +120,11 @@ export default function DoctorsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Doctors</h2>
           <p className="text-slate-500 text-sm">{doctors.length} active doctors</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm cursor-pointer">
-          <Plus size={16} /> New Doctor
-        </button>
+        {can("doctors.create") && (
+          <button onClick={openCreate} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm cursor-pointer">
+            <Plus size={16} /> New Doctor
+          </button>
+        )}
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -127,12 +139,16 @@ export default function DoctorsPage() {
                 <span className="text-blue-600 font-bold text-sm">{d.name.split(" ").map((n) => n[0]).join("")}</span>
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={() => openEdit(d)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer">
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => handleDelete(d.id)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-red-600 transition-colors cursor-pointer">
-                  <Trash2 size={14} />
-                </button>
+                {can("doctors.edit") && (
+                  <button onClick={() => openEdit(d)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer">
+                    <Pencil size={14} />
+                  </button>
+                )}
+                {can("doctors.edit") && (
+                  <button onClick={() => handleDelete(d.id)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-red-600 transition-colors cursor-pointer">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
             <h3 className="text-slate-900 font-bold text-sm">{d.name}</h3>

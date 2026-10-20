@@ -56,7 +56,7 @@ async function upsertUser({ email, name, passwordHash, tenantId }) {
 async function ensureRole(tenantId, def) {
   let role = await TenantRole.findOne({ tenantId, slug: def.slug });
   if (!role) role = await TenantRole.create({ tenantId, ...def });
-  else if (role.isSystem) await TenantRole.updateOne({ _id: role._id }, { $set: { name: def.name, permissions: def.permissions, isSystem: true } });
+  else if (role.isSystem) await TenantRole.updateOne({ _id: role._id }, { $set: { name: def.name, isSystem: true } });
   return role;
 }
 

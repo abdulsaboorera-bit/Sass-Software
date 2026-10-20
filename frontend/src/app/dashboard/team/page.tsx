@@ -5,6 +5,7 @@ import {
   Users, ShieldCheck, Plus, Search, X, Trash2, Loader2, AlertCircle,
   Check, KeyRound, Pencil,
 } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 type Role = {
   id: string;
@@ -31,6 +32,8 @@ type Member = {
 type PermGroup = { resource: string; label: string; permissions: { key: string; label: string }[] };
 
 export default function TeamPage() {
+  const { can } = usePermissions();
+  const assignable = (r: Role) => r.permissions.every((p) => can(p));
   const [tab, setTab] = useState<"members" | "roles">("members");
   const [members, setMembers] = useState<Member[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -273,7 +276,7 @@ export default function TeamPage() {
                         onChange={(e) => changeRole(m, e.target.value)}
                         className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm bg-white cursor-pointer"
                       >
-                        {roles.map((r) => (
+                        {roles.filter((r) => r.id === m.role?.id || assignable(r)).map((r) => (
                           <option key={r.id} value={r.id}>{r.name}</option>
                         ))}
                       </select>
@@ -375,7 +378,7 @@ export default function TeamPage() {
                 <select required value={addForm.roleId} onChange={(e) => setAddForm({ ...addForm, roleId: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white cursor-pointer">
                   <option value="">Select a role…</option>
-                  {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {roles.filter(assignable).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               </div>
               <div>
@@ -438,10 +441,13 @@ export default function TeamPage() {
                       <div className="flex flex-wrap gap-2">
                         {g.permissions.map((p) => {
                           const active = roleModal.permissions.includes(p.key);
+                          const grantable = can(p.key);
                           return (
                             <button
                               key={p.key}
                               type="button"
+                              disabled={!grantable && !active}
+                              title={grantable ? undefined : "You don't hold this permission, so you can't grant it"}
                               onClick={() => setRoleModal({
                                 ...roleModal,
                                 permissions: active
@@ -450,7 +456,7 @@ export default function TeamPage() {
                               })}
                               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border transition-colors ${
                                 active ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:border-blue-300"
-                              }`}
+                              } ${!grantable && !active ? "opacity-45 cursor-not-allowed" : ""}`}
                             >
                               {active && <Check size={12} />}
                               {p.label}

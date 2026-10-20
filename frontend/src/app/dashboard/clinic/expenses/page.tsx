@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Expense {
   id: string;
@@ -23,6 +24,7 @@ export default function ClinicExpensesPage() {
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -44,6 +46,10 @@ export default function ClinicExpensesPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("expenses.create")) {
+      setError("You don't have permission to add expenses");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/expenses", {
@@ -70,6 +76,10 @@ export default function ClinicExpensesPage() {
   };
 
   const remove = async (expense: Expense) => {
+    if (!can("expenses.edit")) {
+      setError("You don't have permission to delete expenses");
+      return;
+    }
     if (!confirm(`Delete "${expense.description}"?`)) return;
     const response = await fetch(`/api/clinic/expenses/${expense.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -87,9 +97,11 @@ export default function ClinicExpensesPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Expenses</h2>
           <p className="text-slate-500 text-sm">Operating costs for the clinic.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> Add Expense
-        </button>
+        {can("expenses.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> Add Expense
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
@@ -130,7 +142,9 @@ export default function ClinicExpensesPage() {
                 <td className="px-4 py-3 text-sm text-slate-600">{expense.status || "APPROVED"}</td>
                 <td className="px-4 py-3 text-sm text-right font-semibold text-slate-800">PKR {Number(expense.amount).toLocaleString()}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => remove(expense)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                  {can("expenses.edit") && (
+                    <button onClick={() => remove(expense)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Users, Plus, Pencil, Trash2, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Patient {
   id: string;
@@ -25,6 +26,7 @@ export default function PatientsPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const fetchPatients = () => {
     fetch("/api/clinic/patients?limit=50", { credentials: "include" })
@@ -59,6 +61,10 @@ export default function PatientsPage() {
   };
 
   const handleSave = async () => {
+    if (editing ? !can("patients.edit") : !can("patients.create")) {
+      setError(editing ? "You don't have permission to edit patients" : "You don't have permission to add patients");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -94,6 +100,10 @@ export default function PatientsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!can("patients.edit")) {
+      alert("You don't have permission to delete patients");
+      return;
+    }
     if (!confirm("Delete this patient?")) return;
     try {
       const res = await fetch(`/api/clinic/patients/${id}`, {
@@ -114,9 +124,11 @@ export default function PatientsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Patients</h2>
           <p className="text-slate-500 text-sm">{patients.length} patients registered</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm cursor-pointer">
-          <Plus size={16} /> New Patient
-        </button>
+        {can("patients.create") && (
+          <button onClick={openCreate} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm cursor-pointer">
+            <Plus size={16} /> New Patient
+          </button>
+        )}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -143,12 +155,16 @@ export default function PatientsPage() {
                 <td className="px-4 py-3 text-sm text-slate-600">{p.gender || "—"}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer">
-                      <Pencil size={14} />
-                    </button>
-                    <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-red-600 transition-colors cursor-pointer">
-                      <Trash2 size={14} />
-                    </button>
+                    {can("patients.edit") && (
+                      <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer">
+                        <Pencil size={14} />
+                      </button>
+                    )}
+                    {can("patients.edit") && (
+                      <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-red-600 transition-colors cursor-pointer">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

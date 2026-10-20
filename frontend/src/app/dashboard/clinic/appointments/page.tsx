@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Ref { id: string; name: string; patientNo?: string; specialization?: string }
 interface Appointment {
@@ -28,6 +29,7 @@ export default function ClinicAppointmentsPage() {
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -52,6 +54,10 @@ export default function ClinicAppointmentsPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("appointments.create")) {
+      setError("You don't have permission to create appointments");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/appointments", {
@@ -81,6 +87,10 @@ export default function ClinicAppointmentsPage() {
   };
 
   const setStatus = async (appointment: Appointment, status: string) => {
+    if (!can("appointments.edit")) {
+      setError("You don't have permission to change appointment status");
+      return;
+    }
     const response = await fetch(`/api/clinic/appointments/${appointment.id}`, {
       method: "PATCH",
       credentials: "include",
@@ -108,9 +118,11 @@ export default function ClinicAppointmentsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Appointments</h2>
           <p className="text-slate-500 text-sm">Book, track, and complete patient appointments.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> New Appointment
-        </button>
+        {can("appointments.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> New Appointment
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}

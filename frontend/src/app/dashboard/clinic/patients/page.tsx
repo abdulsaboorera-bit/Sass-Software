@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Patient {
   id: string;
@@ -25,6 +26,7 @@ export default function ClinicPatientsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     setLoading(true);
@@ -44,6 +46,10 @@ export default function ClinicPatientsPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("patients.create")) {
+      setError("You don't have permission to add patients");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/patients", {
@@ -76,6 +82,10 @@ export default function ClinicPatientsPage() {
   };
 
   const archive = async (patient: Patient) => {
+    if (!can("patients.edit")) {
+      setError("You don't have permission to archive patients");
+      return;
+    }
     if (!confirm(`Archive ${patient.name}?`)) return;
     const response = await fetch(`/api/clinic/patients/${patient.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -97,9 +107,11 @@ export default function ClinicPatientsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Patients</h2>
           <p className="text-slate-500 text-sm">Your patient register with contact and medical details.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> Register Patient
-        </button>
+        {can("patients.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> Register Patient
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
@@ -138,7 +150,9 @@ export default function ClinicPatientsPage() {
                 <td className="px-4 py-3 text-sm text-slate-600">{patient.bloodGroup || "—"}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">{patient.cnic || "—"}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => archive(patient)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Archive</button>
+                  {can("patients.edit") && (
+                    <button onClick={() => archive(patient)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Archive</button>
+                  )}
                 </td>
               </tr>
             ))}

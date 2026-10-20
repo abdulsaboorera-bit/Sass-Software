@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Ref { id: string; name: string; patientNo?: string }
 interface Invoice {
@@ -41,6 +42,7 @@ export default function ClinicBillingPage() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -65,6 +67,10 @@ export default function ClinicBillingPage() {
 
   const saveInvoice = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("billing.create")) {
+      setError("You don't have permission to create invoices");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/invoices", {
@@ -93,6 +99,10 @@ export default function ClinicBillingPage() {
 
   const savePayment = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("billing.create")) {
+      setError("You don't have permission to record payments");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/payments", {
@@ -112,6 +122,10 @@ export default function ClinicBillingPage() {
   };
 
   const cancelInvoice = async (invoice: Invoice) => {
+    if (!can("billing.edit")) {
+      setError("You don't have permission to cancel invoices");
+      return;
+    }
     if (!confirm(`Cancel invoice ${invoice.invoiceRef}?`)) return;
     const response = await fetch(`/api/clinic/invoices/${invoice.id}/cancel`, { method: "POST", credentials: "include" });
     if (!response.ok) { const data = await response.json().catch(() => ({})); setError(data.error || "Unable to cancel invoice"); return; }
@@ -119,6 +133,10 @@ export default function ClinicBillingPage() {
   };
 
   const markOverdue = async () => {
+    if (!can("billing.edit")) {
+      setError("You don't have permission to mark invoices overdue");
+      return;
+    }
     setError(""); setInfo("");
     const response = await fetch("/api/clinic/mark-overdue", { method: "POST", credentials: "include" });
     const data = await response.json().catch(() => ({}));
@@ -149,10 +167,14 @@ export default function ClinicBillingPage() {
           <p className="text-slate-500 text-sm">Invoices, outstanding balances, and payments.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={markOverdue} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">Mark Overdue</button>
-          <button onClick={() => (tab === "invoices" ? setInvoiceOpen(true) : setPaymentOpen(true))} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-            <Plus size={16} /> {tab === "invoices" ? "New Invoice" : "Record Payment"}
-          </button>
+          {can("billing.edit") && (
+            <button onClick={markOverdue} className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">Mark Overdue</button>
+          )}
+          {can("billing.create") && (
+            <button onClick={() => (tab === "invoices" ? setInvoiceOpen(true) : setPaymentOpen(true))} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+              <Plus size={16} /> {tab === "invoices" ? "New Invoice" : "Record Payment"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -196,8 +218,12 @@ export default function ClinicBillingPage() {
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       {invoice.status !== "PAID" && invoice.status !== "CANCELLED" && (
                         <>
-                          <button onClick={() => openPaymentFor(invoice)} className="text-xs text-blue-600 border-none bg-transparent cursor-pointer mr-3">Record payment</button>
-                          <button onClick={() => cancelInvoice(invoice)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Cancel</button>
+                          {can("billing.create") && (
+                            <button onClick={() => openPaymentFor(invoice)} className="text-xs text-blue-600 border-none bg-transparent cursor-pointer mr-3">Record payment</button>
+                          )}
+                          {can("billing.edit") && (
+                            <button onClick={() => cancelInvoice(invoice)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Cancel</button>
+                          )}
                         </>
                       )}
                     </td>

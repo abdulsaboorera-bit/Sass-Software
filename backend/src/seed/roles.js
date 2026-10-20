@@ -249,12 +249,21 @@ function group(label, resource, actions) {
 const COMMON_PERMISSIONS = [
   group("Reports & Analytics", "analytics", ["view"]),
   group("Billing & Payments", "billing", ["view", "create", "edit"]),
-  group("Settings", "settings", ["view", "edit", "manage"]),
+  group("Settings", "settings", ["view", "edit", "update", "manage"]),
+  group("Notifications", "notifications", ["view", "manage"]),
+  group("Audit Logs", "audit", ["view", "manage"]),
 ];
 
 const PERMISSION_GROUPS = {
   GYM: [
-    group("Members", "members", ["view", "create", "edit"]),
+    {
+      resource: "members",
+      label: "Members",
+      permissions: [
+        ...["view", "create", "edit"].map((a) => ({ key: `members.${a}`, label: ACTION_LABEL[a] || a })),
+        { key: "members.view.assigned", label: "View Assigned Only" },
+      ],
+    },
     group("Attendance & Check-ins", "attendance", ["view", "mark", "create", "edit"]),
     group("Classes & Sessions", "sessions", ["view", "create", "edit"]),
     group("Trainers", "trainers", ["view", "create", "edit"]),
@@ -274,6 +283,7 @@ const PERMISSION_GROUPS = {
     group("Admissions", "admissions", ["view", "create", "edit"]),
     group("Fees", "fees", ["view", "collect", "create", "edit", "reports"]),
     group("Salaries & Payroll", "salaries", ["view", "create", "edit"]),
+    group("Staff Attendance", "staff-attendance", ["view", "create", "edit"]),
     group("Library", "library", ["view", "create", "edit"]),
     group("Transport", "transport", ["view", "create", "edit"]),
     group("Hostel", "hostel", ["view", "create", "edit"]),
@@ -289,6 +299,7 @@ const PERMISSION_GROUPS = {
     group("Pharmacy", "pharmacy", ["view", "create", "edit"]),
     group("Expenses", "expenses", ["view", "create", "edit"]),
     group("Salaries", "salaries", ["view", "create", "edit"]),
+    group("Staff Attendance", "staff-attendance", ["view", "create", "edit"]),
   ],
   RESTAURANT: [
     group("Orders", "orders", ["view", "create", "edit"]),

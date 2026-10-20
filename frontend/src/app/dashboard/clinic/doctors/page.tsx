@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Department { id: string; name: string; location?: string }
 interface Doctor {
@@ -30,6 +31,7 @@ export default function ClinicDoctorsPage() {
   const [deptName, setDeptName] = useState("");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -51,6 +53,10 @@ export default function ClinicDoctorsPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("doctors.create")) {
+      setError("You don't have permission to add doctors");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/doctors", {
@@ -85,6 +91,10 @@ export default function ClinicDoctorsPage() {
   const addDepartment = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!deptName.trim()) return;
+    if (!can("doctors.create")) {
+      setError("You don't have permission to add departments");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/departments", {
@@ -103,6 +113,10 @@ export default function ClinicDoctorsPage() {
   };
 
   const archive = async (doctor: Doctor) => {
+    if (!can("doctors.edit")) {
+      setError("You don't have permission to remove doctors");
+      return;
+    }
     if (!confirm(`Remove ${doctor.name}?`)) return;
     const response = await fetch(`/api/clinic/doctors/${doctor.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -133,9 +147,11 @@ export default function ClinicDoctorsPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Doctors</h2>
           <p className="text-slate-500 text-sm">Your medical team with specialties, fees, and schedules.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> Add Doctor
-        </button>
+        {can("doctors.create") && (
+          <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> Add Doctor
+          </button>
+        )}
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
@@ -149,7 +165,9 @@ export default function ClinicDoctorsPage() {
         </div>
         <form onSubmit={addDepartment} className="flex gap-2 max-w-md">
           <input placeholder="New department name" value={deptName} onChange={(e) => setDeptName(e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-          <button type="submit" className="bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm cursor-pointer">Add</button>
+          {can("doctors.create") && (
+            <button type="submit" className="bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm cursor-pointer">Add</button>
+          )}
         </form>
       </div>
 
@@ -167,7 +185,9 @@ export default function ClinicDoctorsPage() {
             </div>
             <p className="text-sm text-slate-600 mt-3">{doctor.phone}</p>
             <p className="text-sm font-semibold text-slate-800 mt-1">Fee PKR {Number(doctor.fee || 0).toLocaleString()}</p>
-            <button onClick={() => archive(doctor)} className="mt-4 text-xs text-red-600 border-none bg-transparent cursor-pointer">Remove doctor</button>
+            {can("doctors.edit") && (
+              <button onClick={() => archive(doctor)} className="mt-4 text-xs text-red-600 border-none bg-transparent cursor-pointer">Remove doctor</button>
+            )}
           </div>
         ))}
       </div>

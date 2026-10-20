@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarClock, CheckCircle } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface StaffRef { name: string; specialization?: string; phone?: string }
 interface Salary {
@@ -29,6 +30,7 @@ export default function ClinicSalariesPage() {
   const [month, setMonth] = useState(currentMonth());
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -49,6 +51,10 @@ export default function ClinicSalariesPage() {
   useEffect(() => { void load(); }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generate = async () => {
+    if (!can("salaries.create")) {
+      setError("You don't have permission to generate payroll");
+      return;
+    }
     setError(""); setInfo("");
     try {
       const response = await fetch("/api/clinic/salaries/generate", {
@@ -67,6 +73,10 @@ export default function ClinicSalariesPage() {
   };
 
   const markPaid = async (salary: Salary) => {
+    if (!can("salaries.create")) {
+      setError("You don't have permission to mark salaries as paid");
+      return;
+    }
     const response = await fetch(`/api/clinic/salaries/${salary.id}/pay`, {
       method: "POST",
       credentials: "include",
@@ -99,9 +109,11 @@ export default function ClinicSalariesPage() {
         </div>
         <div className="flex items-center gap-2">
           <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm" />
-          <button onClick={generate} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-            <CalendarClock size={16} /> Generate Payroll
-          </button>
+          {can("salaries.create") && (
+            <button onClick={generate} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+              <CalendarClock size={16} /> Generate Payroll
+            </button>
+          )}
         </div>
       </div>
 
@@ -154,7 +166,7 @@ export default function ClinicSalariesPage() {
                   <span className={`text-xs font-semibold px-2 py-1 rounded-full ${salary.status === "PAID" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{salary.status}</span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {salary.status !== "PAID" && (
+                  {salary.status !== "PAID" && can("salaries.create") && (
                     <button onClick={() => markPaid(salary)} className="inline-flex items-center gap-1 text-xs text-green-700 border-none bg-transparent cursor-pointer"><CheckCircle size={14} /> Mark Paid</button>
                   )}
                 </td>

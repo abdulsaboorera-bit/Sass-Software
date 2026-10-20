@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X, FileText } from "lucide-react";
+import { usePermissions } from "@/lib/permissions";
 
 interface Ref { id: string; name: string; patientNo?: string; code?: string }
 interface LabTest {
@@ -40,6 +41,7 @@ export default function ClinicLabPage() {
   const [testOpen, setTestOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
   const [error, setError] = useState("");
+  const { can } = usePermissions();
 
   const load = async () => {
     try {
@@ -66,6 +68,10 @@ export default function ClinicLabPage() {
 
   const saveTest = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("lab.create")) {
+      setError("You don't have permission to add lab tests");
+      return;
+    }
     setError("");
     try {
       const response = await fetch("/api/clinic/lab-tests", {
@@ -94,6 +100,10 @@ export default function ClinicLabPage() {
 
   const saveResult = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!can("lab.create")) {
+      setError("You don't have permission to record lab results");
+      return;
+    }
     setError("");
     const test = tests.find((t) => t.id === resultForm.testId);
     try {
@@ -123,6 +133,10 @@ export default function ClinicLabPage() {
   };
 
   const archiveTest = async (test: LabTest) => {
+    if (!can("lab.edit")) {
+      setError("You don't have permission to delete lab tests");
+      return;
+    }
     if (!confirm(`Delete ${test.name}?`)) return;
     const response = await fetch(`/api/clinic/lab-tests/${test.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -133,6 +147,10 @@ export default function ClinicLabPage() {
   };
 
   const archiveResult = async (result: LabResult) => {
+    if (!can("lab.edit")) {
+      setError("You don't have permission to delete lab results");
+      return;
+    }
     if (!confirm("Delete this result?")) return;
     const response = await fetch(`/api/clinic/lab-results/${result.id}`, { method: "DELETE", credentials: "include" });
     if (!response.ok) {
@@ -149,9 +167,11 @@ export default function ClinicLabPage() {
           <h2 className="text-2xl font-extrabold text-slate-900">Laboratory</h2>
           <p className="text-slate-500 text-sm">Lab test catalogue and patient results.</p>
         </div>
-        <button onClick={() => (tab === "tests" ? setTestOpen(true) : setResultOpen(true))} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
-          <Plus size={16} /> {tab === "tests" ? "Add Lab Test" : "Record Result"}
-        </button>
+        {can("lab.create") && (
+          <button onClick={() => (tab === "tests" ? setTestOpen(true) : setResultOpen(true))} className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl text-sm cursor-pointer">
+            <Plus size={16} /> {tab === "tests" ? "Add Lab Test" : "Record Result"}
+          </button>
+        )}
       </div>
 
       <div className="flex gap-2 mb-4">
@@ -189,7 +209,9 @@ export default function ClinicLabPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex items-center gap-3">
                       <a href={`/api/clinic/lab-results/${result.id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600"><FileText size={14} /> PDF</a>
-                      <button onClick={() => archiveResult(result)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                      {can("lab.edit") && (
+                        <button onClick={() => archiveResult(result)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -221,7 +243,9 @@ export default function ClinicLabPage() {
                   <td className="px-4 py-3 text-sm text-slate-600">{test.referenceRange || "—"}</td>
                   <td className="px-4 py-3 text-sm text-right text-slate-600">PKR {Number(test.price).toLocaleString()}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => archiveTest(test)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    {can("lab.edit") && (
+                      <button onClick={() => archiveTest(test)} className="text-xs text-red-600 border-none bg-transparent cursor-pointer">Delete</button>
+                    )}
                   </td>
                 </tr>
               ))}

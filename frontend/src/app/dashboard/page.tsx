@@ -11,6 +11,7 @@ import {
   Building2, Home, Wrench, FileText, Contact
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
+import { usePermissions } from "@/lib/permissions";
 
 // recharts is heavy and only ever renders for a few industries — load it lazily
 // so the dashboard shell paints without waiting on the charting library.
@@ -28,6 +29,7 @@ interface StatCard {
   icon: typeof Users;
   color: string;
   href?: string;
+  permission?: string;
 }
 
 interface QuickAction {
@@ -35,6 +37,7 @@ interface QuickAction {
   href: string;
   icon: typeof Users;
   color: string;
+  permission?: string;
 }
 
 interface RevenuePoint { year: number; month: number; total: number }
@@ -87,16 +90,16 @@ const industryConfig: Record<string, {
     title: "School Dashboard",
     subtitle: "Overview of your school management system.",
     stats: (d) => [
-      { label: "Total Students", value: d.students ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/students" },
-      { label: "Active Classes", value: d.classes ?? "—", icon: BookOpen, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/classes" },
-      { label: "Attendance Today", value: d.attendance ?? "—", icon: Calendar, color: "bg-purple-50 text-purple-600", href: "/dashboard/attendance" },
-      { label: "Fee Collection", value: d.fees ? `PKR ${Number(d.fees).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/fees" },
+      { label: "Total Students", value: d.students ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/students", permission: "students.view" },
+      { label: "Active Classes", value: d.classes ?? "—", icon: BookOpen, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/classes", permission: "classes.view" },
+      { label: "Attendance Today", value: d.attendance ?? "—", icon: Calendar, color: "bg-purple-50 text-purple-600", href: "/dashboard/attendance", permission: "attendance.view" },
+      { label: "Fee Collection", value: d.fees ? `PKR ${Number(d.fees).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/fees", permission: "fees.view" },
     ],
     actions: [
-      { label: "Add Student", href: "/dashboard/students?action=new", icon: Users, color: "bg-blue-600" },
-      { label: "Mark Attendance", href: "/dashboard/attendance", icon: Calendar, color: "bg-emerald-600" },
-      { label: "Collect Fee", href: "/dashboard/fees", icon: DollarSign, color: "bg-amber-600" },
-      { label: "Manage Classes", href: "/dashboard/classes", icon: BookOpen, color: "bg-purple-600" },
+      { label: "Add Student", href: "/dashboard/students?action=new", icon: Users, color: "bg-blue-600", permission: "students.create" },
+      { label: "Mark Attendance", href: "/dashboard/attendance", icon: Calendar, color: "bg-emerald-600", permission: "attendance.mark" },
+      { label: "Collect Fee", href: "/dashboard/fees", icon: DollarSign, color: "bg-amber-600", permission: "fees.collect" },
+      { label: "Manage Classes", href: "/dashboard/classes", icon: BookOpen, color: "bg-purple-600", permission: "classes.view" },
     ],
     gettingStarted: [
       { title: "Set up classes", desc: "Create classes and sections for your school." },
@@ -109,20 +112,20 @@ const industryConfig: Record<string, {
     title: "Clinic Dashboard",
     subtitle: "Patients, appointments, pharmacy, and revenue at a glance.",
     stats: (d) => [
-      { label: "Total Patients", value: d.patients ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/clinic/patients" },
-      { label: "Today's Appointments", value: d.todayAppointments ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/clinic/appointments" },
-      { label: "Doctors", value: d.doctors ?? "—", icon: Stethoscope, color: "bg-purple-50 text-purple-600", href: "/dashboard/clinic/doctors" },
-      { label: "Revenue This Month", value: d.monthlyRevenue ? `PKR ${Number(d.monthlyRevenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/clinic/billing" },
-      { label: "Pending Invoices", value: d.pendingPayments ?? "—", icon: AlertCircle, color: "bg-red-50 text-red-600", href: "/dashboard/clinic/billing" },
-      { label: "Low Stock Medicines", value: d.lowStock ?? "—", icon: Package, color: "bg-orange-50 text-orange-600", href: "/dashboard/clinic/pharmacy" },
+      { label: "Total Patients", value: d.patients ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/clinic/patients", permission: "patients.view" },
+      { label: "Today's Appointments", value: d.todayAppointments ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/clinic/appointments", permission: "appointments.view" },
+      { label: "Doctors", value: d.doctors ?? "—", icon: Stethoscope, color: "bg-purple-50 text-purple-600", href: "/dashboard/clinic/doctors", permission: "doctors.view" },
+      { label: "Revenue This Month", value: d.monthlyRevenue ? `PKR ${Number(d.monthlyRevenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/clinic/billing", permission: "billing.view" },
+      { label: "Pending Invoices", value: d.pendingPayments ?? "—", icon: AlertCircle, color: "bg-red-50 text-red-600", href: "/dashboard/clinic/billing", permission: "billing.view" },
+      { label: "Low Stock Medicines", value: d.lowStock ?? "—", icon: Package, color: "bg-orange-50 text-orange-600", href: "/dashboard/clinic/pharmacy", permission: "pharmacy.view" },
     ],
     actions: [
-      { label: "Register Patient", href: "/dashboard/clinic/patients", icon: Users, color: "bg-blue-600" },
-      { label: "Book Appointment", href: "/dashboard/clinic/appointments", icon: Calendar, color: "bg-emerald-600" },
-      { label: "Pharmacy", href: "/dashboard/clinic/pharmacy", icon: Package, color: "bg-purple-600" },
-      { label: "Billing", href: "/dashboard/clinic/billing", icon: DollarSign, color: "bg-amber-600" },
-      { label: "Laboratory", href: "/dashboard/clinic/lab", icon: Activity, color: "bg-cyan-600" },
-      { label: "Reports", href: "/dashboard/clinic/reports", icon: BarChart3, color: "bg-slate-600" },
+      { label: "Register Patient", href: "/dashboard/clinic/patients", icon: Users, color: "bg-blue-600", permission: "patients.create" },
+      { label: "Book Appointment", href: "/dashboard/clinic/appointments", icon: Calendar, color: "bg-emerald-600", permission: "appointments.create" },
+      { label: "Pharmacy", href: "/dashboard/clinic/pharmacy", icon: Package, color: "bg-purple-600", permission: "pharmacy.view" },
+      { label: "Billing", href: "/dashboard/clinic/billing", icon: DollarSign, color: "bg-amber-600", permission: "billing.view" },
+      { label: "Laboratory", href: "/dashboard/clinic/lab", icon: Activity, color: "bg-cyan-600", permission: "lab.view" },
+      { label: "Reports", href: "/dashboard/clinic/reports", icon: BarChart3, color: "bg-slate-600", permission: "analytics.view" },
     ],
     gettingStarted: [
       { title: "Add doctors & departments", desc: "Register doctors with specialties, fees, and schedules." },
@@ -135,22 +138,22 @@ const industryConfig: Record<string, {
     title: "Gym Dashboard",
     subtitle: "Overview of your gym management system.",
     stats: (d) => [
-      { label: "Active Members", value: d.activeMembers ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/members" },
-      { label: "Today's Check-ins", value: d.todayCheckins ?? "—", icon: Activity, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/sessions" },
-      { label: "Monthly Revenue", value: d.monthlyRevenue ? `PKR ${Number(d.monthlyRevenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/billing" },
-      { label: "Pending Payments", value: d.pendingPayments ?? "—", icon: CreditCard, color: "bg-red-50 text-red-600", href: "/dashboard/billing" },
-      { label: "Expiring Soon", value: d.expiringSoon ?? "—", icon: AlertCircle, color: "bg-orange-50 text-orange-600", href: "/dashboard/members" },
-      { label: "New This Month", value: d.newThisMonth ?? "—", icon: UserPlus, color: "bg-purple-50 text-purple-600", href: "/dashboard/members" },
-      { label: "Staff Present Today", value: d.staffPresentToday ?? "—", icon: Dumbbell, color: "bg-indigo-50 text-indigo-600", href: "/dashboard/sessions" },
-      { label: "Total Members", value: d.totalMembers ?? "—", icon: Users, color: "bg-slate-50 text-slate-600", href: "/dashboard/members" },
+      { label: "Active Members", value: d.activeMembers ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/members", permission: "members.view" },
+      { label: "Today's Check-ins", value: d.todayCheckins ?? "—", icon: Activity, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/sessions", permission: "attendance.view" },
+      { label: "Monthly Revenue", value: d.monthlyRevenue ? `PKR ${Number(d.monthlyRevenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/billing", permission: "billing.view" },
+      { label: "Pending Payments", value: d.pendingPayments ?? "—", icon: CreditCard, color: "bg-red-50 text-red-600", href: "/dashboard/billing", permission: "billing.view" },
+      { label: "Expiring Soon", value: d.expiringSoon ?? "—", icon: AlertCircle, color: "bg-orange-50 text-orange-600", href: "/dashboard/members", permission: "members.view" },
+      { label: "New This Month", value: d.newThisMonth ?? "—", icon: UserPlus, color: "bg-purple-50 text-purple-600", href: "/dashboard/members", permission: "members.view" },
+      { label: "Staff Present Today", value: d.staffPresentToday ?? "—", icon: Dumbbell, color: "bg-indigo-50 text-indigo-600", href: "/dashboard/sessions", permission: "attendance.view" },
+      { label: "Total Members", value: d.totalMembers ?? "—", icon: Users, color: "bg-slate-50 text-slate-600", href: "/dashboard/members", permission: "members.view" },
     ],
     actions: [
-      { label: "Add Member", href: "/dashboard/members", icon: Users, color: "bg-blue-600" },
-      { label: "Attendance", href: "/dashboard/sessions", icon: Clock, color: "bg-emerald-600" },
-      { label: "Billing", href: "/dashboard/billing", icon: DollarSign, color: "bg-amber-600" },
-      { label: "Inventory", href: "/dashboard/inventory", icon: Package, color: "bg-rose-600" },
-      { label: "Reports", href: "/dashboard/reports", icon: BarChart3, color: "bg-cyan-600" },
-      { label: "Settings", href: "/dashboard/settings", icon: RefreshCw, color: "bg-slate-600" },
+      { label: "Add Member", href: "/dashboard/members", icon: Users, color: "bg-blue-600", permission: "members.create" },
+      { label: "Attendance", href: "/dashboard/sessions", icon: Clock, color: "bg-emerald-600", permission: "attendance.mark" },
+      { label: "Billing", href: "/dashboard/billing", icon: DollarSign, color: "bg-amber-600", permission: "billing.view" },
+      { label: "Inventory", href: "/dashboard/inventory", icon: Package, color: "bg-rose-600", permission: "inventory.view" },
+      { label: "Reports", href: "/dashboard/reports", icon: BarChart3, color: "bg-cyan-600", permission: "analytics.view" },
+      { label: "Settings", href: "/dashboard/settings", icon: RefreshCw, color: "bg-slate-600", permission: "settings.view" },
     ],
     gettingStarted: [
       { title: "Register members", desc: "Add members with membership plans." },
@@ -163,16 +166,16 @@ const industryConfig: Record<string, {
     title: "Restaurant Dashboard",
     subtitle: "Overview of your restaurant management system.",
     stats: (d) => [
-      { label: "Open Orders", value: d.openOrders ?? "—", icon: UtensilsCrossed, color: "bg-blue-50 text-blue-600", href: "/dashboard/orders" },
-      { label: "Tables Available", value: d.tables ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/tables" },
-      { label: "Menu Items", value: d.menuItems ?? "—", icon: BookOpen, color: "bg-purple-50 text-purple-600", href: "/dashboard/menu" },
-      { label: "Today's Revenue", value: d.revenue ? `PKR ${Number(d.revenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/orders" },
+      { label: "Open Orders", value: d.openOrders ?? "—", icon: UtensilsCrossed, color: "bg-blue-50 text-blue-600", href: "/dashboard/orders", permission: "orders.view" },
+      { label: "Tables Available", value: d.tables ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/tables", permission: "tables.view" },
+      { label: "Menu Items", value: d.menuItems ?? "—", icon: BookOpen, color: "bg-purple-50 text-purple-600", href: "/dashboard/menu", permission: "menu.view" },
+      { label: "Today's Revenue", value: d.revenue ? `PKR ${Number(d.revenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/orders", permission: "orders.view" },
     ],
     actions: [
-      { label: "New Order", href: "/dashboard/orders", icon: UtensilsCrossed, color: "bg-blue-600" },
-      { label: "View Tables", href: "/dashboard/tables", icon: Calendar, color: "bg-emerald-600" },
-      { label: "Manage Menu", href: "/dashboard/menu", icon: BookOpen, color: "bg-purple-600" },
-      { label: "Staff", href: "/dashboard/staff", icon: Users, color: "bg-amber-600" },
+      { label: "New Order", href: "/dashboard/orders", icon: UtensilsCrossed, color: "bg-blue-600", permission: "orders.create" },
+      { label: "View Tables", href: "/dashboard/tables", icon: Calendar, color: "bg-emerald-600", permission: "tables.view" },
+      { label: "Manage Menu", href: "/dashboard/menu", icon: BookOpen, color: "bg-purple-600", permission: "menu.create" },
+      { label: "Staff", href: "/dashboard/staff", icon: Users, color: "bg-amber-600", permission: "staff.view" },
     ],
     gettingStarted: [
       { title: "Set up menu", desc: "Create categories and add menu items." },
@@ -185,16 +188,16 @@ const industryConfig: Record<string, {
     title: "BookShop Dashboard",
     subtitle: "Overview of your bookshop management system.",
     stats: (d) => [
-      { label: "Total Books", value: d.books ?? "—", icon: BookMarked, color: "bg-blue-50 text-blue-600", href: "/dashboard/books" },
-      { label: "Sales Today", value: d.sales ?? "—", icon: TrendingUp, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/sales" },
-      { label: "Customers", value: d.customers ?? "—", icon: Users, color: "bg-purple-50 text-purple-600", href: "/dashboard/customers" },
-      { label: "Revenue Today", value: d.revenue ? `PKR ${Number(d.revenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/sales" },
+      { label: "Total Books", value: d.books ?? "—", icon: BookMarked, color: "bg-blue-50 text-blue-600", href: "/dashboard/books", permission: "inventory.view" },
+      { label: "Sales Today", value: d.sales ?? "—", icon: TrendingUp, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/sales", permission: "sales.view" },
+      { label: "Customers", value: d.customers ?? "—", icon: Users, color: "bg-purple-50 text-purple-600", href: "/dashboard/customers", permission: "customers.view" },
+      { label: "Revenue Today", value: d.revenue ? `PKR ${Number(d.revenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/sales", permission: "sales.view" },
     ],
     actions: [
-      { label: "Add Book", href: "/dashboard/books", icon: BookMarked, color: "bg-blue-600" },
-      { label: "Record Sale", href: "/dashboard/sales", icon: DollarSign, color: "bg-emerald-600" },
-      { label: "Customers", href: "/dashboard/customers", icon: Users, color: "bg-purple-600" },
-      { label: "Inventory", href: "/dashboard/inventory", icon: BookOpen, color: "bg-amber-600" },
+      { label: "Add Book", href: "/dashboard/books", icon: BookMarked, color: "bg-blue-600", permission: "inventory.create" },
+      { label: "Record Sale", href: "/dashboard/sales", icon: DollarSign, color: "bg-emerald-600", permission: "sales.create" },
+      { label: "Customers", href: "/dashboard/customers", icon: Users, color: "bg-purple-600", permission: "customers.view" },
+      { label: "Inventory", href: "/dashboard/inventory", icon: BookOpen, color: "bg-amber-600", permission: "inventory.view" },
     ],
     gettingStarted: [
       { title: "Add books", desc: "Add your book inventory with prices." },
@@ -207,16 +210,16 @@ const industryConfig: Record<string, {
     title: "Car Rental Dashboard",
     subtitle: "Manage showroom vehicles, customers, rentals, and payments.",
     stats: (d) => [
-      { label: "Total Cars", value: d.totalCars ?? "—", icon: Package, color: "bg-blue-50 text-blue-600", href: "/dashboard/car-rental/cars" },
-      { label: "Available Cars", value: d.availableCars ?? "—", icon: CheckCircle, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/car-rental/cars" },
-      { label: "Active Rentals", value: d.activeRentals ?? "—", icon: Calendar, color: "bg-amber-50 text-amber-600", href: "/dashboard/car-rental/rentals" },
-      { label: "Collected Revenue", value: d.totalCollected ? `PKR ${Number(d.totalCollected).toLocaleString()}` : "—", icon: DollarSign, color: "bg-purple-50 text-purple-600", href: "/dashboard/car-rental/payments" },
+      { label: "Total Cars", value: d.totalCars ?? "—", icon: Package, color: "bg-blue-50 text-blue-600", href: "/dashboard/car-rental/cars", permission: "cars.view" },
+      { label: "Available Cars", value: d.availableCars ?? "—", icon: CheckCircle, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/car-rental/cars", permission: "cars.view" },
+      { label: "Active Rentals", value: d.activeRentals ?? "—", icon: Calendar, color: "bg-amber-50 text-amber-600", href: "/dashboard/car-rental/rentals", permission: "rentals.view" },
+      { label: "Collected Revenue", value: d.totalCollected ? `PKR ${Number(d.totalCollected).toLocaleString()}` : "—", icon: DollarSign, color: "bg-purple-50 text-purple-600", href: "/dashboard/car-rental/payments", permission: "billing.view" },
     ],
     actions: [
-      { label: "Add Car", href: "/dashboard/car-rental/cars", icon: Package, color: "bg-blue-600" },
-      { label: "New Rental", href: "/dashboard/car-rental/rentals", icon: Calendar, color: "bg-emerald-600" },
-      { label: "Customers", href: "/dashboard/car-rental/customers", icon: Users, color: "bg-purple-600" },
-      { label: "Payments", href: "/dashboard/car-rental/payments", icon: DollarSign, color: "bg-amber-600" },
+      { label: "Add Car", href: "/dashboard/car-rental/cars", icon: Package, color: "bg-blue-600", permission: "cars.create" },
+      { label: "New Rental", href: "/dashboard/car-rental/rentals", icon: Calendar, color: "bg-emerald-600", permission: "rentals.create" },
+      { label: "Customers", href: "/dashboard/car-rental/customers", icon: Users, color: "bg-purple-600", permission: "customers.view" },
+      { label: "Payments", href: "/dashboard/car-rental/payments", icon: DollarSign, color: "bg-amber-600", permission: "billing.view" },
     ],
     gettingStarted: [
       { title: "Add showroom cars", desc: "Register vehicles, rates, pictures, and availability." },
@@ -229,18 +232,18 @@ const industryConfig: Record<string, {
     title: "Real Estate Dashboard",
     subtitle: "Overview of your properties, units, leases, rent, and operations.",
     stats: (d) => [
-      { label: "Properties", value: d.totalProperties ?? "—", icon: Building2, color: "bg-blue-50 text-blue-600", href: "/dashboard/real-estate/properties" },
-      { label: "Occupied Units", value: d.occupiedUnits !== undefined ? `${d.occupiedUnits} / ${d.totalUnits ?? 0}` : "—", icon: Home, color: "bg-purple-50 text-purple-600", href: "/dashboard/real-estate/units" },
-      { label: "Occupancy Rate", value: d.occupancyRate !== undefined ? `${d.occupancyRate}%` : "—", icon: CheckCircle, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/real-estate/units" },
-      { label: "Collected (Month)", value: d.collectedThisMonth ? `PKR ${Number(d.collectedThisMonth).toLocaleString()}` : "—", icon: DollarSign, color: "bg-green-50 text-green-700", href: "/dashboard/real-estate/payments" },
-      { label: "Overdue Rent", value: d.overdueRent ? `PKR ${Number(d.overdueRent).toLocaleString()}` : "PKR 0", icon: AlertCircle, color: "bg-red-50 text-red-600", href: "/dashboard/real-estate/leases" },
-      { label: "Open Maintenance", value: d.openMaintenance ?? "—", icon: Wrench, color: "bg-amber-50 text-amber-600", href: "/dashboard/real-estate/maintenance" },
+      { label: "Properties", value: d.totalProperties ?? "—", icon: Building2, color: "bg-blue-50 text-blue-600", href: "/dashboard/real-estate/properties", permission: "properties.view" },
+      { label: "Occupied Units", value: d.occupiedUnits !== undefined ? `${d.occupiedUnits} / ${d.totalUnits ?? 0}` : "—", icon: Home, color: "bg-purple-50 text-purple-600", href: "/dashboard/real-estate/units", permission: "units.view" },
+      { label: "Occupancy Rate", value: d.occupancyRate !== undefined ? `${d.occupancyRate}%` : "—", icon: CheckCircle, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/real-estate/units", permission: "units.view" },
+      { label: "Collected (Month)", value: d.collectedThisMonth ? `PKR ${Number(d.collectedThisMonth).toLocaleString()}` : "—", icon: DollarSign, color: "bg-green-50 text-green-700", href: "/dashboard/real-estate/payments", permission: "billing.view" },
+      { label: "Overdue Rent", value: d.overdueRent ? `PKR ${Number(d.overdueRent).toLocaleString()}` : "PKR 0", icon: AlertCircle, color: "bg-red-50 text-red-600", href: "/dashboard/real-estate/leases", permission: "leases.view" },
+      { label: "Open Maintenance", value: d.openMaintenance ?? "—", icon: Wrench, color: "bg-amber-50 text-amber-600", href: "/dashboard/real-estate/maintenance", permission: "maintenance.view" },
     ],
     actions: [
-      { label: "Add Property", href: "/dashboard/real-estate/properties", icon: Building2, color: "bg-blue-600" },
-      { label: "New Lease", href: "/dashboard/real-estate/leases", icon: FileText, color: "bg-emerald-600" },
-      { label: "Collect Rent", href: "/dashboard/real-estate/payments", icon: DollarSign, color: "bg-purple-600" },
-      { label: "Reports", href: "/dashboard/real-estate/reports", icon: BarChart3, color: "bg-amber-600" },
+      { label: "Add Property", href: "/dashboard/real-estate/properties", icon: Building2, color: "bg-blue-600", permission: "properties.create" },
+      { label: "New Lease", href: "/dashboard/real-estate/leases", icon: FileText, color: "bg-emerald-600", permission: "leases.create" },
+      { label: "Collect Rent", href: "/dashboard/real-estate/payments", icon: DollarSign, color: "bg-purple-600", permission: "billing.create" },
+      { label: "Reports", href: "/dashboard/real-estate/reports", icon: BarChart3, color: "bg-amber-600", permission: "analytics.view" },
     ],
     gettingStarted: [
       { title: "Add properties", desc: "Register buildings, addresses, and portfolio details." },
@@ -253,20 +256,20 @@ const industryConfig: Record<string, {
     title: "Salon Dashboard",
     subtitle: "Appointments, services, staff, and revenue at a glance.",
     stats: (d) => [
-      { label: "Customers", value: d.customers ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/salon/customers" },
-      { label: "Today's Appointments", value: d.todayAppointments ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/salon/appointments" },
-      { label: "Revenue This Month", value: d.monthlyRevenue ? `PKR ${Number(d.monthlyRevenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/salon/billing" },
-      { label: "Pending Payments", value: d.pendingPayments ?? "—", icon: CreditCard, color: "bg-red-50 text-red-600", href: "/dashboard/salon/billing" },
-      { label: "Staff", value: d.staff ?? "—", icon: Contact, color: "bg-purple-50 text-purple-600", href: "/dashboard/salon/staff" },
-      { label: "Low Stock Items", value: d.lowStock ?? "—", icon: AlertCircle, color: "bg-orange-50 text-orange-600", href: "/dashboard/salon/products" },
+      { label: "Customers", value: d.customers ?? "—", icon: Users, color: "bg-blue-50 text-blue-600", href: "/dashboard/salon/customers", permission: "customers.view" },
+      { label: "Today's Appointments", value: d.todayAppointments ?? "—", icon: Calendar, color: "bg-emerald-50 text-emerald-600", href: "/dashboard/salon/appointments", permission: "appointments.view" },
+      { label: "Revenue This Month", value: d.monthlyRevenue ? `PKR ${Number(d.monthlyRevenue).toLocaleString()}` : "—", icon: DollarSign, color: "bg-amber-50 text-amber-600", href: "/dashboard/salon/billing", permission: "billing.view" },
+      { label: "Pending Payments", value: d.pendingPayments ?? "—", icon: CreditCard, color: "bg-red-50 text-red-600", href: "/dashboard/salon/billing", permission: "billing.view" },
+      { label: "Staff", value: d.staff ?? "—", icon: Contact, color: "bg-purple-50 text-purple-600", href: "/dashboard/salon/staff", permission: "staff.view" },
+      { label: "Low Stock Items", value: d.lowStock ?? "—", icon: AlertCircle, color: "bg-orange-50 text-orange-600", href: "/dashboard/salon/products", permission: "inventory.view" },
     ],
     actions: [
-      { label: "New Appointment", href: "/dashboard/salon/appointments", icon: Calendar, color: "bg-blue-600" },
-      { label: "Add Customer", href: "/dashboard/salon/customers", icon: Users, color: "bg-emerald-600" },
-      { label: "Billing", href: "/dashboard/salon/billing", icon: DollarSign, color: "bg-amber-600" },
-      { label: "Staff", href: "/dashboard/salon/staff", icon: Contact, color: "bg-purple-600" },
-      { label: "Expenses", href: "/dashboard/salon/expenses", icon: CreditCard, color: "bg-rose-600" },
-      { label: "Reports", href: "/dashboard/salon/reports", icon: BarChart3, color: "bg-cyan-600" },
+      { label: "New Appointment", href: "/dashboard/salon/appointments", icon: Calendar, color: "bg-blue-600", permission: "appointments.create" },
+      { label: "Add Customer", href: "/dashboard/salon/customers", icon: Users, color: "bg-emerald-600", permission: "customers.create" },
+      { label: "Billing", href: "/dashboard/salon/billing", icon: DollarSign, color: "bg-amber-600", permission: "billing.view" },
+      { label: "Staff", href: "/dashboard/salon/staff", icon: Contact, color: "bg-purple-600", permission: "staff.view" },
+      { label: "Expenses", href: "/dashboard/salon/expenses", icon: CreditCard, color: "bg-rose-600", permission: "expenses.view" },
+      { label: "Reports", href: "/dashboard/salon/reports", icon: BarChart3, color: "bg-cyan-600", permission: "analytics.view" },
     ],
     gettingStarted: [
       { title: "Add your services", desc: "Build a service catalogue with prices and durations." },
@@ -278,6 +281,7 @@ const industryConfig: Record<string, {
 };
 
 export default function DashboardPage() {
+  const { can } = usePermissions();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [stats, setStats] = useState<Record<string, number>>({});
   const [gymData, setGymData] = useState<GymData | null>(null);
@@ -436,7 +440,8 @@ export default function DashboardPage() {
   }
   const industry = userData?.tenant?.industry || "SCHOOL";
   const config = industryConfig[industry] || industryConfig.SCHOOL;
-  const statCards = config.stats(stats);
+  const statCards = config.stats(stats).filter((stat) => can(stat.permission));
+  const quickActions = config.actions.filter((action) => can(action.permission));
   const isGym = industry === "GYM";
   const expiringSoonMembers = gymData?.dashboard?.expiringSoonMembers ?? [];
 
@@ -472,7 +477,7 @@ export default function DashboardPage() {
       <InsightsCard days={30} />
 
       {/* Quick Actions */}
-      <div className={`grid gap-4 mb-8 ${isGym ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>        {config.actions.map((action) => (          <Link
+      <div className={`grid gap-4 mb-8 ${isGym ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-4"}`}>        {quickActions.map((action) => (          <Link
             key={action.label}
             href={action.href}
             className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-md transition-all group no-underline"
